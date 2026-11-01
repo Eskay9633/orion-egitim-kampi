@@ -71,8 +71,9 @@ jobs:
         run: pip install pyarrow
       - name: Topla + lisans kapısı + parçala
         working-directory: core-model
-        run: python -m orion_core.translate_data collect --out ../work/ceviri --pairs ${{ steps.cfg.outputs.pairs }} --shards ${{ steps.cfg.outputs.shards }} \
-          --sources ${{ steps.cfg.outputs.sources }}
+        run: |
+          python -m orion_core.translate_data collect --out ../work/ceviri --pairs ${{ steps.cfg.outputs.pairs }} \
+            --shards ${{ steps.cfg.outputs.shards }} --sources ${{ steps.cfg.outputs.sources }}
       - uses: actions/upload-artifact@v4
         with:
           name: ceviri-parcalar
