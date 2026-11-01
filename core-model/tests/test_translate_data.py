@@ -253,3 +253,107 @@ def test_train_exam_best(tmp_path, monkeypatch):
     assert len((tmp_path / "run" / "exam.jsonl").read_text().splitlines()) == 2
     m = chat.export_chat(tmp_path / "run", data, tmp_path / "exp-best", ckpt_name="best.pt")
     assert m["step"] == st["best_exam"]["step"]
+
+
+# ------------------------------------------------------------------ GSM8K (insan yazımı matematik, MIT, yalnız train)
+
+MIT_TEXT = ("MIT License\n\nCopyright (c) 2021 OpenAI\n\nPermission is hereby granted, free of charge, to any person "
+            "obtaining a copy of this software...\n")
+GSM_ROWS = [
+    {"question": "Natalia sold clips to 48 of her friends in April, and then she sold half as many clips in May. "
+                 "How many clips did Natalia sell altogether in April and May?",
+     "answer": "Natalia sold 48/2 = <<48/2=24>>24 clips in May.\nNatalia sold 48+24 = <<48+24=72>>72 clips altogether "
+               "in April and May.\n#### 72"},
+    {"question": "Weng earns $12 an hour for babysitting. Yesterday, she just did 50 minutes of babysitting. How much did she earn?",
+     "answer": "Weng earns 12/60 = $<<12/60=0.2>>0.2 per minute.\nWorking 50 minutes, she earned 0.2 x 50 = $<<0.2*50=10>>10.\n#### 10"},
+]
+
+
+class GsmHub(FakeHub):
+    def __init__(self, root, rows=GSM_ROWS, license_text=MIT_TEXT, sha=None):
+        super().__init__(root)
+        self.rows, self.lt, self.sha = rows, license_text, sha
+        self.fetched = []
+
+    def text(self, url):
+        assert url == td.SOURCES["gsm8k"]["license_url"]
+        return self.lt
+
+    def fetch(self, url, sha256):
+        self.fetched.append(url)
+        if self.sha is not None and self.sha != sha256:
+            raise RuntimeError("sha256 tutmadı")
+        p = self.root / "gsm" / "train.jsonl"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("\n".join(json.dumps(r) for r in self.rows))
+        return p
+
+
+def test_gsm8k_source_train_only():
+    spec = td.SOURCES["gsm8k"]
+    assert spec["url"].endswith("/grade_school_math/data/train.jsonl") and spec["license"] == "mit"
+    assert "test" not in spec["url"] and "socratic" not in spec["url"]
+    assert not any("test" in str(v) for k, v in spec.items() if k in ("url", "pattern"))
+    assert len(spec["sha256"]) == 64
+
+
+def test_gsm8k_parse_and_license(tmp_path):
+    (q, a), = td.parse_gsm8k(GSM_ROWS[:1])[0]
+    steps, final = a.rsplit(td.MATH_SEP, 1)
+    assert "<<" not in steps and ">>" not in steps and final == "72" and "48/2 = 24" in steps
+    (q2, a2), = td.parse_gsm8k(GSM_ROWS[1:])[0]
+    assert "12 lira" in q2 and "$" not in q2 + a2 and "0.2 × 50 = 10 lira" in a2
+    assert td.check_source_license(GsmHub(tmp_path), "gsm8k")["license"] == "mit"
+    with pytest.raises(td.LicenseError, match="LİSANS KAPISI"):
+        td.check_source_license(GsmHub(tmp_path, license_text="Apache License\nVersion 2.0"), "gsm8k")
+    with pytest.raises(td.LicenseError):
+        td.collect(["gsm8k"], 10, tmp_path / "c", hub=GsmHub(tmp_path, license_text="All rights reserved"))
+    assert not (tmp_path / "c" / "shard-00.jsonl").exists()
+
+
+GSM_TR = {
+    "Natalia sold clips to 48 of her friends in April, and then she sold half as many clips in May.":
+        "Natalia nisan ayında 48 arkadaşına toka sattı, mayıs ayında ise bunun yarısı kadar toka sattı.",
+    "How many clips did Natalia sell altogether in April and May?":
+        "Natalia nisan ve mayıs aylarında toplam kaç toka sattı?",
+    "Natalia sold 48/2 = 24 clips in May.": "Natalia mayıs ayında 48/2 = 24 toka sattı.",
+    "Natalia sold 48+24 = 72 clips altogether in April and May.": "Natalia nisan ve mayıs aylarında toplam 48+24 = 72 toka sattı.",
+    "Weng earns 12 lira an hour for babysitting.": "Weng çocuk bakıcılığından saatte 12 lira kazanıyor.",
+    "Yesterday, she just did 50 minutes of babysitting.": "Dün sadece 50 dakika çocuk baktı.",
+    "How much did she earn?": "Ne kadar kazandı?",
+    "Weng earns 12/60 = 0.2 lira per minute.": "Weng dakikada 12/60 = 0,2 lira kazanıyor.",
+    "Working 50 minutes, she earned 0.2 × 50 = 10 lira.": "50 dakika çalışarak 0,2 × 50 = 19 lira kazandı.",  # sayı bozuk
+}
+
+
+def test_gsm8k_collect_translate_merge_keeps_previous(tmp_path):
+    hub = GsmHub(tmp_path / "hf")
+    st = td.collect(["gsm8k"], 100, tmp_path / "c", n_shards=1, hub=hub)
+    assert st["diyalog"] == 2 and all("test" not in u for u in hub.fetched)
+    rows = [json.loads(x) for x in (tmp_path / "c" / "shard-00.jsonl").read_text().splitlines()]
+    assert {r["final"] for r in rows} == {"72", "10"} and all(td.MATH_SEP not in r["turns"][0][1] for r in rows)
+    o = tmp_path / "o" / "tr-00.jsonl"
+    ts = td.translate_shard(tmp_path / "c" / "shard-00.jsonl", o, lambda xs: [GSM_TR.get(x, x) for x in xs], None, {})
+    assert ts["atilan"].get("sayi_bozuldu") == 1  # 10 → 19: yanlış sayı öğretilmez
+    prev = tmp_path / "prev.jsonl.gz"
+    old = {"id": "dolly-abc", "q": "Merhaba nasılsın?", "a": "İyiyim, sağ ol.", "source": "databricks/databricks-dolly-15k",
+           "license": "cc-by-sa-3.0", "training_allowed": True, "attribution": "x"}
+    bad = dict(old, id="x-1", training_allowed=False)
+    with gzip.open(prev, "wt", encoding="utf-8") as f:
+        f.write(json.dumps(old, ensure_ascii=False) + "\n" + json.dumps(bad) + "\n")
+    ms = td.merge([o], tmp_path / "rel", collect_stats=tmp_path / "c" / "collect.json", prev=prev)
+    out = [json.loads(x) for x in gzip.open(tmp_path / "rel" / "ceviri.jsonl.gz", "rt", encoding="utf-8")]
+    assert ms["onceki"]["satir"] == 1 and ms["yeni"] == 1 and len(out) == 2
+    g = next(r for r in out if r["source"] == "openai/grade-school-math")
+    assert g["a"].endswith("\nSonuç: 72.") and "48+24 = 72" in g["a"] and g["training_allowed"] is True
+    assert g["license"] == "mit" and "GSM8K" in g["attribution"]
+    assert "GSM8K" in (tmp_path / "rel" / "LISANS-ATIF.md").read_text()
+    # sohbet beyni bu satırı alır (Türkçe süzgeç + sınav dışı)
+    texts, cs = chat.extra_dialogues(str(tmp_path / "rel" / "ceviri.jsonl.gz"), tmp_path / "x")
+    assert cs["ceviri_cift"] == 2 and any("Sonuç: 72." in t for t in texts)
+
+
+def test_numbers_kept():
+    assert td.numbers_kept("1,000 and 0.2", "1.000 ve 0,2")
+    assert not td.numbers_kept("48+24 = 72", "48+24 = 27")
+    assert td.final_tr("2.5") == "2,5"

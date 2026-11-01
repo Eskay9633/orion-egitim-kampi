@@ -235,8 +235,8 @@ def test_personality_new_rules():
 
 
 def test_shares_and_weights_unchanged():
-    assert dialogs.MIX == {"personality": 0.35, "memory": 0.10, "principled": 0.10, "reasoning": 0.35, "route": 0.05,
-                           "legacy": 0.05}
+    assert dialogs.MIX == {"reasoning": 0.30, "thinkers": 0.20, "personality": 0.25, "memory": 0.10, "principled": 0.10,
+                           "route": 0.03, "legacy": 0.02}
     assert set(NEW_P) <= set(P.WEIGHTS) and set(NEW_R) <= set(R.WEIGHTS)
     assert abs(sum(P.WEIGHTS.values()) - 1) < 1e-9 and abs(sum(R.WEIGHTS.values()) - 1) < 1e-9
 

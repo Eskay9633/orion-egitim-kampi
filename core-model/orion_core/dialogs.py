@@ -499,9 +499,14 @@ def _variants(q: str, rng: random.Random) -> str:
 # akıl yürütme 0.15 (çeşit arttı), hafıza 0.10, bilgi yönlendirme 0.05, eski karışım 0.05
 # Tur 25 (sahibin kararı): Orion ayrı bir varlık; öncelik akıl yürütme/problem çözme ve kendi kişiliği. İlke kolu
 # yalnızca temel davranışlar (onay kartı, gizli bilgi kuralları uygulama kodunda zaten zorunlu).
-MIX = {"personality": 0.35, "memory": 0.10, "principled": 0.10, "reasoning": 0.35, "route": 0.05, "legacy": 0.05}
+# Tur 26 (sahibinin yönü: zekâ büyümesi): şablon akıl yürütme ezberleniyordu; yeni "thinkers" kolu (thinkers.py):
+# Orion problemleri sekiz düşünürün yöntemiyle çözer (Cezerî, İbn Sina, Farabi, Gazali, Ali Kuşçu, Bîrûnî, Hârezmî,
+# İbnü'l-Heysem). Akıl yürütme 0.30, düşünürler 0.20, kişilik 0.25, hafıza 0.10, ilke 0.10, yönlendirme 0.03, eski 0.02.
+MIX = {"reasoning": 0.30, "thinkers": 0.20, "personality": 0.25, "memory": 0.10, "principled": 0.10, "route": 0.03,
+       "legacy": 0.02}
 PRINCIPLED_SHARE = MIX["principled"]
-_MIX_PREFIX = {"personality": "kisilik:", "memory": "hafiza:", "reasoning": "akil:", "route": "bilgiyol:"}
+_MIX_PREFIX = {"personality": "kisilik:", "memory": "hafiza:", "reasoning": "akil:", "route": "bilgiyol:",
+               "thinkers": "dusunur:"}
 
 
 def mix_shares(stats: dict) -> dict:
@@ -528,7 +533,7 @@ def persona_dialogues(n: int, seed: int = 7, stats: dict | None = None) -> list[
     Eski karışım eski kurala (is_exam_question + near_cogexam) bağlı kalır.
     n: üretilecek diyalog sayısı (tam olarak n). stats verilirse kategori sayıları yazılır (eski karışım: "legacy",
     kişilik "kisilik:*", hafıza "hafiza:*", akıl "akil:*", ilke kolu kendi kategori adlarıyla)."""
-    from . import knowledge_route, memory_notes, personality, principled, reasoning
+    from . import knowledge_route, memory_notes, personality, principled, reasoning, thinkers
     from .cogexam import near_cogexam  # bilişsel sınavın (cognitive-exam.jsonl) yakın biçimleri de eğitime girmez
     rng = random.Random(seed)
     out: list[str] = []
@@ -556,6 +561,11 @@ def persona_dialogues(n: int, seed: int = 7, stats: dict | None = None) -> list[
             cat, turns = reasoning.reasoning_turns(rng)
             if _turns_ok(turns):
                 add("akil:" + cat, "\n".join(format_dialog(q, a) for q, a in turns))
+            continue
+        if branch == "thinkers":
+            cat, turns = thinkers.thinker_turns(rng)
+            if _turns_ok(turns):
+                add("dusunur:" + cat, "\n".join(format_dialog(q, a) for q, a in turns))
             continue
         if branch == "route":
             cat, turns = knowledge_route.route_turns(rng)

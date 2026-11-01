@@ -11,7 +11,12 @@ Kaynaklar (lisanslar ÇALIŞMA ANINDA Hugging Face API'sinden okunur; beklenenle
   databricks/databricks-dolly-15k    cc-by-sa-3.0 insan yazımı; çevirisi de CC BY-SA 3.0 kalır (türev eser)
   Anthropic/hh-rlhf (helpful-base)   mit          Anthropic'in yayınladığı; yalnız "chosen", red-team/harmless YOK
   nvidia/HelpSteer2                  cc-by-4.0    her soru için en yüksek "helpfulness" cevabı
-OpenAI üretimi veri kullanılmaz. Çevirmen: Helsinki-NLP/opus-mt-tc-big-en-tr (lisansı da çalışma anında denetlenir);
+  openai/grade-school-math (GSM8K)   mit          insan yazımı matematik problemleri; YALNIZ train.jsonl (GitHub'daki
+                                                  resmî depo, sha256 sabit). test.jsonl ve "socratic" (model üretimi alt
+                                                  sorular) ASLA alınmaz. Lisans çalışma anında depodaki LICENSE'tan okunur.
+                                                  Cevap: adım adım çözüm ("<<...>>" hesap notları atılır) + çeviriden SONRA
+                                                  eklenen "Sonuç: N." cümlesi; çeviri sayıları bozduysa satır atılır.
+Model (ChatGPT vb.) üretimi veri kullanılmaz (GSM8K problemleri ve çözümleri insan yazımıdır; OpenAI yayınladı). Çevirmen: Helsinki-NLP/opus-mt-tc-big-en-tr (lisansı da çalışma anında denetlenir);
 gidiş-dönüş denetimi: Helsinki-NLP/opus-mt-tc-big-tr-en.
 
 Satır biçimi (çıktı jsonl): {"id","q","a","turns"?,"source","license","translator","translator_license",
@@ -47,6 +52,8 @@ MT_MODEL = "Helsinki-NLP/opus-mt-tc-big-en-tr"
 BT_MODEL = "Helsinki-NLP/opus-mt-tc-big-tr-en"
 MT_LICENSE = "cc-by-4.0"  # beklenen; çalışma anında model kartından doğrulanır
 
+GSM8K_RAW = "https://raw.githubusercontent.com/openai/grade-school-math/master/"
+
 # kaynak adı → depo, beklenen lisans, dosya deseni, ayrıştırıcı adı, atıf
 SOURCES: dict[str, dict] = {
     "oasst2": dict(repo="OpenAssistant/oasst2", license="apache-2.0",
@@ -62,7 +69,16 @@ SOURCES: dict[str, dict] = {
     "helpsteer2": dict(repo="nvidia/HelpSteer2", license="cc-by-4.0",
                        pattern=r"^(train|validation)\.jsonl\.gz$", parser="helpsteer2",
                        attribution="nvidia/HelpSteer2 (NVIDIA, CC BY 4.0), en yüksek yararlılık puanlı cevap"),
+    # GSM8K: Hugging Face (openai/gsm8k) bu ortamdan erişilemedi; resmî GitHub deposu kullanılır. Yalnız TRAIN.
+    "gsm8k": dict(repo="openai/grade-school-math", license="mit", host="github", parser="gsm8k", math=True,
+                  url=GSM8K_RAW + "grade_school_math/data/train.jsonl",
+                  sha256="17f347dc51477c50d4efb83959dbb7c56297aba886e5544ee2aaed3024813465",
+                  license_url=GSM8K_RAW + "LICENSE",
+                  attribution="openai/grade-school-math GSM8K train (Copyright (c) 2021 OpenAI, MIT); "
+                              "insan yazımı problemler, Türkçe makine çevirisi"),
 }
+# GSM8K test bölümü (1319 problem) hiçbir koşulda indirilmez/eğitilmez; testler bu adı kaynak tanımlarında arar.
+GSM8K_TEST_FILES = ("test.jsonl", "test_socratic.jsonl", "train_socratic.jsonl")
 
 
 class LicenseError(RuntimeError):
@@ -97,6 +113,23 @@ class HfHub:
             tmp.replace(local)
         return local
 
+    def text(self, url: str) -> str:
+        return urllib.request.urlopen(url, timeout=60).read().decode("utf-8")
+
+    def fetch(self, url: str, sha256: str) -> Path:
+        """Düz adresten indirir; sha256 tutmazsa hata (kaynak değişmiş: elle incelenmeden kullanılmaz)."""
+        local = self.cache / "url" / hashlib.sha1(url.encode()).hexdigest()[:16] / url.rsplit("/", 1)[-1]
+        local.parent.mkdir(parents=True, exist_ok=True)
+        if not local.exists():
+            print(f"indiriliyor: {url}", flush=True)
+            tmp = local.with_suffix(local.suffix + ".part")
+            urllib.request.urlretrieve(url, tmp)
+            tmp.replace(local)
+        got = hashlib.sha256(local.read_bytes()).hexdigest()
+        if got != sha256:
+            raise RuntimeError(f"{url}: sha256 {got[:12]}…, beklenen {sha256[:12]}… (dosya değişmiş)")
+        return local
+
 
 def license_of(info: dict) -> str | None:
     """API yanıtından lisans: önce cardData.license, yoksa "license:..." etiketi. Küçük harfe çevrilir."""
@@ -125,6 +158,32 @@ def check_license(hub, repo: str, expected: str, kind: str = "datasets") -> dict
         raise LicenseError(f"LİSANS KAPISI: {repo} lisansı '{lic}', beklenen '{expected}'; lisans değişmiş olabilir, "
                            f"elle incelenmeden devam edilmez.")
     return {"repo": repo, "license": lic, "sha": info.get("sha"), "checked_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+
+
+def license_of_text(text: str) -> str | None:
+    """Depo LICENSE metninden SPDX adı (yalnız tanınan kalıp: ilk satır "MIT License" + izin cümlesi)."""
+    lines = [x.strip() for x in (text or "").splitlines() if x.strip()]
+    if lines and lines[0] == "MIT License" and "Permission is hereby granted, free of charge" in text:
+        return "mit"
+    return None
+
+
+def check_source_license(hub, name: str) -> dict:
+    """Kaynağın lisans kapısı: Hugging Face kaynakları API'den, GitHub kaynakları depodaki LICENSE dosyasından."""
+    spec = SOURCES[name]
+    if spec.get("host") != "github":
+        return check_license(hub, spec["repo"], spec["license"])
+    try:
+        text = hub.text(spec["license_url"])
+    except Exception as e:
+        raise LicenseError(f"LİSANS KAPISI: {spec['repo']} lisansı okunamadı ({type(e).__name__}: {e}); çeviri durduruldu.")
+    lic = license_of_text(text)
+    if lic is None or lic not in LICENSE_ALLOW:
+        raise LicenseError(f"LİSANS KAPISI: {spec['repo']} LICENSE dosyası tanınmadı; çeviri durduruldu.")
+    if lic != spec["license"]:
+        raise LicenseError(f"LİSANS KAPISI: {spec['repo']} lisansı '{lic}', beklenen '{spec['license']}'.")
+    return {"repo": spec["repo"], "license": lic, "sha": hashlib.sha256(text.encode()).hexdigest()[:16],
+            "checked_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "kaynak_adres": spec["license_url"]}
 
 
 # --------------------------------------------------------------------------- İngilizce süzgeçler
@@ -301,11 +360,47 @@ def parse_helpsteer2(rows: Iterable[dict]) -> list[list[tuple[str, str]]]:
     return [[(p, r.get("response") or "")] for p, r in best.items()]
 
 
-PARSERS = {"oasst2": parse_oasst2, "dolly": parse_dolly, "hh": parse_hh, "helpsteer2": parse_helpsteer2}
+CALC_RE = re.compile(r"<<[^>]*>>")
+DOLLAR_RE = re.compile(r"\$\s?(\d[\d,]*(?:\.\d+)?)")
+FINAL_RE = re.compile(r"\n?####\s*(.+?)\s*$")
+MATH_SEP = "\n#### "
+
+
+def gsm8k_text(s: str) -> str:
+    """Hesap notlarını (<<...>>) atar; "$12" → "12 lira" (çeviri ve ABD süzgeci için); çarpma "x/*" → "×"."""
+    s = CALC_RE.sub("", s or "")
+    s = DOLLAR_RE.sub(r"\1 lira", s)
+    s = re.sub(r"(?<=\d)\s*[x*]\s*(?=\d)", " × ", s)
+    return re.sub(r"[ \t]+", " ", s).strip()
+
+
+def parse_gsm8k(rows: Iterable[dict]) -> list[list[tuple[str, str]]]:
+    """GSM8K train: (soru, adımlar + "\n#### N"). Son cevap ayrı tutulur; collect ayırıp "final" alanına koyar."""
+    out = []
+    for r in rows:
+        q, a = r.get("question") or "", r.get("answer") or ""
+        m = FINAL_RE.search(a)
+        if not m:
+            continue
+        final = m.group(1).replace(",", "").replace("$", "").strip()
+        if not re.fullmatch(r"-?\d+(\.\d+)?", final):
+            continue
+        steps = gsm8k_text(a[:m.start()])
+        if not steps:
+            continue
+        out.append([(gsm8k_text(q), steps + MATH_SEP + final)])
+    return out
+
+
+PARSERS = {"oasst2": parse_oasst2, "dolly": parse_dolly, "hh": parse_hh, "helpsteer2": parse_helpsteer2,
+           "gsm8k": parse_gsm8k}
 
 
 def load_source(hub, name: str) -> list[list[tuple[str, str]]]:
     spec = SOURCES[name]
+    if spec.get("host") == "github":
+        assert not spec["url"].endswith(GSM8K_TEST_FILES), "test bölümü eğitim verisine giremez"
+        return PARSERS[spec["parser"]](_read_jsonl(hub.fetch(spec["url"], spec["sha256"])))
     pat = re.compile(spec["pattern"])
     paths = [p for p in hub.files(spec["repo"]) if pat.search(p)]
     if not paths:
@@ -337,6 +432,32 @@ def clean_dialog(turns: list[tuple[str, str]], stats: Counter) -> list[tuple[str
     return kept
 
 
+def math_reject(q: str, steps: str) -> str | None:
+    """Matematik kaynağı süzgeci: işlem/sayı ve birimler serbest; uzunluk, dil, adres, kimlik denetlenir.
+    Çözüm KESİLMEZ (yarım çözüm + sonuç yanlış öğretir): 120 sözcüğü aşan atılır."""
+    if not (10 <= len(q) <= 600) or len(words(q)) > 110:
+        return "soru_uzunluk"
+    if len(steps.split()) > 120:
+        return "cevap_uzun"
+    if not looks_english(q) or not looks_english(steps):
+        return "ingilizce_degil"
+    if URL_RE.search(q) or URL_RE.search(steps):
+        return "adres"
+    if IDENTITY_EN.search(q) or IDENTITY_EN.search(steps):
+        return "model_kimligi"
+    return None
+
+
+def clean_math(turns: list[tuple[str, str]], stats: Counter) -> tuple[list[tuple[str, str]], str | None]:
+    q, a = turns[0]
+    steps, final = a.rsplit(MATH_SEP, 1)
+    why = math_reject(q, steps)
+    if why:
+        stats[why] += 1
+        return [], None
+    return [(q.strip(), steps.strip())], final
+
+
 def norm_key(s: str) -> str:
     return re.sub(r"\W+", " ", s.lower()).strip()
 
@@ -347,7 +468,10 @@ def collect(sources: list[str], limit: int, out: Path, n_shards: int = 3, hub=No
     out.mkdir(parents=True, exist_ok=True)
     hub = hub or HfHub(out / "hf")
     # Önce TÜM lisanslar (veri seti + çevirmen + geri çevirmen); biri bile uymazsa hiçbir şey indirilmez
-    licenses = {name: check_license(hub, SOURCES[name]["repo"], SOURCES[name]["license"]) for name in sources}
+    unknown = [n for n in sources if n not in SOURCES]
+    if unknown:
+        raise RuntimeError(f"bilinmeyen kaynak: {unknown} (geçerli: {', '.join(SOURCES)})")
+    licenses = {name: check_source_license(hub, name) for name in sources}
     licenses["translator"] = check_license(hub, MT_MODEL, MT_LICENSE, kind="models")
     licenses["backtranslator"] = check_license(hub, BT_MODEL, MT_LICENSE, kind="models")
     stats: dict = {"kaynak": {}, "atilan": {}}
@@ -363,7 +487,11 @@ def collect(sources: list[str], limit: int, out: Path, n_shards: int = 3, hub=No
             continue
         kept = 0
         for turns in raw:
-            t = clean_dialog(turns, drop)
+            final = None
+            if SOURCES[name].get("math"):
+                t, final = clean_math(turns, drop)
+            else:
+                t = clean_dialog(turns, drop)
             if not t:
                 continue
             k1, kp = norm_key(t[0][0]), norm_key(t[0][0] + " || " + t[0][1])
@@ -375,6 +503,8 @@ def collect(sources: list[str], limit: int, out: Path, n_shards: int = 3, hub=No
             did = name + "-" + hashlib.sha1(kp.encode()).hexdigest()[:12]
             dialogs.append({"id": did, "source": SOURCES[name]["repo"], "license": licenses[name]["license"],
                             "attribution": SOURCES[name]["attribution"], "turns": [list(x) for x in t]})
+            if final is not None:
+                dialogs[-1]["final"] = final
             kept += 1
         stats["kaynak"][name] = {"ham": len(raw), "kalan": kept}
         stats["atilan"][name] = dict(drop)
@@ -440,12 +570,15 @@ def tr_ratio(s: str) -> float:
     return sum(x in TR_STOP or any(c in TR_CHARS for c in x) for x in w) / len(w)
 
 
+SHARED_WORDS = {"lira"}  # iki dilde aynı yazılan (GSM8K "$12" → "12 lira"): kopya sayılmaz
+
+
 def untranslated_ratio(src: str, tgt: str) -> float:
     """Çeviride kalan İngilizce: İngilizce işlev sözcükleri + kaynaktan aynen kopyalanmış uzun sözcükler oranı."""
     tw = [x.lower() for x in words(tgt)]
     if not tw:
         return 1.0
-    sw = {x.lower() for x in words(src) if len(x) >= 4}
+    sw = {x.lower() for x in words(src) if len(x) >= 4} - SHARED_WORDS
     stop = sum(x in EN_STOP for x in tw)
     copied = sum(len(x) >= 4 and x.isascii() and x in sw for x in tw)
     return max(stop / len(tw), copied / len(tw) * 0.5)  # özel adlar kopyalanır: kopya yarım ağırlıklı
@@ -479,6 +612,24 @@ def tr_reject(src: str, tgt: str) -> str | None:
     if n >= 5 and tr_ratio(tgt) < 0.15:
         return "turkce_degil"
     return None
+
+
+NUM_RE = re.compile(r"\d+(?:[.,]\d+)*")
+
+
+def _nums(s: str) -> set[str]:
+    # ayraçlar atılır: "1,000" (en) = "1.000" (tr), "0.2" (en) = "0,2" (tr)
+    return {re.sub(r"[.,]", "", x) for x in NUM_RE.findall(s or "")}
+
+
+def numbers_kept(src: str, tgt: str) -> bool:
+    """Kaynaktaki her sayı çeviride de var mı (matematik satırları: bozuk sayı yanlış öğretir)."""
+    return _nums(src) <= _nums(tgt)
+
+
+def final_tr(final: str) -> str:
+    """GSM8K son cevabı Türkçe yazımla: ondalık virgül ("2.5" → "2,5")."""
+    return final.replace(".", ",")
 
 
 def chrf(hyp: str, ref: str, n: int = 6, beta: float = 2.0) -> float:
@@ -595,6 +746,11 @@ def translate_shard(shard: Path, out: Path, translator: Callable, backtranslator
                             drop["tur_kesildi"] += 1
                         break
                     turns.append([tq, ta])
+                if turns and d.get("final") is not None:
+                    if not numbers_kept(tt[0][0], turns[0][0]) or not numbers_kept(tt[0][1], turns[0][1]):
+                        drop["sayi_bozuldu"] += 1
+                        continue
+                    turns[0][1] = turns[0][1].rstrip() + f"\nSonuç: {final_tr(d['final'])}."
                 if not turns:
                     continue
                 if any(SIZ_LEFT.search(x) for t in turns for x in t) and any(SEN_MARK.search(x) for t in turns for x in t):
@@ -643,16 +799,23 @@ Her satırın `source`, `license`, `translator`, `attribution` alanları kaynağ
   **CC BY-SA 3.0** ile paylaşılır (aynı lisansla paylaş şartı).
 - Anthropic/hh-rlhf (helpful-base, yalnız "chosen") — MIT (Anthropic)
 - nvidia/HelpSteer2 — CC BY 4.0 (NVIDIA)
+- openai/grade-school-math (GSM8K, yalnız train) — MIT (Copyright (c) 2021 OpenAI). Problemler ve çözümler insan
+  yazımıdır; hesap notları atıldı, "$" tutarları "lira" yazıldı, son cevap "Sonuç: N." olarak eklendi. GSM8K test
+  bölümü kullanılmadı.
 - Çevirmen model: Helsinki-NLP/opus-mt-tc-big-en-tr — lisansı çalışma anında model kartından okundu (aşağıda).
   Makine çevirisi çıktısının ayrıca bir lisans koşulu olup olmadığı: doğrulanmadı.
 
-OpenAI ya da başka kapalı model çıktısı kullanılmamıştır. Lisanslar yayın anında Hugging Face API'sinden okunmuştur;
+ChatGPT ya da başka bir kapalı model çıktısı kullanılmamıştır. Lisanslar yayın anında Hugging Face API'sinden okunmuştur;
 hukuki değerlendirme yapılmamıştır (doğrulanmadı). Eğitilmiş modele CC BY-SA şartının geçip geçmediği: doğrulanmadı.
 """
 
 
-def merge(parts: list[Path], out_dir: Path, drop_frac: float = 0.2, collect_stats: Path | None = None) -> dict:
-    """Parçaları birleştirir; örneklenen chrF'nin alt drop_frac dilimini atar; ceviri.jsonl.gz + stats.json + LISANS.md."""
+def merge(parts: list[Path], out_dir: Path, drop_frac: float = 0.2, collect_stats: Path | None = None,
+          prev: Path | None = None) -> dict:
+    """Parçaları birleştirir; örneklenen chrF'nin alt drop_frac dilimini atar; ceviri.jsonl.gz + stats.json + LISANS.md.
+    prev: önceki ceviri.jsonl.gz (bir önceki Release). Verilirse satırları AYNEN korunur (zaten süzülmüştü), yeni
+    satırlar eklenir; aynı kimlikte yeni çeviri öncekinin yerini alır. Böylece yeni Release eski + yeni veriyi içerir
+    ve Kaggle tek dosya (en yeni ceviri-*) okumaya devam eder."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     rows, shard_stats = [], []
@@ -667,6 +830,22 @@ def merge(parts: list[Path], out_dir: Path, drop_frac: float = 0.2, collect_stat
     for st in shard_stats:
         drop.update(st.get("atilan", {}))
     kept, seen = [], set()
+    new_ids = {r["id"] for r in rows}
+    prev_rows = []
+    if prev and Path(prev).exists():
+        for r in _read_jsonl(Path(prev)):
+            if r.get("id") in new_ids:
+                drop["onceki_yerine_yeni"] += 1
+                continue
+            if r.get("training_allowed") is not True:  # önceki dosyada da yalnız izinli satırlar taşınır
+                drop["onceki_izinsiz"] += 1
+                continue
+            r.pop("_chrf", None)
+            prev_rows.append(r)
+    for r in prev_rows:
+        if r["id"] not in seen:
+            seen.add(r["id"])
+            kept.append(r)
     for r in rows:
         c = r.pop("_chrf", None)
         if c is not None and thr is not None and c < thr:
@@ -695,7 +874,8 @@ def merge(parts: list[Path], out_dir: Path, drop_frac: float = 0.2, collect_stat
              "karakter": chars, "tahmini_belirtec": chars // 4,  # Orion BPE'si ~4 karakter/belirteç (tahmin)
              "parcalar": shard_stats, "yarim_parca": [s["parca"] for s in shard_stats if s.get("yarim")],
              "toplama": {k: cs.get(k) for k in ("kaynak", "atilan", "diyalog", "limit")} if cs else {},
-             "lisanslar": lic}
+             "lisanslar": lic, "onceki": {"dosya": str(prev) if prev else None, "satir": len(prev_rows)},
+             "yeni": len(kept) - len(prev_rows)}
     (out_dir / "stats.json").write_text(json.dumps(stats, ensure_ascii=False, indent=1), encoding="utf-8")
     notes = NOTES + "\n## Çalışma anında okunan lisanslar\n\n" + "\n".join(
         f"- {v.get('repo')}: {v.get('license')} (sha {v.get('sha')}, {v.get('checked_at')})" for v in lic.values()) + "\n"
@@ -725,6 +905,7 @@ def main(argv=None) -> None:
     m = sub.add_parser("merge")
     m.add_argument("--out", required=True)
     m.add_argument("--collect", help="collect.json (lisans kaydı için)")
+    m.add_argument("--prev", help="önceki Release'in ceviri.jsonl.gz'si (satırları korunur)")
     m.add_argument("parts", nargs="+")
     lc = sub.add_parser("license-check", help="yalnız çevirmen modellerinin lisansını denetler")
     lc.add_argument("--out")
@@ -741,7 +922,8 @@ def main(argv=None) -> None:
             bt = Ct2Translator(a.ct2_back, BT_MODEL, threads=a.threads, beam=1) if a.ct2_back else None
             st = translate_shard(Path(a.shard), Path(a.out), tr, bt, lic, a.budget_min)
         elif a.cmd == "merge":
-            st = merge([Path(p) for p in a.parts], Path(a.out), collect_stats=Path(a.collect) if a.collect else None)
+            st = merge([Path(p) for p in a.parts], Path(a.out), collect_stats=Path(a.collect) if a.collect else None,
+                       prev=Path(a.prev) if a.prev else None)
             st = {k: v for k, v in st.items() if k != "parcalar"}
         else:
             hub = HfHub(Path("."))

@@ -3,8 +3,10 @@ name: ceviri
 # İngilizce açık lisanslı diyalogları (oasst2, dolly-15k, hh-rlhf helpful-base, HelpSteer2) Türkçeye çevirir ve
 # sohbet beyni için ek veri olarak Release'e koyar (etiket ceviri-YYYYMMDD-HHMM, ön sürüm). Veri depoya İŞLENMEZ.
 # Kaggle (kaggle.yml) en yeni ceviri-* Release'indeki ceviri.jsonl.gz'yi kendiliğinden kullanır.
-# Başlatma: Actions → ceviri → Run workflow (pairs, shards) YA DA ceviri/hedef.txt dosyasına "ÇİFT PARÇA"
-# (ör. "100000 3") yazıp main'e işlemek. Lisans kapısı: her veri setinin ve çevirmen modelin lisansı Hugging Face
+# Başlatma: Actions → ceviri → Run workflow YA DA ceviri/hedef.txt dosyasına "ÇİFT PARÇA [KAYNAKLAR] [ÖNCEKİ]"
+# (ör. "100000 3" ya da "8000 2 gsm8k") yazıp main'e işlemek. KAYNAKLAR virgüllü (oasst2,dolly,hh-rlhf,helpsteer2,
+# gsm8k; boş/"hepsi" = hepsi). ÖNCEKİ: "koru" (varsayılan) = bir önceki ceviri-* Release'inin satırları yeni
+# Release'e aynen taşınır (eski + yeni tek dosyada; Kaggle yine tek dosya okur); "yeni" = yalnız bu çalışmanınkiler. Lisans kapısı: her veri setinin ve çevirmen modelin lisansı Hugging Face
 # API'sinden okunur; izin listesinde ya da beklenenle aynı değilse iş durur.
 # Kaggle dosyalarına/oturumlarına dokunmaz (ayrı eşzamanlılık grubu).
 on:
@@ -16,6 +18,12 @@ on:
       shards:
         description: 'Paralel çeviri işi sayısı (her biri en çok ~5,5 saat)'
         default: '3'
+      sources:
+        description: 'Kaynaklar (virgüllü; boş = hepsi). Ör. gsm8k'
+        default: ''
+      onceki:
+        description: 'Önceki ceviri-* Release satırları: koru | yeni'
+        default: 'koru'
   push:
     branches: [main]
     paths: ['ceviri/hedef.txt']
@@ -37,6 +45,7 @@ jobs:
     timeout-minutes: 90
     outputs:
       matrix: ${{ steps.cfg.outputs.matrix }}
+      onceki: ${{ steps.cfg.outputs.onceki }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -46,17 +55,24 @@ jobs:
         id: cfg
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then P="${{ inputs.pairs }}"; S="${{ inputs.shards }}"
-          else read P S < ceviri/hedef.txt; fi
-          P=${P:-100000}; S=${S:-3}
-          case "$P$S" in *[!0-9]*) echo "HATA: hedef.txt biçimi 'ÇİFT PARÇA' olmalı (ör. 100000 3)"; exit 1;; esac
+            K="${{ inputs.sources }}"; O="${{ inputs.onceki }}"
+          else read P S K O < ceviri/hedef.txt; fi
+          P=${P:-100000}; S=${S:-3}; O=${O:-koru}
+          if [ -z "$K" ] || [ "$K" = "hepsi" ]; then K=$(cd core-model && python -c "from orion_core.translate_data import SOURCES;print(','.join(SOURCES))"); fi
+          case "$P$S" in *[!0-9]*) echo "HATA: hedef.txt biçimi 'ÇİFT PARÇA [KAYNAKLAR] [koru|yeni]' olmalı (ör. 8000 2 gsm8k)"; exit 1;; esac
+          case "$K" in *[!a-z0-9,-]*) echo "HATA: kaynak adları küçük harf, virgüllü olmalı"; exit 1;; esac
+          case "$O" in koru|yeni) ;; *) echo "HATA: dördüncü alan 'koru' ya da 'yeni' olmalı"; exit 1;; esac
           if [ "$S" -lt 1 ] || [ "$S" -gt 20 ]; then echo "HATA: parça sayısı 1-20 olmalı"; exit 1; fi
           echo "pairs=$P" >> "$GITHUB_OUTPUT"; echo "shards=$S" >> "$GITHUB_OUTPUT"
+          echo "sources=$K" >> "$GITHUB_OUTPUT"; echo "onceki=$O" >> "$GITHUB_OUTPUT"
+          echo "ayar: çift=$P parça=$S kaynaklar=$K önceki=$O"
           echo "matrix=$(python -c "import json;print(json.dumps(list(range($S))))")" >> "$GITHUB_OUTPUT"
       - name: Bağımlılıklar
         run: pip install pyarrow
       - name: Topla + lisans kapısı + parçala
         working-directory: core-model
-        run: python -m orion_core.translate_data collect --out ../work/ceviri --pairs ${{ steps.cfg.outputs.pairs }} --shards ${{ steps.cfg.outputs.shards }}
+        run: python -m orion_core.translate_data collect --out ../work/ceviri --pairs ${{ steps.cfg.outputs.pairs }} --shards ${{ steps.cfg.outputs.shards }} \
+          --sources ${{ steps.cfg.outputs.sources }}
       - uses: actions/upload-artifact@v4
         with:
           name: ceviri-parcalar
@@ -138,11 +154,23 @@ jobs:
         with:
           name: ceviri-parcalar
           path: work/ceviri
+      - name: Önceki çeviri verisi (eski + yeni tek Release'te)
+        if: needs.prepare.outputs.onceki == 'koru'
+        run: |
+          PREV=$(gh release list --limit 100 --json tagName -q '.[].tagName' | grep '^ceviri-' | sort | tail -1 || true)
+          if [ -n "$PREV" ]; then
+            mkdir -p work/prev
+            gh release download "$PREV" --pattern ceviri.jsonl.gz --dir work/prev
+            echo "önceki: $PREV ($(stat -c %s work/prev/ceviri.jsonl.gz) bayt)"
+          else
+            echo "önceki ceviri-* Release yok; yalnız yeni satırlar"
+          fi
       - name: Birleştir
         working-directory: core-model
         run: |
           ls ../work/out/tr-*.jsonl >/dev/null 2>&1 || { echo "HATA: hiçbir parça çevrilemedi"; exit 1; }
-          python -m orion_core.translate_data merge --out ../work/rel --collect ../work/ceviri/collect.json ../work/out/tr-*.jsonl
+          PREV=""; [ -f ../work/prev/ceviri.jsonl.gz ] && PREV="--prev ../work/prev/ceviri.jsonl.gz"
+          python -m orion_core.translate_data merge --out ../work/rel --collect ../work/ceviri/collect.json $PREV ../work/out/tr-*.jsonl
       - name: Release (ön sürüm)
         run: |
           TAG="ceviri-$(date -u +%Y%m%d-%H%M)"
@@ -152,6 +180,7 @@ jobs:
           print(f"Makine çevirisi (en→tr) diyalog verisi · {s['kalan']} diyalog ({s['cok_turlu']} çok turlu) · "
                 f"~{s['tahmini_belirtec']:,} belirteç (tahmin) · kaynaklar: {s['kaynak']}")
           print(f"chrF gidiş-dönüş: örnek {s['chrf']['ornek']}, alt %20 eşiği {s['chrf']['esik_p20']}, ortalama {s['chrf']['ortalama']}")
+          print(f"Önceki Release'ten taşınan: {s['onceki']['satir']} · bu çalışmada yeni: {s['yeni']}")
           print(f"Atılan: {s['atilan']}")
           if s["yarim_parca"]:
               print(f"Süre bütçesi dolan (yarım) parçalar: {s['yarim_parca']}")
