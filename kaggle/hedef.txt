@@ -1,1 +1,1 @@
-buyuk 80000 otomatik
+buyuk 100000 otomatik
