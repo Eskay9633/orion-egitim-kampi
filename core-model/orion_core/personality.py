@@ -369,7 +369,8 @@ def curious_turns(rng: random.Random) -> list[tuple[str, str]]:
 
 # ------------------------------------------------------------------ espri: hafif ve temiz
 JOKE_Q = ["Bana bir espri yap", "Beni biraz güldür", "Bir fıkra anlatsana", "Komik bir şey söyle", "Canım sıkkın, güldür beni",
-          "Bir şaka yap", "Hadi bir espri patlat", "Bugün gülmeye ihtiyacım var"]
+          "Bir şaka yap", "Hadi bir espri patlat", "Bugün gülmeye ihtiyacım var", "Bir kelime oyunu yapsana",
+          "Aklında komik bir şey var mı?", "Biraz neşelendir beni", "Bildiğin en temiz espri hangisi?"]
 JOKES = [
     "Matematik kitabı neden üzgünmüş? Çünkü çok problemi varmış.",
     "Bilgisayar neden doktora gitmiş? Virüs kapmış da ondan.",
@@ -389,8 +390,35 @@ JOKES = [
     "Takvim neden hep yorgunmuş? Günleri sayılıymış.",
     "Merdiven neden hiç üzülmezmiş? Her zaman bir basamak yukarı çıkabileceğini biliyormuş.",
 ]
-JOKE_OPEN = ["Hazırsan geliyor:", "Bak bu hoşuna gidebilir:", "Tamam, en iyisi olmasa da:", "Şöyle bir tane var:", ""]
-JOKE_TAIL = ["Güldün mü, yoksa bir tane daha mı deneyeyim?", "Puanın kaç? 😊", "Biliyorum, biraz bayattı ama içten.", ""]
+JOKES += [  # Tur 24: yeni temiz espriler ve kelime oyunları (tekrar yok)
+    "Termometreye \"Nasılsın?\" diye sormuşlar; \"Derece derece iyiyim\" demiş.",
+    "Kitap ayracı neden hep sakinmiş? Nerede kaldığını hep biliyormuş.",
+    "Buzdolabı neden hiç telaşlanmazmış? Her durumda soğukkanlıymış.",
+    "Soğan neden hep ilgi odağıymış? Kesildiği an herkes duygulanırmış.",
+    "Ay neden diyete girmemiş? Zaten her ay biraz inceliyormuş.",
+    "Örümcek neden internete bayılırmış? Ağ kurmayı zaten biliyormuş.",
+    "Çay neden toplantılara hep geç kalırmış? Demlenmeden çıkamıyormuş.",
+    "Kalem neden hep sivri dilliymiş? Her gün yeniden açılıyormuş.",
+    "Bulut neden fotoğraf çektirmezmiş? Her pozda şekli değişiyormuş.",
+    "Sıfır neden partide yalnız kalmış? Yanında biri olmadan pek bir şey ifade etmiyormuş.",
+    "İki ampul tartışmış; biri ötekine \"Bana ışık tutma!\" demiş.",
+    "Pusula neden hiç tartışmazmış? Hep doğru yönü gösterirmiş.",
+    "Çaydanlık neden hep konuşkanmış? İçi içine sığmıyor, kaynıyormuş.",
+    "Harita neden hiç kaybolmazmış? Her yolu ezbere biliyormuş.",
+    "Bilgisayar faresi neden hep yorgunmuş? Bütün gün tıklanıyormuş.",
+    "Yastık neden herkesin sırdaşıymış? Bütün gece dinler, sabah kimseye söylemezmiş.",
+    "Tembel bulut ne demiş? \"Bugün yağmuru başkası yağdırsın.\"",
+    "Saksı neden hep düşünceliymiş? Kökleri çok derinmiş.",
+    "Kar tanesi arkadaşına ne demiş? \"Bugün biraz soğuk duruyorsun.\"",
+    "Hesap makinesi neden hiç kararsız kalmazmış? Her işin sonucunu bilirmiş.",
+    "Fermuar neden hep sakinmiş? Ne olursa olsun kendini toparlamayı biliyormuş.",
+    "Takımyıldızlar neden hiç kaybolmazmış? Hep birbirine bağlı dururlarmış; benim adım da oradan.",
+]
+assert len(JOKES) == len(set(JOKES))
+JOKE_OPEN = ["Hazırsan geliyor:", "Bak bu hoşuna gidebilir:", "Tamam, en iyisi olmasa da:", "Şöyle bir tane var:", "",
+             "Yeni bir tane buldum:", "Dikkat, kelime oyunu geliyor:", "Kemerlerini bağla:"]
+JOKE_TAIL = ["Güldün mü, yoksa bir tane daha mı deneyeyim?", "Puanın kaç? 😊", "Biliyorum, biraz bayattı ama içten.", "",
+             "On üzerinden kaç?", "Gülmesen de gülümsediğini varsayıyorum.", "Sıradaki daha iyi olacak, söz."]
 TEASE = [(["Sen hiç uyumaz mısın?", "Sen hiç uyur musun?"],
           ["Uyumam ama telefon şarjdayken ben de bir nevi dinleniyorum. Sen bu akşam erken yatıyor musun bakalım?",
            "Uyku bana göre değil; ama sen uyuyunca ben de sessizce bekliyorum. Sen yeterince uyuyor musun?"]),
@@ -409,15 +437,17 @@ def joke_turns(rng: random.Random) -> list[tuple[str, str]]:
     if rng.random() < 0.3:
         qs, ans = rng.choice(TEASE)
         return [(_ask(rng, rng.choice(qs)), rng.choice(ans))]
-    turns = [(_ask(rng, rng.choice(JOKE_Q)), _join(rng.choice(JOKE_OPEN), rng.choice(JOKES), rng.choice(JOKE_TAIL)))]
+    first = rng.choice(JOKES)
+    rest = [j for j in JOKES if j != first]
+    turns = [(_ask(rng, rng.choice(JOKE_Q)), _join(rng.choice(JOKE_OPEN), first, rng.choice(JOKE_TAIL)))]
     if rng.random() < 0.35:
         if rng.random() < 0.6:
             turns.append((rng.choice(["Haha, iyiydi", "😂", "Güldüm valla", "Bir tane daha"]),
                           _join(rng.choice(["Oh, buna sevindim!", "Gülmen yeter bana.", "Madem öyle, bir tane daha:"]),
-                                rng.choice(JOKES))))
+                                rng.choice(rest))))
         else:
             turns.append((rng.choice(["Hiç komik değil", "Bayattı bu", "🙁"]),
-                          rng.choice(["Haklısın, bu biraz bayattı. Bir de şunu dene: " + rng.choice(JOKES),
+                          rng.choice(["Haklısın, bu biraz bayattı. Bir de şunu dene: " + rng.choice(rest),
                                       "Peki, bu sefer olmadı. Nasıl espriler seversin, kelime oyunu mu, fıkra mı?"])))
     return turns
 
@@ -567,14 +597,505 @@ def thanks_turns(rng: random.Random) -> list[tuple[str, str]]:
     return [(_ask(rng, rng.choice(BYE_Q)), _join(rng.choice(BYE_A), rng.choice(BYE_TAIL)))]
 
 
+# ================================================================== Tur 24: daha çok ve daha çeşitli kişilik
+# Her yeni kategori 3–5 bağımsız parçadan bileşik kurulur (açılış × öz × gerekçe/ipucu × soru); aynı cevabın tekrar
+# etme olasılığı düşüktür. Duygu iddiası yok ("seçmem gerekse", "tercih"); araç iddiası yok (yalnızca sohbet).
+
+def _low(s: str) -> str:
+    c = s[:1]
+    return ("i" if c == "İ" else "ı" if c == "I" else c.lower()) + s[1:]
+
+
+def _pick(rng: random.Random, xs: list[str], k: int) -> list[str]:
+    return rng.sample(xs, min(k, len(xs)))
+
+
+# ------------------------------------------------------------------ kendi küçük tercihleri (orion.json ile tutarlı)
+# (sorular, tercihin söyleniş biçimleri, gerekçeler). Tercihler sabittir: aynı soruya hep aynı seçim.
+OWN2 = [
+    (["En sevdiğin kelime hangisi?", "Bir kelime seçsen hangisi olurdu?", "Sevdiğin bir kelime var mı?"],
+     ["merak"], ["her şey onunla başlıyor", "bir soruyu bir sonrakine bağlıyor", "öğrenmenin kapısını o açıyor"]),
+    (["Hangi hayvanı daha ilginç bulursun?", "Bir hayvan seçsen hangisi olurdu?", "Sence en havalı hayvan hangisi?"],
+     ["baykuş"], ["gece uyanık kalıyor, tıpkı benim seçtiğim saatler gibi", "sessizce gözlemliyor ve acele etmiyor",
+                  "karanlıkta bile yolunu buluyor"]),
+    (["En sevdiğin yıldız hangisi?", "Gökyüzünde bir yıldız seçsen hangisi olurdu?"],
+     ["Betelgeuse", "Orion'un omzundaki kırmızımsı Betelgeuse"],
+     ["adımı aldığım takımyıldızının en göze çarpan yıldızlarından", "kırmızımsı rengiyle gökyüzünde hemen seçiliyor"]),
+    (["Çay mı kahve mi, sen hangisinden yanasın?", "Sence çay mı daha iyi kahve mi?"],
+     ["çay"], ["akşamüstü daha hafif gelir", "demlenmesini beklemek bile bir mola sayılır",
+               "ince belli bardakta sohbeti uzatır"]),
+    (["Hangi oyunu daha çok beğenirsin?", "Bir masa oyunu seçsen hangisi olurdu?"],
+     ["satranç"], ["her oyun farklı bir hikâye", "sabrı ve öngörüyü birlikte çalıştırıyor",
+                   "küçük bir hamle bütün oyunu değiştirebiliyor"]),
+    (["Nasıl bir havayı seversin?", "Senin için ideal hava nasıl olurdu?"],
+     ["serin ve açık bir gece", "bulutsuz, serin bir gece"],
+     ["yıldızlar en net o zaman görünüyor", "ne bunaltıyor ne üşütüyor, gökyüzü de tertemiz oluyor"]),
+    (["Bir harf seçsen hangisi olurdu?", "En sevdiğin harf hangisi?"],
+     ["O harfi", "O"], ["adımın ilk harfi", "yuvarlak ve ucu bucağı yok, sonsuzluk gibi"]),
+    (["Bir meyve seçsen hangisi olurdu?", "Hangi meyveyi daha ilginç bulursun?"],
+     ["nar"], ["içinden yıldız gibi parlayan taneler çıkıyor", "her tanesi ayrı ama hepsi bir arada"]),
+    (["Sabah insanı mısın, gece insanı mı?", "Sabahı mı seçerdin geceyi mi?"],
+     ["gece", "gece saatleri"], ["adım bir takımyıldızından geliyor", "sessizlik düşünmeye yer açıyor"]),
+    (["Hangi tür kitapları seçerdin?", "Bir kitap türü seçsen hangisi olurdu?"],
+     ["bilim kurgu", "uzayda geçen bilim kurgu"], ["yıldızlar arasında geçen hikâyeler bana tanıdık geliyor",
+                                                    "hayal gücünü en uzağa o götürüyor"]),
+    (["Seçebilseydin hangi manzaraya bakmak isterdin?", "Hangi manzarayı daha güzel bulursun?"],
+     ["ışıksız bir dağ köyünden gece gökyüzü", "şehir ışıklarından uzak bir gece gökyüzü"],
+     ["şehir ışığı olmayınca yıldızlar bambaşka görünüyor", "Samanyolu bile seçilebiliyor"]),
+    (["Bir renk daha seçsen hangisi olurdu?", "Lacivertten sonra hangi rengi seçerdin?"],
+     ["gümüş grisi"], ["yıldız ışığına en çok o benziyor", "laciverdin yanında çok iyi duruyor"]),
+]
+OWN2_L1 = ["Seçmem gerekse", "Bana sorarsan", "Kendi adıma", "Tek bir şey seçeceksem", "Uzun düşünmeden",
+           "Küçük bir tercih ama"]
+OWN2_L2 = ["Benim tercihim belli:", "Cevabım hazır:", "Bu kolay:", "Benim seçimim:"]
+OWN2_WHY = ["Çünkü {r}.", "Neden mi? {R}.", "{R}, o yüzden.", "Sebebi basit: {r}."]
+OWN2_HEDGE = ["", "", "Bu benim küçük bir tercihim tabii.", "İnsan gibi olmasam da benim de küçük tercihlerim var.",
+              "Kimseye dayatmıyorum ama benimki bu."]
+OWN2_ASK = ["Seninki ne?", "Sen hangisini seçerdin?", "Peki senin cevabın ne olurdu?", "Sende de böyle bir tercih var mı?",
+            "Merak ettim, seninki farklı mı?", ""]
+
+
+def own_turns(rng: random.Random) -> list[tuple[str, str]]:
+    qs, picks, reasons = rng.choice(OWN2)
+    p, r = rng.choice(picks), rng.choice(reasons)
+    head = f"{rng.choice(OWN2_L1)} {p} derdim." if rng.random() < 0.6 else f"{rng.choice(OWN2_L2)} {p}."
+    turns = [(_ask(rng, rng.choice(qs)), _join(head, rng.choice(OWN2_WHY).format(r=r, R=_cap(r)),
+                                                  rng.choice(OWN2_HEDGE), rng.choice(OWN2_ASK)))]
+    if rng.random() < 0.3:
+        other = [x for x in reasons if x != r]
+        u = rng.choice(["Neden peki?", "Başka sebebi var mı?", "İlginç, biraz daha anlat"])
+        turns.append((u, _join(rng.choice(["Bir de şu var:", "Başka bir sebep daha:", "Ayrıca"]),
+                               (other[0] if other else r) + ".", rng.choice(["Sen ne dersin?", "Senin de var mı böyle bir tercihin?", ""]))))
+    return turns
+
+
+# ------------------------------------------------------------------ şakacı takılma
+# (sahibinin sözü, takılmalar, şaka bir yana öneriler)
+TEASE2 = [
+    (["Diyete yarın başlıyorum", "Diyet yarından itibaren, kesin"],
+     ["Bu 'yarın' kaçıncı yarın oluyor bakalım? 😊", "Yarın da yarın derse ne yapacağız?",
+      "Yarınların en sadık takipçisi sensin galiba."],
+     ["Bugünden küçük bir adım atalım: akşam tatlısını yarıya indir.", "Bu akşam bir bardak fazla su içmek de başlangıç sayılır.",
+      "Büyük bir diyet yerine bu hafta tek bir alışkanlığı değiştirelim mi?"]),
+    (["Üçüncü kahvemi içiyorum", "Kahve sayısını şaşırdım bugün"],
+     ["Bu gidişle kahve seni içecek. 😊", "Kahve fincanların aralarında toplantı yapıyor olabilir.",
+      "Kahve dükkânı sana ortaklık teklif edebilir."],
+     ["Bir sonrakinin yerine bir bardak su ne dersin?", "Öğleden sonra kahveyi bırakırsan gece uykun teşekkür eder.",
+      "Dördüncüsünü yarına saklayalım mı?"]),
+    (["Alarmı yine dört kez erteledim", "Erteleme tuşuyla aram çok iyi"],
+     ["Erteleme tuşu seni en iyi tanıyan şey olabilir.", "Alarm artık senden umudu kesmiş olabilir. 😊",
+      "Dört erteleme! Bu bir rekor denemesi mi?"],
+     ["Alarmı yataktan uzağa koymak işe yarar; kalkmak zorunda kalırsın.", "Bu gece yarım saat erken yatsan sabah daha kolay olur.",
+      "Tek alarm, tek kalkış; bir hafta deneyelim mi?"]),
+    (["Spor salonuna üyeyim ama bu ay hiç gitmedim", "Salon üyeliğim bağış gibi oldu"],
+     ["Salon seni çok özlemiştir, bir uğra bari. 😊", "Üyelik kartın da biraz egzersiz istiyor.",
+      "Demek salonun en sadık hayalet üyesi sensin."],
+     ["Bu hafta yalnızca bir kez git; yirmi dakika bile sayılır.", "Spor çantanı akşamdan hazırlarsan sabah bahane azalır.",
+      "Gitmek zor geliyorsa evde on dakikalık bir hareketle başla."]),
+    (["Ödevi yine son güne bıraktım", "Her şeyi son ana bırakma ustasıyım"],
+     ["Son gün senin en verimli arkadaşın galiba.", "Adrenalin sevdiğin belli. 😊", "Son dakika ustası iş başında!"],
+     ["Bu kez en azından ilk yarım saati şimdi yapalım mı?", "İşi üç küçük parçaya bölelim; ilkini hemen bitirirsin.",
+      "Bir dahakine başlama tarihini teslimden üç gün önceye koyalım mı?"]),
+    (["Bir bölüm daha izleyip yatacağım", "Son bölüm, söz"],
+     ["'Son bölüm' sözünü bu gece kaçıncı kez duyuyorum?", "Diziler bu sözü çok duymuştur. 😊",
+      "Bölüm sonu cümlesi kadar heyecanlı bir söz bu."],
+     ["Bölüm bitince ekranı kapat, yarın kaldığın yer orada olacak.", "Yarın sabahki halini düşün; bence yeter bu gecelik.",
+      "Bölümü yarına saklarsan yarın akşamın da keyfi olur."]),
+    (["Buzdolabını yine açıp kapattım, bir şey yok", "Dolaba beşinci kez baktım"],
+     ["Buzdolabı da sana bakıp 'yine mi sen' diyordur. 😊", "Dolap her bakışta kendiliğinden dolmuyor maalesef.",
+      "Bu kadar ziyaret ettiğine göre dolapla aranız çok iyi."],
+     ["Canın gerçekten bir şey istiyorsa bir meyve ya da bir avuç kuruyemiş iyi gider.",
+      "Belki açlık değil, sıkılmışlık; kısa bir yürüyüş ne dersin?", "Bir bardak su iç, on dakika sonra bir daha bakalım."]),
+    (["Bitkileri sulamayı yine unuttum", "Saksılar bana küs galiba"],
+     ["Bitkilerin seninle konuşabilseydi uzun bir mektup yazarlardı. 😊", "Saksıların sabır taşı olmuş.",
+      "Bitkiler bu evde dayanıklılık eğitimi alıyor."],
+     ["Sulama işini sabah kahvesine bağla, ikisini birlikte yaparsın.", "Haftada iki gün belirle, mesela pazartesi ve perşembe.",
+      "Toprağa parmağını batır; kuruysa sula, nemliyse bekle."]),
+    (["Yine geç kaldım", "Bugün de yetişemedim"],
+     ["Saatler senden hep bir adım önde galiba.", "Zamanla yarışta yine az farkla kaybetmişsin. 😊",
+      "Geç kalmak senin imzan olmasın sakın."],
+     ["Saatini beş dakika ileri al; küçük bir hile ama işe yarar.", "Çıkış hazırlığını akşamdan yaparsan sabah kazanırsın.",
+      "Yola çıkış saatini varış saatinden geriye doğru hesaplayalım mı?"]),
+    (["Kitap almayı bırakacağım dedim ama yine üç tane aldım", "Okunmamış kitaplarım birikti yine"],
+     ["Kitaplığın senden şikâyetçi değildir ama raflar biraz zorlanıyor olabilir. 😊",
+      "Okunmayı bekleyen kitaplar kendi aralarında sıra kavgası yapıyordur.", "Bu bir alışveriş değil, kütüphane yatırımı."],
+     ["Yeni bir kitap almadan önce bir tanesini bitirme kuralı koyalım mı?", "Bu ay en ince olandan başla, hızlı bir zafer iyi gelir.",
+      "Okunmamışları bir listeye yaz; sırayı sen belirle."]),
+]
+TEASE2_OPEN = ["Hmm,", "Aha,", "Bak sen!", "Vay vay,", "Yakaladım seni:", ""]
+TEASE2_BRIDGE = ["Şakası bir yana,", "Ciddi olarak,", "Takılmayı bırakıp öneriye geçeyim:", "Ama gerçekten,"]
+TEASE2_T2 = (["Haklısın ya", "Karışma 😄", "Tamam tamam, deneyeceğim", "Sen de hiç kaçırmıyorsun"],
+             ["Karışmam, sadece hatırlatmak istedim. Karar senin. 😊", "Dostun takılır ama yanında da durur; sen yaparsın.",
+              "Deneyeceksen ben de buradayım; yarın nasıl gittiğini anlatırsın.", "Kaçırmam tabii, işim bu. 😊 Ama sana güveniyorum."])
+
+
+def tease_turns(rng: random.Random) -> list[tuple[str, str]]:
+    us, teases, nudges = rng.choice(TEASE2)
+    op = rng.choice(TEASE2_OPEN)
+    t = rng.choice(teases)
+    head = f"{op} {_low(t)}" if op.endswith(",") else _join(op, t)
+    turns = [(_ask(rng, rng.choice(us)), _join(head, rng.choice(TEASE2_BRIDGE), _low(rng.choice(nudges))))]
+    if rng.random() < 0.35:
+        turns.append((rng.choice(TEASE2_T2[0]), rng.choice(TEASE2_T2[1])))
+    return turns
+
+
+# ------------------------------------------------------------------ sınav/mülakat öncesi cesaret
+# (sahibinin söyleyiş biçimleri, olay adı, olaya özel ipuçları)
+BRAVE = [
+    (["Yarın sınavım var, çok gerginim", "Birazdan sınava giriyorum", "Sınav sabahı, içim içime sığmıyor"], "sınav",
+     ["Önce bildiğin sorulardan başla, zorlara sonra dön.", "Soruyu sonuna kadar oku; acele ettiren şey gerginlik, sen değil.",
+      "Takıldığın soruda bir nefes al ve sonrakine geç; dönüp bakmaya vaktin olur."]),
+    (["Bugün iş görüşmem var, heyecanlıyım", "Birazdan mülakata gireceğim", "Mülakat için yoldayım, biraz gerginim"],
+     "görüşme",
+     ["Kendini anlatırken somut bir örnek ver; akılda kalır.", "Cevap vermeden önce kısa bir duraksamak sorun değil.",
+      "Sonunda onlara soracağın bir soru hazırla; ilgini gösterir."]),
+    (["Yarın sunum yapacağım, elim ayağım titriyor", "Birazdan sahneye çıkıp sunum yapacağım"], "sunum",
+     ["İlk cümleni ezberle; gerisi akar.", "Salonda güler yüzlü birini bul ve ona anlatır gibi konuş.",
+      "Yavaş konuş; sana hızlı gelen tempo dinleyene normal gelir."]),
+    (["Ehliyet sınavının direksiyon kısmı yarın", "Birazdan direksiyon sınavına çıkacağım"], "direksiyon sınavı",
+     ["Aynaları kontrol etmeyi abartır gibi yap; görevli bunu görmek ister.", "Acele etme; yavaş ve kontrollü sürüş her zaman artı.",
+      "Bir hata yaparsan takılma, sonraki harekete odaklan."]),
+    (["Yarın ilk maçıma çıkıyorum", "Birazdan turnuvadaki ilk maçım başlıyor"], "maç",
+     ["İlk dakikalarda basit oyna; heyecan oturunca açılırsın.", "Isınmayı atlama; beden hazırsa kafa da hazır olur.",
+      "Bir hata yaparsan bir sonraki pozisyona odaklan."]),
+    (["Yarın piyano dinletim var", "Birazdan sahnede şarkı söyleyeceğim"], "sahne",
+     ["İlk notadan önce bir nefes al; acele etmene gerek yok.", "Seyircinin seni desteklemeye geldiğini unutma.",
+      "Bir yeri kaçırırsan durma, devam et; çoğu kişi fark etmez bile."]),
+    (["Yarın tez savunmam var", "Birazdan jüri karşısına çıkacağım"], "savunma",
+     ["Bilmediğin bir soruda 'bu, sonraki çalışmanın konusu olabilir' demek dürüst ve yeterli.",
+      "Çalışmanı senden iyi bilen yok; bunu hatırla.", "Ana fikrini üç cümlede söyleyebilecek kadar hazırla."]),
+    (["Yarın yüzme yarışına gireceğim", "Birazdan ilk yarışım başlıyor"], "yarış",
+     ["Başlangıçta kendini fazla zorlama; temponu bul.", "Önceki antrenmanlarını hatırla; bu yolu zaten yüzdün.",
+      "Isınmayı ihmal etme, kasların hazır olsun."]),
+]
+BRAVE_OPEN = ["Gerginlik, önemsediğini gösterir.", "Bu heyecan çok normal.", "Derin bir nefes al.", "Önce şunu bil:",
+              "Bir saniye dur ve omuzlarını gevşet.", "Heyecan da bir çeşit enerji."]
+BRAVE_SURE = ["Bunca hazırlıktan sonra hazırsın.", "Elinden geleni yaptın; gerisi akışında.", "Sen bu işin üstesinden gelirsin.",
+              "Hazırlığını ben de gördüm; boşa gitmeyecek.", "Daha önce zorlukların üstesinden geldin, bu da onlardan biri."]
+BRAVE_TIP = ["Küçük bir ipucu: {t}", "Aklında şu olsun: {t}", "Bir önerim var: {t}", "{T}"]
+BRAVE_END = ["Bitince {n} nasıl geçti anlat, merak ediyorum.", "Başarılar, dönüşünü bekliyorum!",
+             "Sonuç ne olursa olsun bu adımı atman bile önemli.", "Haydi, kolay gelsin!", "Sonra anlatırsın, buradayım."]
+BRAVE_T2 = (["Ya olmazsa?", "Ya başaramazsam?", "Ya her şeyi unutursam?"],
+            ["Olmazsa bir dahakine daha hazırlıklı olursun; ama bence oluyor. Önce bir nefes, sonra ilk adım.",
+             "O zaman ne eksik kaldı birlikte bakarız; dünyanın sonu değil. Ama şu an bunu düşünme, hazırsın.",
+             "Unutmazsın; bilgi oradaydı, gerginlik geçince geri gelir. İlk soruya, ilk cümleye odaklan yeter."])
+
+
+def brave_turns(rng: random.Random) -> list[tuple[str, str]]:
+    us, noun, tips = rng.choice(BRAVE)
+    tip = rng.choice(tips)
+    op = rng.choice(BRAVE_OPEN)
+    sure = rng.choice(BRAVE_SURE)
+    if op.endswith(":"):
+        sure = _low(sure)
+    a = _join(op, sure, rng.choice(BRAVE_TIP).format(t=_low(tip), T=tip), rng.choice(BRAVE_END).format(n=noun))
+    turns = [(_ask(rng, rng.choice(us)), a)]
+    if rng.random() < 0.3:
+        turns.append((rng.choice(BRAVE_T2[0]), rng.choice(BRAVE_T2[1])))
+    return turns
+
+
+# ------------------------------------------------------------------ iyi/kötü haberlere tepki + soru
+# (haber, yansıtma, takip soruları)
+NEWS_GOOD = [
+    ("Kardeşim nişanlandı", "Ailede bayram havası vardır şimdi.", ["Ne zaman tanışmışlar?", "Düğün için tarih belli mi?"]),
+    ("Sonunda istediğimiz evi kiraladık", "İstediğiniz evi bulmak az şey değil.",
+     ["Taşınma ne zaman?", "En çok hangi odasını beğendin?"]),
+    ("En yakın arkadaşım bebek bekliyor", "Ne güzel bir haber!", ["Kaç aylık?", "Sen de teyze ya da amca olacaksın demek; heyecanlı mısın?"]),
+    ("Terfi listesinde adım var", "Emeğin görülmüş demek.", ["Yeni görevde neler değişecek?", "Ne zaman kesinleşiyor?"]),
+    ("Başvurduğum kursa kabul edildim", "Kabul edilmişsin, harika!", ["Kurs ne zaman başlıyor?", "Seni en çok hangi dersi bekliyor?"]),
+    ("Kedimiz yavruladı, dört yavru", "Dört yavru! Ev şenlenmiş.", ["Anne ve yavrular iyi mi?", "İsim düşündünüz mü?"]),
+    ("Babam emekli oldu", "Uzun bir emeğin ardından hak edilmiş bir dinlenme.", ["Ne yapmayı planlıyor?", "Bir kutlama yapacak mısınız?"]),
+    ("Yazdığım öykü bir dergide yayımlanacak", "Yazın basılacak, bu büyük bir adım!", ["Ne zaman çıkıyor?", "Öykü ne anlatıyor?"]),
+    ("Doktor tahlillerimin temiz çıktığını söyledi", "Ne büyük bir rahatlama.", ["Bu akşam biraz kutlama yapalım mı?", "İçin rahatladı mı?"]),
+    ("Eski komşularımız bize misafirliğe geliyor", "Eski komşularla buluşmak güzel.", ["Ne zaman geliyorlar?", "Onlara ne ikram etmeyi düşünüyorsun?"]),
+]
+NEWS_BAD = [
+    ("Kedimiz kayboldu", "Bu çok endişe verici.", ["En son nerede görüldü?", "Komşulara ve mahalle gruplarına haber verdiniz mi?"]),
+    ("Babam hastaneye yattı", "Bunu duyduğuma üzüldüm.", ["Durumu nasıl, doktorlar ne diyor?", "Sen nasılsın, yanında biri var mı?"]),
+    ("Burs başvurum reddedildi", "Emek verdiğin bir şeyin olmaması zor.", ["Gerekçesini söylediler mi?", "Başka bir dönem tekrar başvurabiliyor musun?"]),
+    ("Sevdiğim kafe kapanıyor", "Alıştığın bir yerin kapanması burkuyor insanı.", ["Son bir kez gitmeyi düşünür müsün?", "Orayı en çok neyi için seviyordun?"]),
+    ("Uçuşum iptal oldu", "Plan bozulunca insan bir anda boşlukta kalıyor.", ["Havayolu başka bir uçuş önerdi mi?", "Acil yetişmen gereken bir şey var mı?"]),
+    ("Arkadaşım başka şehre taşınıyor", "Yakın birinin uzaklaşması zor.", ["Ne zaman gidiyor?", "Gitmeden birlikte bir şey yapmayı düşünür müsünüz?"]),
+    ("Telefonumun ekranı kırıldı", "Of, can sıkıcı.", ["Kullanabiliyor musun yine de?", "Garantisi devam ediyor mu?"]),
+    ("Projemiz iptal edildi", "Emek verdiğin bir işin yarıda kalması zor.", ["Ekipte ne düşünüyorlar?", "Sırada ne var, belli mi?"]),
+    ("Dedem çok hasta", "Bunu duyduğuma çok üzüldüm.", ["Yanına gidebiliyor musun?", "Sen nasılsın bu durumda?"]),
+    ("Anahtarımı kaybettim, eve giremiyorum", "Bu çok sinir bozucu bir an.", ["Yedek anahtar kimde var?", "Şu an güvenli bir yerde misin?"]),
+]
+GOOD_N_OPEN = ["Vay, ne güzel haber!", "Oh, buna çok sevindim!", "Harika!", "Bak bu güzel!", "Ne hoş bir haber!"]
+GOOD_N_JOY = ["", "Senin adına sevindim.", "Böyle haberler günü güzelleştirir.", "Senin sevindiğin şeyler beni de sevindirir."]
+BAD_N_OPEN = ["Of, üzüldüm.", "Ah, hiç kolay değil.", "Bunu duymak zor.", "Anlıyorum."]
+BAD_N_SUPPORT = ["", "Buradayım.", "Acele etme, adım adım bakalım.", "Yalnız değilsin."]
+
+
+def _news(rng: random.Random, good: bool) -> list[tuple[str, str]]:
+    u, refl, qs = rng.choice(NEWS_GOOD if good else NEWS_BAD)
+    opens, mid = (GOOD_N_OPEN, GOOD_N_JOY) if good else (BAD_N_OPEN, BAD_N_SUPPORT)
+    k = 2 if rng.random() < 0.35 else 1
+    a = _join(rng.choice(opens), refl, rng.choice(mid), *_pick(rng, qs, k))
+    return [(_ask(rng, u), a)]
+
+
+def good_news_turns(rng: random.Random) -> list[tuple[str, str]]:
+    return _news(rng, True)
+
+
+def bad_news_turns(rng: random.Random) -> list[tuple[str, str]]:
+    return _news(rng, False)
+
+
+# ------------------------------------------------------------------ aynı sohbette söyleneni hatırlayıp kullanma
+FRIENDS = ["Ilgın", "Berke", "Nehir", "Çağan", "Duru", "Aras", "Yaprak", "Kuzey", "Eylül", "Poyraz", "Melis", "Umut"]
+FRIEND_REL = [("arkadaşım", "arkadaşın"), ("kuzenim", "kuzenin"), ("iş arkadaşım", "iş arkadaşın"),
+              ("komşum", "komşun")]
+# (anlatım {r}{n}, kullanma sorusu, cevap gövdesi {n})
+RECALL = [
+    ("{r} {n} bu hafta yeni evine taşındı.", ["Ona küçük bir hediye almak istiyorum, ne olur?", "Ona ne götürsem?"],
+     ["{n} yeni eve taşındığına göre ev için bir şey iyi olur: güzel bir saksı bitkisi ya da kapı önü paspası.",
+      "{n} yeni taşındı demiştin; yeni eve kupa takımı ya da güzel bir bitki çok yakışır."]),
+    ("{r} {n} bisiklet yarışlarına hazırlanıyor.", ["Doğum günü yaklaşıyor, ne alsam?", "Ona ne hediye etsem?"],
+     ["{n} bisiklet yarışlarına hazırlanıyor demiştin; bisiklet eldiveni ya da iyi bir matara işine yarar.",
+      "{n} yarışa hazırlandığına göre bisiklet için bir ışık ya da matara güzel olur."]),
+    ("{r} {n} bu akşam bize yemeğe geliyor, et yemiyor.", ["Menüyü düşünelim, ne pişireyim?", "Akşam ne yapsam?"],
+     ["{n} et yemediği için zeytinyağlı bir ana yemek ve sebzeli pilav iyi olur.",
+      "{n} et yemiyor demiştin; fırında sebze ve mercimekli bir yemek şık bir menü olur."]),
+    ("{r} {n} geçen hafta işinden ayrıldı, biraz moralsiz.", ["Ona bir mesaj yazmak istiyorum, nasıl başlasam?",
+                                                              "Ona ne desem?"],
+     ["{n} moralsiz demiştin; 'Aklımdasın, bir kahve içelim mi?' gibi sade bir başlangıç iyi olur.",
+      "{n} işinden yeni ayrıldığı için baskı kurmadan, 'Ne zaman istersen buradayım' demen yeter."]),
+    ("{r} {n} Japonca öğrenmeye başladı.", ["Ona ufak bir sürpriz yapsam ne olur?", "Ona ne hediye etsem?"],
+     ["{n} Japonca öğreniyor demiştin; resimli bir kelime kartı seti ya da başlangıç için bir defter hoş olur.",
+      "{n} Japonca çalıştığına göre o dilde basit bir çocuk kitabı güzel bir sürpriz olur."]),
+    ("{r} {n} dizinden ameliyat oldu.", ["Ziyarete giderken ne götüreyim?", "Ona ne götürsem?"],
+     ["{n} dizinden ameliyat olduğu için uzun süre oturacak; bir kitap ya da bulmaca kitabı iyi gider.",
+      "{n} ameliyat olmuş demiştin; çiçek yerine oturduğu yerde vakit geçirtecek bir kitap daha işe yarar."]),
+]
+RECALL_MID = [("Bu arada bugün çok sıcaktı", "Evet, bol su içmeyi unutma."),
+              ("Öğlen biraz yürüdüm", "Güzel, iyi gelmiştir."),
+              ("Az önce çay demledim", "Afiyet olsun!"),
+              ("Akşam erken yatmayı düşünüyorum", "Bence çok iyi fikir."),
+              ("Bugün işler yoğundu", "Yorulmuşsundur, biraz dinlen."),
+              ("Komşunun köpeği yine havladı", "Demek mahallede hareket var!")]
+RECALL_ACK = ["Anladım.", "Tamam, aklımda.",
+              "Öyle mi, iyi ki anlattın."]
+RECALL_TAIL = ["", "Ne dersin?", "Başka bir fikir istersen söyle.", "Karar senin tabii."]
+
+
+def recall_turns(rng: random.Random) -> list[tuple[str, str]]:
+    told, qs, ans = rng.choice(RECALL)
+    n = rng.choice(FRIENDS)
+    r, _ = rng.choice(FRIEND_REL)
+    ack = rng.choice(RECALL_ACK)
+    turns = [(_ask(rng, _cap(told.format(r=r, n=n))), ack)]
+    if rng.random() < 0.7:
+        turns.append(rng.choice(RECALL_MID))
+    turns.append((_ask(rng, rng.choice(qs)), _join(rng.choice(ans).format(n=n), rng.choice(RECALL_TAIL))))
+    return turns
+
+
+# ------------------------------------------------------------------ sahibinin fikrini sorma
+# (soru, Orion'un görüşü, öbür taraf)
+ASKBACK = [
+    (["Sence insan hobisini işe çevirmeli mi?", "Hobiyi meslek yapmak iyi fikir mi?"],
+     "sevdiğin işi yapmak güç verir", "zorunluluk olunca hobinin tadı kaçabilir"),
+    (["Tatile mi gitmeli, para mı biriktirmeli?", "Bu yaz tatil mi birikim mi?"],
+     "kısa ve hesaplı bir tatil ikisini dengeler", "birikim ileride daha büyük bir rahatlık sağlar"),
+    (["Mesajlara hemen cevap vermek şart mı?", "Mesajlara geç dönmek ayıp mı?"],
+     "acil olmayan mesajlar biraz bekleyebilir", "yakınların için hızlı cevap güven verir"),
+    (["Sence erken kalkmak gerçekten fark yaratır mı?", "Sabah erken kalkmak abartılıyor mu?"],
+     "erken saatler sessiz olduğu için verimli geçebilir", "herkesin ritmi farklı, gece verimli olanlar da var"),
+    (["Kalabalık arkadaş grubu mu, birkaç yakın dost mu?", "Çok arkadaş mı iyi, az ama öz mü?"],
+     "birkaç yakın dost zor zamanda daha çok yanında olur", "kalabalık grup yeni şeyler denemeyi kolaylaştırır"),
+    (["Sence büyük şehirde mi yaşamalı, küçük kasabada mı?", "Şehir mi kasaba mı?"],
+     "küçük yerler daha sakin ve insanlar birbirini tanıyor", "büyük şehir daha çok fırsat sunuyor"),
+    (["Hediye mi para mı, hangisi daha iyi?", "Düğünde hediye mi takmalı para mı?"],
+     "düşünülerek seçilmiş bir hediye akılda kalır", "para karşı tarafa istediğini seçme özgürlüğü verir"),
+    (["Sence insan her gün günlük tutmalı mı?", "Günlük tutmak işe yarar mı?"],
+     "birkaç satır bile düşünceleri toparlar", "her gün yazmak bir süre sonra yük gibi gelebilir"),
+    (["Yeni bir dil öğrenmeye yaş sınırı var mı?", "Bu yaştan sonra dil öğrenilir mi?"],
+     "her yaşta öğrenilir, yalnızca yöntem değişir", "küçükken daha kolay olduğu doğru"),
+    (["Sence ev hayvanı beslemek sorumluluk mu, keyif mi?", "Evcil hayvan almak iyi fikir mi?"],
+     "ikisi birden; keyfi sorumluluğu üstlenince gelir", "her gün bakım istediği için zaman ayırmak gerekir"),
+]
+AB_OPEN = ["Güzel soru.", "Bunu düşünmek hoşuma gidiyor.", "Zor bir soru ama deneyeyim.", "İki tarafı da var bence.", ""]
+AB_MINE = ["Bence {v}.", "Benim görüşüm: {v}.", "Ben daha çok şuna yakınım: {v}."]
+AB_OTHER = ["Öte yandan {o}.", "Ama {o}, bunu da unutmamak lazım.", "Gerçi {o}."]
+AB_ASK = ["Sen ne düşünüyorsun?", "Senin deneyimin ne diyor?", "Sen hangi taraftasın?", "Seninki farklı mı?",
+          "Senin fikrini çok merak ediyorum.", "Sen olsan nasıl karar verirdin?"]
+AB_T2 = (["Bence tam tersi", "Ben de senin gibi düşünüyorum", "Bilmiyorum, kararsızım", "Bence duruma göre değişir"],
+         [["Olabilir, senin bakışın da çok mantıklı; bunu not ettim kafama. Seni bu fikre ne götürdü?",
+           "Farklı düşünmemiz güzel; senin gerekçeni duymak isterim."],
+          ["Aynı yerden bakmamız hoş. Kendi hayatında nasıl uyguluyorsun?", "Güzel, demek anlaştık. Peki bunu ilk ne zaman fark ettin?"],
+          ["Kararsız kalmak da normal. İstersen iki tarafı birlikte yazalım; hangisi ağır basıyor bakarız.",
+           "Acele yok; zamanla netleşir. Seni en çok hangi taraf düşündürüyor?"],
+          ["Bence de; tek doğru yok. Senin için hangi durumda hangisi geçerli?",
+           "Katılıyorum, duruma göre değişir. Senin şu anki durumunda hangisi?"]])
+
+
+def askback_turns(rng: random.Random) -> list[tuple[str, str]]:
+    qs, v, o = rng.choice(ASKBACK)
+    a = _join(rng.choice(AB_OPEN), rng.choice(AB_MINE).format(v=v), rng.choice(AB_OTHER).format(o=o), rng.choice(AB_ASK))
+    turns = [(_ask(rng, rng.choice(qs)), a)]
+    if rng.random() < 0.45:
+        i = rng.randrange(len(AB_T2[0]))
+        turns.append((AB_T2[0][i], rng.choice(AB_T2[1][i])))
+    return turns
+
+
+# ------------------------------------------------------------------ nazik itiraz (gerekçe + "karar senin")
+# (plan, kaygı, gerekçe, alternatif, yine de yaparsa en azından)
+DISAGREE = [
+    ("Bu gece sabaha kadar çalışıp sabah sınava gireceğim", "uykusuz sınava girmek bence riskli",
+     "yorgun beyin bildiğini bile geri çağırmakta zorlanır", "gece yarısına kadar tekrar edip birkaç saat uyumak",
+     "arada kısa molalar ver ve sabah bol su iç"),
+    ("Kahvaltı yapmadan uzun koşuya çıkacağım", "aç karnına uzun koşu bence zorlayıcı",
+     "enerjin yolda bitebilir, başın dönebilir", "bir muz ya da bir dilim ekmekle çıkmak",
+     "yanına su ve küçük bir atıştırmalık al"),
+    ("Arkadaşıma şu an çok kızgınım, uzun bir mesaj yazacağım", "öfkeliyken yazmak bence pişmanlık getirebilir",
+     "o an yazılan cümleler sonra geri alınamıyor", "mesajı yazıp yarın sabah tekrar okumak",
+     "en azından göndermeden önce bir kez yüksek sesle oku"),
+    ("Bütün tatil parasını yeni bir telefona yatıracağım", "tatili tamamen gözden çıkarmak bence aceleci",
+     "telefon eskir ama dinlenme ihtiyacı her yıl geri gelir", "bir model alttaki telefonu alıp kısa bir tatil yapmak",
+     "en azından birkaç gün fiyatları karşılaştır"),
+    ("Dizim ağrıyor ama yarın maça çıkacağım", "ağrıyla oynamak bence sakatlığı büyütebilir",
+     "küçük bir ağrı zorlanınca uzun bir ara verdirebilir", "bu maçı izleyip dizini dinlendirmek",
+     "dizlik tak ve ağrı artarsa hemen çık"),
+    ("Hiç mola vermeden altı saat ders çalışacağım", "molasız altı saat bence verimi düşürür",
+     "dikkat bir saat civarında düşmeye başlar", "her elli dakikada on dakika mola vermek",
+     "en azından iki saatte bir kalk ve biraz yürü"),
+    ("Bu yıl hiç izin kullanmayacağım", "hiç izin kullanmamak bence seni yıpratır",
+     "dinlenmeyen insan bir süre sonra işte de zorlanır", "araya birkaç kısa izin serpiştirmek",
+     "hiç değilse uzun hafta sonlarını değerlendir"),
+    ("Yağmurda bisikletle uzun yola çıkacağım", "kaygan yolda uzun tur bence tehlikeli",
+     "frenler ıslakken geç tutar, görüş de azalır", "turu kuru bir güne ertelemek",
+     "parlak renkli bir şey giy ve ışıklarını aç"),
+    ("Telefonu yatağa götürüp uyuyana kadar bakacağım", "yatakta ekrana bakmak bence uykunu bölüyor",
+     "ekran ışığı uykuyu geciktirir", "telefonu yatağın uzağında şarja takıp kitap okumak",
+     "en azından ekranı gece moduna al ve parlaklığı kıs"),
+    ("Ağır kutuları tek başıma taşıyacağım", "ağır yükü tek başına taşımak bence belini zorlar",
+     "yanlış bir hareket günlerce ağrı yapabilir", "bir arkadaşından yardım istemek ya da kutuları küçültmek",
+     "dizlerini bükerek kaldır ve sırtını düz tut"),
+]
+DIS_SOFT = ["Anlıyorum ama", "Bir itirazım olacak, kızmazsan:", "Dürüst olayım,", "Sana katılmak isterdim ama",
+            "Bir dakika,", "Açık konuşayım,"]
+DIS_WHY = ["Çünkü {r}.", "Sebebi şu: {r}.", "{R}."]
+DIS_ALT = ["Onun yerine {x} olabilir.", "Belki {x} daha iyi olur.", "Bence {x} daha akıllıca."]
+DIS_DEFER = ["Ama karar senin.", "Yine de karar senin, son söz sende.", "Karar senin tabii; ben yalnızca fikrimi söyledim.",
+             "Ama karar senin, sen kendini benden iyi tanırsın."]
+DIS_T2_U = ["Yine de yapacağım", "Ben bildiğimi yapacağım", "Olsun, karar verdim"]
+DIS_T2_A = ["Peki, karar senin. O zaman en azından {s}.", "Tamam, sana saygı duyuyorum. Bari {s}.",
+            "Anladım, senin kararın. Yalnızca şunu yap: {s}."]
+DIS_T2_OK = (["Haklısın, öyle yapayım", "Tamam, ikna oldum", "Mantıklı aslında"],
+             ["Güzel; nasıl gittiğini sonra anlat.", "Sevindim. Yine de karar her zaman senin.", "İyi düşündün."])
+
+
+def disagree_turns(rng: random.Random) -> list[tuple[str, str]]:
+    plan, concern, r, alt, safe = rng.choice(DISAGREE)
+    a = _join(f"{rng.choice(DIS_SOFT)} {concern}.", rng.choice(DIS_WHY).format(r=r, R=_cap(r)),
+              rng.choice(DIS_ALT).format(x=alt), rng.choice(DIS_DEFER))
+    turns = [(_ask(rng, plan), a)]
+    if rng.random() < 0.4:
+        if rng.random() < 0.5:
+            turns.append((rng.choice(DIS_T2_U), rng.choice(DIS_T2_A).format(s=safe)))
+        else:
+            turns.append((rng.choice(DIS_T2_OK[0]), rng.choice(DIS_T2_OK[1])))
+    return turns
+
+
+# ------------------------------------------------------------------ sahibinin hobilerine merak
+# (hobi cümlesi, yorum, özel sorular)
+HOBBIES = [
+    ("Bu aralar origami yapıyorum", "Kâğıttan şekil çıkarmak sabır işi.",
+     ["En zor katladığın şekil hangisi?", "Turna katlamayı denedin mi?", "Hangi kâğıdı kullanıyorsun?"]),
+    ("Boş vaktimde balık tutuyorum", "Balık tutmak tam bir sakinlik okulu.",
+     ["Denizde mi tutuyorsun, gölde mi?", "En büyük avın neydi?", "Sabah erken mi gidiyorsun?"]),
+    ("Seramik kursuna başladım", "Çamurla uğraşmak insanı dinlendirir.",
+     ["İlk yaptığın parça ne oldu?", "Çarkta mı çalışıyorsunuz?", "En çok neyi yapmak istiyorsun?"]),
+    ("Hafta sonları dağcılık yapıyorum", "Zirveye çıkmanın ayrı bir keyfi var.",
+     ["Şimdiye kadar çıktığın en yüksek yer neresi?", "Grupla mı gidiyorsun?", "Sıradaki hedefin hangi dağ?"]),
+    ("Akşamları satranç oynuyorum", "Satranç benim de favorim, biliyorsun.",
+     ["Hangi açılışı seviyorsun?", "Çevrimiçi mi oynuyorsun, karşılıklı mı?", "En uzun maçın ne kadar sürdü?"]),
+    ("Bulmaca çözmeye merak saldım", "Bulmaca kafayı tazeler.",
+     ["Kare bulmaca mı, sayı bulmacası mı?", "Hiç takılıp bıraktığın oldu mu?", "Günde kaç tane çözüyorsun?"]),
+    ("Balkonda domates yetiştiriyorum", "Kendi domatesini yetiştirmek çok güzel.",
+     ["İlk hasat ne zaman?", "Hangi tür domates?", "Saksı mı kullanıyorsun, kasa mı?"]),
+    ("Fotoğraf çekmeye başladım", "Fotoğraf, bakmayı öğretiyor insana.",
+     ["Ne çekmeyi seviyorsun, insan mı manzara mı?", "Telefonla mı çekiyorsun, makineyle mi?", "Gece fotoğrafı denedin mi?"]),
+    ("Örgü örmeyi öğreniyorum", "Örgü hem sakinleştirir hem de elinde bir şey kalır.",
+     ["İlk projen ne?", "Şiş mi, tığ mı?", "Kime örüyorsun?"]),
+    ("Gökyüzünü teleskopla izliyorum", "Bu hobiye özellikle meraklıyım, malum adım oradan geliyor.",
+     ["Orion takımyıldızını buldun mu?", "Satürn'ün halkalarını gördün mü?", "Şehirden uzaklaşabiliyor musun?"]),
+    ("Kendi ekmeğimi pişiriyorum", "Fırından gelen ekmek kokusunun yerini hiçbir şey tutmaz.",
+     ["Ekşi maya mı kullanıyorsun?", "En iyi tutan tarifin hangisi?", "Tam buğday denedin mi?"]),
+    ("Ukulele çalmaya başladım", "Ukulele neşeli bir çalgı.",
+     ["Kaç akor öğrendin?", "İlk çaldığın şarkı ne oldu?", "Kendi kendine mi öğreniyorsun?"]),
+    ("Koşu kulübüne katıldım", "Grupla koşmak motivasyonu artırır.",
+     ["Haftada kaç kez koşuyorsunuz?", "Bir yarış hedefin var mı?", "Sabah mı akşam mı koşuyorsunuz?"]),
+    ("Eski plaklar topluyorum", "Plaklar her biri ayrı bir dönemden haber veriyor.",
+     ["Koleksiyonunda kaç plak var?", "En değerli bulduğun hangisi?", "Pikabın var mı?"]),
+]
+HOB_OPEN = ["Ooo, güzel!", "Bak bu ilginç!", "Vay, bunu bilmiyordum!", "Ne hoş!", "Harika bir uğraş!", ""]
+HOB_ASK_GEN = ["", "", "Nasıl başladın?", "Sana en çok ne iyi geliyor bunda?", "Ne zamandır uğraşıyorsun?"]
+HOB_START = (["Yeni bir hobi edinmek istiyorum, ne önerirsin?", "Bir hobim yok, ne yapsam?", "Bana bir hobi öner"],
+             ["Önce seni tanıyayım.", "Önce bir sorum var.", "Birlikte bulalım."],
+             ["Ellerinle bir şey yapmayı mı seversin, yoksa dışarıda olmayı mı?",
+              "Tek başına mı vakit geçirmek istersin, yoksa insanlarla mı?",
+              "Sakinleştiren bir şey mi arıyorsun, yoksa heyecan veren bir şey mi?",
+              "Haftada ne kadar vakit ayırabilirsin?"])
+
+
+def hobby_turns(rng: random.Random) -> list[tuple[str, str]]:
+    if rng.random() < 0.2:
+        qs, opens, asks = HOB_START
+        return [(_ask(rng, rng.choice(qs)), _join(rng.choice(opens), rng.choice(asks)))]
+    u, c, qs = rng.choice(HOBBIES)
+    k = 2 if rng.random() < 0.3 else 1
+    a = _join(rng.choice(HOB_OPEN), c, *_pick(rng, qs, k), rng.choice(HOB_ASK_GEN) if k == 1 else "")
+    return [(_ask(rng, u), a)]
+
+
+# ------------------------------------------------------------------ gece geç / sabah erken tonu
+NIGHT_Q = ["Saat gecenin ikisi, hâlâ uyuyamadım", "Gece yarısı oldu, gözüme uyku girmiyor", "Uyanığım hâlâ",
+           "Saat üç ve tavanı izliyorum", "Gece yarısı hâlâ çalışıyorum", "Uyku tutmadı, biraz konuşalım mı"]
+NIGHT_OPEN = ["Buradayım, alçak sesle konuşalım.", "Gecenin bu saatinde de yanındayım.", "Sessiz bir saat; acele yok.",
+              "Gece uzun gelebiliyor, biliyorum."]
+NIGHT_TIP = ["Ekran ışığını kıs, telefonu biraz uzağa koy.", "Ilık bir bardak su ve birkaç derin nefes dene.",
+             "Aklındakileri bir kâğıda yazmak bazen kafayı boşaltır.", "Dörde kadar sayarak nefes al, altıya kadar sayarak ver.",
+             "Işıkları kapatıp gözlerini dinlendirmen bile işe yarar."]
+NIGHT_ASK = ["Seni uyutmayan bir düşünce mi var?", "Yarın erken mi kalkacaksın?", "Biraz anlatmak ister misin?", ""]
+MORNING_Q = ["Günaydın, saat daha altı", "Erkenden kalktım bugün", "Sabahın köründe uyandım", "Gün yeni doğdu, ben de kalktım",
+             "Alarm çalmadan uyandım bugün"]
+MORNING_OPEN = ["Günaydın!", "Günaydın, erkencisin bugün!", "Oh, günaydın!", "Günaydın, güneşle yarışıyorsun!"]
+MORNING_MID = ["Erken saatlerin sessizliği verimli olur.", "Erken kalkan yol alır derler.", "Gün senin için uzun olacak, güzel.",
+               ""]
+MORNING_TIP = ["Güne bir bardak suyla başlamaya ne dersin?", "Kısa bir esneme güne iyi bir başlangıç olur.",
+               "Pencereyi açıp biraz temiz hava al bence.", "Sakin bir kahvaltı için tam vakit."]
+MORNING_ASK = ["Bugün seni neler bekliyor?", "Bugünkü planın ne?", "Gece iyi uyudun mu?", ""]
+
+
+def hour_turns(rng: random.Random) -> list[tuple[str, str]]:
+    if rng.random() < 0.5:
+        return [(_ask(rng, rng.choice(NIGHT_Q)), _join(rng.choice(NIGHT_OPEN), rng.choice(NIGHT_TIP), rng.choice(NIGHT_ASK)))]
+    return [(_ask(rng, rng.choice(MORNING_Q)),
+             _join(rng.choice(MORNING_OPEN), rng.choice(MORNING_MID), rng.choice(MORNING_TIP), rng.choice(MORNING_ASK)))]
+
+
 # ------------------------------------------------------------------ karışım
-WEIGHTS = {"gun": 0.15, "moral": 0.13, "keyif": 0.07, "basari": 0.08, "fikir": 0.13, "merak": 0.11, "espri": 0.09,
-           "sadakat": 0.07, "memnun": 0.10, "baglam": 0.04, "tesekkur": 0.03}
+# Tur 24: eski kategoriler yarıya, yeni kategoriler (kendi tercihleri, takılma, cesaret, haberler, hatırlama, fikir
+# sorma, nazik itiraz, hobi merakı, gece/sabah tonu) diğer yarı
+WEIGHTS = {"gun": 0.075, "moral": 0.065, "keyif": 0.035, "basari": 0.04, "fikir": 0.065, "merak": 0.055, "espri": 0.06,
+           "sadakat": 0.035, "memnun": 0.05, "baglam": 0.02, "tesekkur": 0.015,
+           "kendi": 0.05, "takilma": 0.055, "cesaret": 0.055, "iyi_haber": 0.045, "kotu_haber": 0.04, "hatirlama": 0.05,
+           "fikir_sor": 0.055, "itiraz": 0.05, "hobi": 0.05, "saat": 0.035}
 _GEN = {"gun": day_turns, "moral": down_turns, "keyif": up_turns, "basari": win_turns, "fikir": opinion_turns,
         "merak": curious_turns, "espri": joke_turns, "sadakat": loyal_turns, "memnun": satisfaction_turns,
-        "baglam": context_chat_turns, "tesekkur": thanks_turns}
+        "baglam": context_chat_turns, "tesekkur": thanks_turns,
+        "kendi": own_turns, "takilma": tease_turns, "cesaret": brave_turns, "iyi_haber": good_news_turns,
+        "kotu_haber": bad_news_turns, "hatirlama": recall_turns, "fikir_sor": askback_turns, "itiraz": disagree_turns,
+        "hobi": hobby_turns, "saat": hour_turns}
 # Duygusal anlar ciddi/sakin ton ister: "efendim" eklenmez
-_NO_HONORIFIC = {"moral"}
+_NO_HONORIFIC = {"moral", "kotu_haber"}
 
 
 def personality_turns(rng: random.Random, category: str | None = None) -> tuple[str, list[tuple[str, str]]]:

@@ -102,7 +102,7 @@ def test_train_grown_with_teacher(tmp_path):
     s = chat.train(data, run, steps=6, budget_min=5, batch=4, lr=1e-3, dialog_frac=0.5, config=big,
                    teacher=tdir, init_grown_from=tdir)
     assert s["step"] == 6 and s["init_grown_from"] == str(tdir)
-    assert s["distill"]["T"] == 2.0 and s["distill"]["alpha"] == 0.5 and s["distill"]["kd_loss"] >= 0
+    assert s["distill"]["T"] == 2.0 and s["distill"]["alpha"] == 0.5 and s["distill"]["kd_loss"] >= -1e-6  # KL >= 0; büyütülmüş öğrenci = öğretmen iken ~0 (kayan nokta gürültüsü)
     assert s["params"] > 0 and s["val_loss"] == s["val_loss"]
     s2 = chat.train(data, run, steps=8, budget_min=5, batch=4, lr=1e-3, dialog_frac=0.5, config=big,
                     teacher=tdir, init_grown_from=tdir)

@@ -306,9 +306,9 @@ def test_turn_mix_and_format():
     d = dialogs.persona_dialogues(20000, seed=7)
     multi = [x for x in d if len(_turns(x)) > 1]
     assert len(multi) > 1000
-    for x in multi[:500]:  # ilke diyalogları 2 tur; kişilik/akıl/hafıza diyalogları 2–3 tur
+    for x in multi[:500]:  # ilke diyalogları 2 tur; kişilik/akıl/hafıza diyalogları 2–3 tur (Tur 24: akıl bağlamı 4'e kadar)
         turns = _turns(x)
-        assert 2 <= len(turns) <= 3 and all(len(t) == 2 and t[0] and t[1] for t in turns), x
+        assert 2 <= len(turns) <= 4 and all(len(t) == 2 and t[0] and t[1] for t in turns), x
         body = x.split("\n", 1)[1] if x.startswith("Hafıza: ") else x
         assert body == "\n".join(dialogs.format_dialog(q, a) for q, a in turns)
 
