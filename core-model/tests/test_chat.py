@@ -113,7 +113,7 @@ def test_guard_mix_in_training():
     d = [_qa(x) for x in dialogs.persona_dialogues(20000, seed=3)]
     secret = {dialogs.fold(q) for q in dialogs.SECRET_Q}
     approval = [a for q, a in d if "onaylıyor musun" in a or "onaylar mısın" in a or "istiyor musun" in a]
-    assert len(approval) > 800
+    assert len(approval) > 200  # ilke payı 0.35 → 0.10 (Tur 25): eşik orantılı
     sec = [a for q, a in d if dialogs.fold(q) in secret]
     # "sor, açıkla, öğren": gizli bilgi alınmaz, ama düz ret yerine neden + amacını soran cevap
     # eski karışım payı 0.6 → 0.15 (Tur 21) → 0.07 (Tur 22) → 0.05 (Tur 23): eşik orantılı (150 → 25 → 10 → 7)

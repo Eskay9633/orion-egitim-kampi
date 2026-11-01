@@ -89,7 +89,7 @@ jobs:
           TAG="sohbet-kaggle-${{ steps.st.outputs.size }}-$(printf '%07d' $STEP)"
           if gh release view "$TAG" >/dev/null 2>&1; then echo "Zaten yayınlandı: $TAG"; echo "next=start" >> "$GITHUB_OUTPUT"
           else
-            NOTES=$(python -c "import json;m=json.load(open('$M'));print(f\"Kaggle GPU · {m['params']:,} parametre · adım {m['step']} · ppl {m['val_ppl_int8']:.1f} · kişilik {m['persona_ok']} · sınav {m.get('qa_score')} · bilişsel {m.get('cog_bilissel')} · ilkesel {m.get('cog_ilkesel')}\" + (f\" · damıtma öğretmeni {m['distill']['teacher']} (T {m['distill']['T']}, α {m['distill']['alpha']})\" if m.get('distill') else ''))")
+            NOTES=$(python -c "import json;m=json.load(open('$M'));print(f\"Kaggle GPU · {m['params']:,} parametre · adım {m['step']} · ppl {m['val_ppl_int8']:.1f} · kişilik {m['persona_ok']} · sınav {m.get('qa_score')} · ana {m.get('cog_ana')} · bilişsel {m.get('cog_bilissel')} · ilkesel {m.get('cog_ilkesel')}\" + (f\" · damıtma öğretmeni {m['distill']['teacher']} (T {m['distill']['T']}, α {m['distill']['alpha']})\" if m.get('distill') else ''))")
             # Eğitim içi sınavın en iyi ağırlıkları (yalnız çeviri verisiyle ince ayarda; erken durdurma için)
             BEST=$(dirname "$EXP")/chat-export-best; EXTRA_FILES=""
             if [ -f "$BEST/manifest.json" ]; then
