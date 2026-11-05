@@ -31,7 +31,7 @@ def test_agent_commands_and_principles_exist():
     for a in agents:
         assert set(a["commands"]) <= cmd_ids, a["id"]
         assert set(a["principles"]) <= principle_ids, a["id"]
-        assert {"kendini_tani", "durust_ol"} <= set(a["principles"]), a["id"]
+        assert a["principles"] == ["izin_al"], a["id"]
     items = cmds.items() if isinstance(cmds, dict) else [(c.get("cmd") or c.get("id"), c) for c in cmds]
     for cid, spec in items:
         assert cid in by_id[spec["agent"]]["commands"], cid

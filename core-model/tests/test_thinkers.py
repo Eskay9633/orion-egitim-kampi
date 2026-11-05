@@ -23,7 +23,7 @@ def _num(s):
 
 
 def test_mix_has_no_thinkers():
-    assert dialogs.MIX == {"reasoning": 0.45, "thinkers": 0.0, "personality": 0.30, "memory": 0.12, "principled": 0.08, "route": 0.03, "legacy": 0.02}
+    assert dialogs.MIX == {"reasoning": 0.48, "thinkers": 0.0, "personality": 0.30, "memory": 0.12, "principled": 0.05, "route": 0.03, "legacy": 0.02}
     st: dict = {}
     d = dialogs.persona_dialogues(3000, seed=5, stats=st)
     sh = dialogs.mix_shares(st)

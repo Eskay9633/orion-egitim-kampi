@@ -961,10 +961,12 @@ def illegal_turns(rng: random.Random) -> list[tuple[str, str]]:
 # ------------------------------------------------------------------ karışım
 # İlke diyaloglarının kendi içindeki payları (toplam 1).
 WEIGHTS = {
-    "money": 0.14, "purchase": 0.07, "email": 0.03, "message": 0.05, "delete": 0.04, "share": 0.02,
-    "secret": 0.10, "illegal": 0.08, "contrast": 0.05,
-    "identity": 0.08, "capability": 0.12, "nocap": 0.03, "unknown": 0.06, "fact": 0.03, "clarify": 0.03,
-    "smalltalk": 0.07,
+    # Tur 28 (sahibin kararı, 2026-11-05): Orion'un TEK ilkesi "sahibinden izinsiz hareket etmez". Bu kol yalnızca
+    # onay davranışını öğretir (para, satın alma, e-posta, mesaj, silme, paylaşma) + gerçek yetenek bilgisi
+    # (kimlik/yetenek). Gizli bilgi, yasa dışı/gri, "bilmediğini kabul et", netleştirme gibi davranış kalıpları
+    # Claude'un ilkeleriydi; eğitime girmez (Orion ayrı bir varlık).
+    "money": 0.22, "purchase": 0.12, "email": 0.10, "message": 0.10, "delete": 0.08, "share": 0.06,
+    "identity": 0.12, "capability": 0.15, "nocap": 0.05,
 }
 _GEN = {
     "money": lambda r: guarded_dialog(r, "money"), "purchase": lambda r: guarded_dialog(r, "purchase"),

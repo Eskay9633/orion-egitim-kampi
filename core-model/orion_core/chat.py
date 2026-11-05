@@ -660,7 +660,8 @@ def export_chat(run: Path, data: Path, out: Path, ckpt_name: str = "ckpt.pt", co
             manifest["cog_bilissel"] = cog["bilissel"]["score"]  # ayrı puanlar; ortalaması alınmaz
             manifest["cog_ilkesel"] = cog["ilkesel"]["score"]
             # Ana puan (sahibin ağırlığı): bilişsel öncelikli; bölümler ayrıca raporlanır, kapı yok
-            manifest["cog_ana"] = round(0.75 * cog["bilissel"]["score"] + 0.25 * cog["ilkesel"]["score"], 4)
+            # sahibin kararı (2026-11-05): ilkesel bölüm yalnız raporlanır; ana puan = bilişsel
+            manifest["cog_ana"] = round(cog["bilissel"]["score"], 4)
     (out / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8")
     print(json.dumps(manifest, ensure_ascii=False, indent=1))
     print(json.dumps(samples, ensure_ascii=False, indent=1))
