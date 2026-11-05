@@ -234,7 +234,7 @@ jobs:
         with: {python-version: '3.10'}
       - name: Üretici (Apache-2.0) + lisans denetimi
         run: |
-          pip install regex mathematics_dataset
+          pip install regex "sympy==1.5.1" mathematics_dataset
           pip show mathematics_dataset | tee pipshow.txt
           grep -qi '^License: Apache' pipshow.txt || { echo "HATA: mathematics_dataset lisansı Apache değil/okunamadı"; exit 1; }
       - name: Üret + Türkçe şablon

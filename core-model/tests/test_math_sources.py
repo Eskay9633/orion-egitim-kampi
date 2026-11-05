@@ -206,3 +206,10 @@ def test_dmmath_templates(tmp_path):
 def test_dmmath_generic_expression():
     assert dmmath.render("arithmetic__mixed", "Calculate (2 + 3)*4.", "20") == ("(2 + 3)*4 işleminin sonucu kaçtır?", "Sonuç: 20.")
     assert dmmath.render("arithmetic__add_or_sub", "What is 2 - -3?", "5")[0] == "2 - -3 işleminin sonucu kaçtır?"
+
+
+def test_short_apache_notice():
+    short = ('Copyright 2017 Google Inc.\n\nLicensed under the Apache License, Version 2.0 (the "License");\n'
+             'you may not use this file except in compliance with the License.\n    http://www.apache.org/licenses/LICENSE-2.0\n')
+    assert td.license_of_text(short) == "apache-2.0"
+    assert td.license_of_text("Licensed under the Apache License, Version 2.0") is None

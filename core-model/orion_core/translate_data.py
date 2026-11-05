@@ -189,6 +189,10 @@ def license_of_text(text: str) -> str | None:
     if lines and lines[0].startswith("Apache License") and any(x.startswith("Version 2.0") for x in lines[:3]) \
             and "TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION" in text:
         return "apache-2.0"
+    # Kısa Apache bildirimi (ör. google-deepmind/AQuA): standart başlık metni + resmî adres birlikte olmalı
+    if 'Licensed under the Apache License, Version 2.0 (the "License")' in text \
+            and "http://www.apache.org/licenses/LICENSE-2.0" in text:
+        return "apache-2.0"
     return None
 
 
