@@ -1,1 +1,1 @@
-25000 3 svamp,aqua-rat koru
+25000 3 aqua-rat,svamp koru
