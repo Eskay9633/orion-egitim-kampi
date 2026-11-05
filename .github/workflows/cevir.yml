@@ -188,6 +188,11 @@ jobs:
           print("Lisans/atıf: LISANS-ATIF.md. databricks-dolly-15k kaynaklı satırlar CC BY-SA 3.0'dır (türev eser).")
           PY
           )
-          gh release create "$TAG" work/rel/ceviri.jsonl.gz work/rel/stats.json work/rel/LISANS-ATIF.md \
-            --target "$GITHUB_SHA" --title "Çeviri verisi $TAG" --notes "$NOTES" --prerelease
-          echo "yayınlandı: $TAG"
+          # GitHub API ara sıra 403/5xx döndürüyor: 50 dk'lık çeviri boşa gitmesin diye 4 deneme
+          for D in 0 30 90 240; do
+            sleep $D
+            gh release create "$TAG" work/rel/ceviri.jsonl.gz work/rel/stats.json work/rel/LISANS-ATIF.md \
+              --target "$GITHUB_SHA" --title "Çeviri verisi $TAG" --notes "$NOTES" --prerelease && { echo "yayınlandı: $TAG"; exit 0; }
+            gh release view "$TAG" >/dev/null 2>&1 && gh release upload "$TAG" work/rel/ceviri.jsonl.gz work/rel/stats.json work/rel/LISANS-ATIF.md --clobber && { echo "yayınlandı: $TAG"; exit 0; }
+          done
+          echo "HATA: Release oluşturulamadı"; exit 1
