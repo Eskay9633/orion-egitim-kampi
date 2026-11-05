@@ -703,7 +703,9 @@ def to_sen(text: str) -> str:
     Çoğul emir kipi ("deneyin") belirsiz olduğu için (ilgi hâli eki ile aynı) değiştirilmez."""
     def w(m):
         s = m.group(0)
-        r = SIZ_WORDS[s.lower()]
+        r = SIZ_WORDS.get(s.lower())
+        if r is None:  # re.I "ı/i"yi eş sayar (ör. "sız" ~ "siz"): sözlükte olmayan biçime dokunma
+            return s
         return r.capitalize() if s[0].isupper() else r
 
     text = re.sub(r"\b(" + "|".join(SIZ_WORDS) + r")\b", w, text, flags=re.I)

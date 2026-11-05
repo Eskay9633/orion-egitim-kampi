@@ -1,1 +1,1 @@
-dmmath etkin 0
+dmmath etkin 1
