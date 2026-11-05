@@ -355,7 +355,7 @@ jobs:
         run: |
           mkdir -p ../work
           curl -fsSL -A "OrionDerlem/1.0" -o ../work/sw.xml.bz2 https://dumps.wikimedia.org/simplewiki/latest/simplewiki-latest-pages-articles.xml.bz2
-          curl -fsSL https://dumps.wikimedia.org/legal.html | grep -qi "Creative Commons Attribution-ShareAlike" || { echo "HATA: Wikimedia lisans sayfası CC BY-SA demiyor"; exit 1; }
+          curl -fsSL https://dumps.wikimedia.org/legal.html | grep -qiE "Attribution[- ]?Share[- ]?Alike" || { echo "HATA: Wikimedia lisans sayfası CC BY-SA demiyor"; exit 1; }
           python -m orion_core.corpus simplewiki --dump ../work/sw.xml.bz2 --out ../work/en --shards 20 --max-chars 60000000
       - uses: actions/upload-artifact@v4
         with: {name: simplewiki-en, path: work/en/, retention-days: 7}
