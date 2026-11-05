@@ -87,7 +87,8 @@ from .dialogs import QA_TESTS, open_dialogues, persona_dialogues, qa_judge, qa_s
 from . import dialogs as _dialogs  # noqa: E402
 from . import mkqa as _mkqa  # noqa: E402
 
-EXTRA_LICENSES = {"apache-2.0", "mit", "cc-by-4.0", "cc-by-sa-3.0", "cc-by-sa-4.0"}
+# orion-kendi: Orion'un kendi çözümü, son cevabı kodla doğrulanmış (selflearn.py; sahibin onayı 2026-11-05)
+EXTRA_LICENSES = {"apache-2.0", "mit", "cc-by-4.0", "cc-by-sa-3.0", "cc-by-sa-4.0", "orion-kendi"}
 
 
 def extra_dialogues(src: str, cache: Path) -> tuple[list[str], dict]:

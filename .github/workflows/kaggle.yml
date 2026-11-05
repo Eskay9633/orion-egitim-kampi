@@ -105,6 +105,15 @@ jobs:
             CK="kaggle-devam-${{ steps.st.outputs.size }}"
             gh release view "$CK" >/dev/null 2>&1 || gh release create "$CK" --title "Kaggle devam noktası" --notes "Eğitimin kaldığı yer (otomatik)" --prerelease
             gh release upload "$CK" "$RUN/ckpt.pt" "$RUN/tokenizer.json" --clobber
+            # Kendi kendine öğrenme çıktısı (doğrulanmış kendi çözümleri) → sonraki oturumun ek verisi
+            OZF=$(find kout -name 'ozogrenme.jsonl.gz' | head -1)
+            if [ -n "$OZF" ]; then
+              cp "$OZF" "kout/ozogrenme-$(printf '%07d' $STEP).jsonl.gz"; cp "$OZF.stats.json" "kout/ozogrenme-$(printf '%07d' $STEP).stats.json" 2>/dev/null || true
+              gh release view orion-ozogrenme >/dev/null 2>&1 || gh release create orion-ozogrenme --prerelease --title "Orion kendi kendine öğrenme" \
+                --notes "Orion'un denetlenebilir problemlerde kendi ürettiği, son cevabı kodla doğrulanmış çözümleri (lisans: orion-kendi). Sonraki oturumlarda ek diyalog olarak girer."
+              gh release upload orion-ozogrenme kout/ozogrenme-*.jsonl.gz kout/ozogrenme-*.stats.json --clobber
+              NOTES2="kendi kendine öğrenme: $(cat "$OZF.stats.json" 2>/dev/null | tr -d '\n ')"; echo "$NOTES2"
+            fi
             echo "next=start" >> "$GITHUB_OUTPUT"
           fi
           DONE=$(python -c "import json;print(json.load(open('$M'))['step'] >= ${{ steps.st.outputs.steps }})")
@@ -135,7 +144,10 @@ jobs:
           echo "derlem:${CORPUS:- yok}"
           # Kodla üretilen matematik (DeepMind üreticisi, Türkçe şablon): ek diyalog
           DMMATH=""; gh release view derlem-dmmath --json assets -q '.assets[].name' 2>/dev/null | grep -qx dmmath.jsonl.gz && DMMATH="$R/derlem-dmmath/dmmath.jsonl.gz"
-          sed -e "s#__TOK__#$TOK#" -e "s#__EXTRA__#$EXTRA#" -e "s#__CORPUS__#${CORPUS# }#" -e "s#__DMMATH__#$DMMATH#" -e "s/__SIZE__/$SIZE/g" -e "s/__STEPS__/$STEPS/" -e "s/__BATCH__/$BATCH/" -e "s/__BUDGET__/640/" kaggle/orion_sohbet.py > kpush/orion_sohbet.py
+          # Orion'un kendi doğrulanmış çözümleri (önceki oturumlar)
+          OZ=""; for F in $(gh release view orion-ozogrenme --json assets -q '.assets[].name' 2>/dev/null | grep '\.jsonl\.gz$' | sort); do OZ="$OZ $R/orion-ozogrenme/$F"; done
+          echo "kendi çözümleri:${OZ:- yok}"
+          sed -e "s#__TOK__#$TOK#" -e "s#__EXTRA__#$EXTRA#" -e "s#__CORPUS__#${CORPUS# }#" -e "s#__DMMATH__#$DMMATH#" -e "s#__OZ__#${OZ# }#" -e "s/__SIZE__/$SIZE/g" -e "s/__STEPS__/$STEPS/" -e "s/__BATCH__/$BATCH/" -e "s/__BUDGET__/540/" kaggle/orion_sohbet.py > kpush/orion_sohbet.py
           cat > kpush/kernel-metadata.json <<JSON
           {"id": "${{ steps.st.outputs.kid }}", "title": "orion-sohbet-$SIZE", "code_file": "orion_sohbet.py",
            "language": "python", "kernel_type": "script", "is_private": true,

@@ -18,7 +18,9 @@ TOK_URL = "__TOK__"  # önceki eğitimin tokenizer'ı (devam ederken aynısı ş
 EXTRA_URL = "__EXTRA__"  # isteğe bağlı çeviri verisi (en son ceviri-* Release'indeki ceviri.jsonl.gz); boşsa yok
 CORPUS_URLS = "__CORPUS__"  # boşlukla ayrılmış derlem-* Release adresleri (Türkçe derlem + kod + çeviri metin); boşsa yok
 DMMATH_URL = "__DMMATH__"  # kodla üretilen matematik (derlem-dmmath); boşsa yok
-CORPUS_MAX_CHARS = "1200000000"  # Vikipedi + derlem toplamı (pay sınırları derlem-kaynaklar.json)
+CORPUS_MAX_CHARS = "1200000000"
+OZ_URLS = "__OZ__"  # Orion'un önceki oturumlarda kendi çözüp doğrulanan cevapları (orion-ozogrenme Release); boşsa yok
+SELF_MIN = 35  # oturum sonunda kendi kendine öğrenmeye ayrılan dakika  # Vikipedi + derlem toplamı (pay sınırları derlem-kaynaklar.json)
 # İNCE AYAR (yalnız ek veri varsa): diyalog payı 0.75, taban lr 1.5e-4. lr_at kosinüs takvimi toplam hedef adıma
 # göre hesaplanır: 70000→90000 devamında etkin lr ~3e-5'ten ~1.5e-5'e iner (5e-4 tabanla ~1e-4'e SIÇRARDI).
 # Ek veri varken her 2000 adımda sınav (40 soru, açgözlü; ekran kartında tahmini <1 dk, doğrulanmadı) yapılır,
@@ -153,6 +155,9 @@ if extra:
     prep += ["--extra-dialogs", extra]
 if DMMATH_URL.startswith("http"):
     prep += ["--extra-dialogs", DMMATH_URL]
+for u in OZ_URLS.split():
+    if u.startswith("http"):
+        prep += ["--extra-dialogs", u]
 corpus_urls = [u for u in CORPUS_URLS.split() if u.startswith("http")]
 for u in corpus_urls:
     prep += ["--corpus", u]
@@ -179,4 +184,16 @@ if os.path.exists(f"{out}/chat-run/best.pt"):
        "--out", f"{out}/chat-export-best", "--ckpt", "best.pt")
 for f in glob.glob(f"{out}/chat-run/*.tmp"):
     os.remove(f)
+# Kendi kendine öğrenme: denetlenebilir problemleri (çeviri "final" + kodla üretilen matematik) kendisi çözer; yalnız son
+# cevabı doğru olan adımlı çözümler sonraki oturumun ek verisi olur. Hata olursa eğitim sonucu yine yayınlanır.
+probs = sorted(glob.glob(f"{data}/extra*/extra-dialogs.jsonl*"))
+if probs:
+    try:
+        sl = [sys.executable, "-m", "orion_core.selflearn", "--model", f"{out}/chat-export", "--out", f"{out}/ozogrenme.jsonl.gz",
+              "--limit", "20000", "--k", "4", "--budget-min", str(SELF_MIN)]
+        for p_ in probs:
+            sl += ["--problems", p_]
+        sh(*sl)
+    except Exception as e:
+        print(f"ORION: kendi kendine öğrenme atlandı: {e!r}", flush=True)
 print("bitti", flush=True)
