@@ -514,3 +514,46 @@ def test_code_corpus(tmp_path):
     assert st2["atlandi"] and not (tmp_path / "o2").exists()
     # derlem karışımı kod kayıtlarının lisansını kabul eder
     assert {"mit", "apache-2.0", "bsd-3-clause", "bsd-2-clause"} <= set(C.load()["lisans_izinli"])
+
+
+# --------------------------------------------------------------------------- ek kaynaklar (Tatoeba, UD, Common Voice, Simple Wikipedia)
+
+def test_extra_sources(tmp_path):
+    from orion_core.corpus import extra as X
+    rows = "\n".join(f"{i}\ttur\tBu {i}. örnek cümle gayet doğal bir Türkçe cümledir.\tkullanici{i % 3}\t\\N\t\\N"
+                     for i in range(1, 86)) + "\n86\teng\tThis is English.\tx\t\\N\t\\N\n87\ttur\tBu 1. örnek cümle gayet doğal bir Türkçe cümledir.\ty\t\\N\t\\N\n"
+    tsv = tmp_path / "tur.tsv.bz2"
+    tsv.write_bytes(bz2.compress(rows.encode()))
+    with pytest.raises(X.LicenseError):
+        X.tatoeba(tsv, "All rights reserved", tmp_path / "o0")
+    with pytest.raises(X.LicenseError):
+        X.tatoeba(tsv, "CC BY 2.0 ... NonCommercial", tmp_path / "o0")
+    st = X.tatoeba(tsv, "Sentences are licensed under CC BY 2.0 FR. Some are CC0.", tmp_path / "o1")
+    recs = read_out(tmp_path / "o1")
+    assert st["cumle"] == 85 and len(recs) == 3 and st["atilan"]["dil"] == 1 and st["atilan"]["kisa_ya_da_tekrar"] == 1
+    assert all(r["license"] == "cc-by-2.0" and "kullanici" in r["attribution"] and r["training_allowed"] for r in recs)
+    assert "cc-by-2.0" in C.load()["lisans_izinli"]
+    # UD
+    conllu = "# sent_id = 1\n# text = Ali okula gitti ve derse girdi.\n1\tAli\n\n# text = Kısa.\n"
+    with pytest.raises(X.LicenseError):
+        X.ud_bank("U/UD_Turkish-X", "Attribution-NonCommercial-ShareAlike 4.0", {"a.conllu": conllu}, tmp_path / "u0")
+    st = X.ud_bank("U/UD_Turkish-BOUN", "Creative Commons Attribution-ShareAlike 4.0 International", {"a.conllu": conllu},
+                   tmp_path / "u1")
+    recs = read_out(tmp_path / "u1")
+    assert st["cumle"] == 1 and recs[0]["license"] == "cc-by-sa-4.0" and recs[0]["text"] == "Ali okula gitti ve derse girdi."
+    # Common Voice
+    with pytest.raises(X.LicenseError):
+        X.common_voice({"a.txt": "Bugün hava çok güzel.\n"}, "MPL 2.0", tmp_path / "c0")
+    st = X.common_voice({"a.txt": "Bugün hava çok güzel.\nbugün hava çok güzel.\nKısa\n"},
+                        "Sentences are released under CC0.", tmp_path / "c1")
+    recs = read_out(tmp_path / "c1")
+    assert st["cumle"] == 1 and recs[0]["license"] == "cc0-1.0"
+    # Simple Wikipedia → çeviri girdisi
+    para = "The cat is a small domestic animal that many people keep as a pet in their homes around the world."
+    pages = [("Cat", "0", "\n".join([para] * 4), False), ("Talk:Cat", "1", para * 4, False),
+             ("Dog", "0", "#REDIRECT [[Canis]]", True), ("Stub", "0", para, False)]
+    st = X.simplewiki_shards(iter(pages), tmp_path / "sw", 2, 10**6)
+    lines = [json.loads(l) for p in (tmp_path / "sw").glob("*.jsonl") for l in open(p)]
+    assert st["madde"] == 1 and len(lines) == 1 and lines[0]["kategori"] == "ceviri_metin"
+    assert lines[0]["license"] == "cc-by-sa-4.0" and len(lines[0]["paras"]) == 4 and "makine çevirisi" in lines[0]["attribution"]
+    assert C.caps(C.load())["ceviri_metin"] <= 0.30

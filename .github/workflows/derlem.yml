@@ -7,13 +7,15 @@ name: derlem
 #                           durum Release'te saklanır, sonraki çalışma kaldığı yerden sürer; ZİNCİR>0 ise bitmeyen iş kendini yeniden başlatır
 #   openstax              → CC BY OpenStax matematik kitapları (koleksiyon lisansı denetlenir) → en→tr → derlem-openstax
 #   dmmath                → mathematics_dataset (Apache-2.0 üretici) + Türkçe şablon → derlem-dmmath
+#   ek                    → Tatoeba (CC BY 2.0) + UD Türkçe ağaç bankaları + Common Voice cümleleri (CC0); lisans kaynağın metninden → derlem-tatoeba/ud/commonvoice
+#   simplewiki            → Simple English Wikipedia (CC BY-SA) → en→tr makine çevirisi (20 parça) → derlem-simplewiki
 #   kod                   → insan yazımı açık kaynak kod (Python/Kotlin/Java/CSS); depo lisansı GitHub API ile denetlenir → derlem-kod
 # Kaggle/sohbet/ceviri işlerine dokunmaz (ayrı eşzamanlılık grubu).
 on:
   workflow_dispatch:
     inputs:
       islem:
-        description: 'kesif | topla | openstax | dmmath | kod'
+        description: 'kesif | topla | openstax | dmmath | kod | ek | simplewiki'
         default: 'kesif'
       kaynaklar:
         description: 'topla: virgüllü kaynak adları ya da etkin'
@@ -52,7 +54,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then I="${{ inputs.islem }}"; K="${{ inputs.kaynaklar }}"; Z="${{ inputs.zincir }}"
           else read I K Z < <(head -1 derlem/istek.txt); fi
           K=${K:-etkin}; Z=${Z:-0}
-          case "$I" in kesif|topla|openstax|dmmath|kod) ;; *) echo "HATA: islem kesif|topla|openstax|dmmath|kod olmalı"; exit 1;; esac
+          case "$I" in kesif|topla|openstax|dmmath|kod|ek|simplewiki) ;; *) echo "HATA: islem kesif|topla|openstax|dmmath|kod|ek|simplewiki olmalı"; exit 1;; esac
           case "$K" in *[!a-z0-9,-]*) echo "HATA: kaynak adları küçük harf, virgüllü"; exit 1;; esac
           case "$Z" in *[!0-9]*) echo "HATA: zincir sayı olmalı"; exit 1;; esac
           [ "$Z" -le 30 ] || { echo "HATA: zincir ≤30"; exit 1; }
@@ -283,3 +285,116 @@ jobs:
             --title "Derlem: açık kaynak kod (Python/Kotlin/Java/CSS)" --prerelease \
             --notes "İnsan yazımı kod; depo lisansı MIT/Apache-2.0/BSD (GitHub API). Lisans/atıf/adres dosya başına. Model üretimi yok." || true
           gh release upload derlem-kod work/out/*.jsonl.gz work/out/kod-${{ matrix.dil }}-ozet.jsonl --clobber
+
+  ek:
+    needs: ayar
+    if: needs.ayar.outputs.islem == 'ek'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        kaynak: [tatoeba, ud, commonvoice]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install regex
+      - name: Topla (lisans kaynağın kendi metninden; tanınmazsa toplanmaz)
+        working-directory: core-model
+        run: |
+          mkdir -p ../work/in ../work/out
+          UA="OrionDerlem/1.0 (egitim verisi; https://github.com/Eskay9633/orion-egitim-kampi)"
+          case "${{ matrix.kaynak }}" in
+            tatoeba)
+              curl -fsSL -A "$UA" -o ../work/in/terms.html https://tatoeba.org/en/terms_of_use
+              curl -fsSL -A "$UA" -o ../work/in/tur.tsv.bz2 https://downloads.tatoeba.org/exports/per_language/tur/tur_sentences_detailed.tsv.bz2
+              python -m orion_core.corpus tatoeba --tsv ../work/in/tur.tsv.bz2 --terms ../work/in/terms.html --out ../work/out | tee ../work/out/ozet-tatoeba.json ;;
+            ud)
+              for R in $(gh api "search/repositories?q=UD_Turkish+in:name+org:UniversalDependencies&per_page=50" -q '.items[].full_name'); do
+                mkdir -p "../work/in/$R"
+                gh api "repos/$R/tarball" > ../work/in/r.tar.gz && tar -xzf ../work/in/r.tar.gz -C "../work/in/$R" || { echo "uyarı: $R indirilemedi"; continue; }
+                L=$(find "../work/in/$R" -maxdepth 2 -iname 'LICENSE*' | head -1)
+                [ -n "$L" ] || { echo "uyarı: $R lisans dosyası yok, atlandı"; continue; }
+                python -m orion_core.corpus ud --repo "$R" --license "$L" --dir "../work/in/$R" --out ../work/out >> ../work/out/ozet-ud.jsonl || echo "uyarı: $R lisans/işleme hatası, atlandı"
+                rm -rf ../work/in/r.tar.gz; sleep 1
+              done; cat ../work/out/ozet-ud.jsonl ;;
+            commonvoice)
+              mkdir -p ../work/in/cv
+              for D in server/data/tr; do
+                gh api "repos/common-voice/common-voice/contents/$D" -q '.[] | select(.type=="file") | .download_url' > ../work/in/cv.list || true
+              done
+              [ -s ../work/in/cv.list ] || { echo "UYARI: Common Voice Türkçe cümle klasörü bulunamadı (doğrulanmadı); atlandı"; exit 0; }
+              while read U; do curl -fsSL -o "../work/in/cv/$(basename "$U")" "$U"; sleep 1; done < ../work/in/cv.list
+              : > ../work/in/doc.md
+              for F in README.md server/data/README.md LICENSE; do
+                curl -fsSL "https://raw.githubusercontent.com/common-voice/common-voice/main/$F" >> ../work/in/doc.md 2>/dev/null || true
+              done
+              python -m orion_core.corpus commonvoice --dir ../work/in/cv --doc ../work/in/doc.md --out ../work/out | tee ../work/out/ozet-cv.json ;;
+          esac
+      - name: Release
+        run: |
+          ls work/out/*.jsonl.gz >/dev/null 2>&1 || { echo "bu kaynaktan veri yok"; exit 0; }
+          T="derlem-${{ matrix.kaynak }}"
+          gh release view "$T" >/dev/null 2>&1 || gh release create "$T" --target "$GITHUB_SHA" --prerelease \
+            --title "Derlem: ${{ matrix.kaynak }}" --notes "Orion Türkçe derlemi (${{ matrix.kaynak }}). Lisans/atıf belge başına; lisans çalışma anında kaynağın metninden denetlendi." || true
+          gh release upload "$T" work/out/*.jsonl.gz work/out/ozet-* --clobber
+
+  simplewiki-hazirla:
+    needs: ayar
+    if: needs.ayar.outputs.islem == 'simplewiki'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install regex
+      - name: Döküm + paragraflar (20 parça, ≤60M karakter İngilizce)
+        working-directory: core-model
+        run: |
+          mkdir -p ../work
+          curl -fsSL -A "OrionDerlem/1.0" -o ../work/sw.xml.bz2 https://dumps.wikimedia.org/simplewiki/latest/simplewiki-latest-pages-articles.xml.bz2
+          curl -fsSL https://dumps.wikimedia.org/legal.html | grep -qi "Creative Commons Attribution-ShareAlike" || { echo "HATA: Wikimedia lisans sayfası CC BY-SA demiyor"; exit 1; }
+          python -m orion_core.corpus simplewiki --dump ../work/sw.xml.bz2 --out ../work/en --shards 20 --max-chars 60000000
+      - uses: actions/upload-artifact@v4
+        with: {name: simplewiki-en, path: work/en/, retention-days: 7}
+
+  simplewiki-cevir:
+    needs: simplewiki-hazirla
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Bağımlılıklar
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -r core-model/requirements-ceviri.txt
+      - uses: actions/download-artifact@v4
+        with: {name: simplewiki-en, path: work/en}
+      - name: Çeviri modeli önbellekten
+        id: mcache
+        uses: actions/cache/restore@v4
+        with: {path: work/ct2, key: ct2-opus-tc-big-en-tr-tr-en-v1}
+      - name: Modeli dönüştür (önbellek yoksa)
+        if: steps.mcache.outputs.cache-hit != 'true'
+        run: ct2-transformers-converter --model Helsinki-NLP/opus-mt-tc-big-en-tr --output_dir work/ct2/en-tr --quantization int8
+      - name: Çevir (süre bütçeli)
+        working-directory: core-model
+        run: |
+          P=$(printf '%02d' ${{ matrix.shard }})
+          python -m orion_core.translate_data translate-longform --shard ../work/en/simplewiki-$P.jsonl \
+            --out ../work/rel/simplewiki-$P-0000.jsonl.gz --ct2 ../work/ct2/en-tr --budget-min 310 --threads 4
+      - name: Release
+        run: |
+          gh release view derlem-simplewiki >/dev/null 2>&1 || gh release create derlem-simplewiki --target "$GITHUB_SHA" --prerelease \
+            --title "Derlem: Simple English Wikipedia (Türkçe makine çevirisi)" \
+            --notes "Simple English Wikipedia (CC BY-SA 4.0) → opus-mt-tc-big-en-tr makine çevirisi. Atıf belge başına. Kategori ceviri_metin (pay ≤%30)." || true
+          for D in 0 30 90; do sleep $D; gh release upload derlem-simplewiki work/rel/*.jsonl.gz work/rel/*.stats.json --clobber && break; done

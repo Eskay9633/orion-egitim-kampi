@@ -16,6 +16,9 @@ REPO = "https://github.com/Eskay9633/orion-egitim-kampi.git"
 CKPT_URL = "https://github.com/Eskay9633/orion-egitim-kampi/releases/download/kaggle-devam-__SIZE__/ckpt.pt"
 TOK_URL = "__TOK__"  # önceki eğitimin tokenizer'ı (devam ederken aynısı şart); boşsa ilk eğitim
 EXTRA_URL = "__EXTRA__"  # isteğe bağlı çeviri verisi (en son ceviri-* Release'indeki ceviri.jsonl.gz); boşsa yok
+CORPUS_URLS = "__CORPUS__"  # boşlukla ayrılmış derlem-* Release adresleri (Türkçe derlem + kod + çeviri metin); boşsa yok
+DMMATH_URL = "__DMMATH__"  # kodla üretilen matematik (derlem-dmmath); boşsa yok
+CORPUS_MAX_CHARS = "1200000000"  # Vikipedi + derlem toplamı (pay sınırları derlem-kaynaklar.json)
 # İNCE AYAR (yalnız ek veri varsa): diyalog payı 0.75, taban lr 1.5e-4. lr_at kosinüs takvimi toplam hedef adıma
 # göre hesaplanır: 70000→90000 devamında etkin lr ~3e-5'ten ~1.5e-5'e iner (5e-4 tabanla ~1e-4'e SIÇRARDI).
 # Ek veri varken her 2000 adımda sınav (40 soru, açgözlü; ekran kartında tahmini <1 dk, doğrulanmadı) yapılır,
@@ -148,6 +151,14 @@ if tok:
     prep += ["--tokenizer", tok]
 if extra:
     prep += ["--extra-dialogs", extra]
+if DMMATH_URL.startswith("http"):
+    prep += ["--extra-dialogs", DMMATH_URL]
+corpus_urls = [u for u in CORPUS_URLS.split() if u.startswith("http")]
+for u in corpus_urls:
+    prep += ["--corpus", u]
+if corpus_urls:
+    prep += ["--corpus-max-chars", CORPUS_MAX_CHARS]
+    print(f"ORION: derlem {len(corpus_urls)} Release:", " ".join(corpus_urls), flush=True)
 sh(*prep)
 # Büyük beyin her zaman ince ayar ayarlarıyla (büyütülmüş, eğitilmiş başlangıç) ve sınavla eğitilir
 ft = bool(extra or teacher)

@@ -127,7 +127,15 @@ jobs:
             EXTRA="$R/$CEV/ceviri.jsonl.gz"
           fi
           echo "çeviri verisi: ${EXTRA:-yok}"
-          sed -e "s#__TOK__#$TOK#" -e "s#__EXTRA__#$EXTRA#" -e "s/__SIZE__/$SIZE/g" -e "s/__STEPS__/$STEPS/" -e "s/__BATCH__/$BATCH/" -e "s/__BUDGET__/640/" kaggle/orion_sohbet.py > kpush/orion_sohbet.py
+          # Türkçe derlem (derlem-* Release'leri, keşif hariç): dil modeli akışına pay sınırlarıyla girer (chat --corpus)
+          CORPUS=""
+          for T in $(gh release list --limit 200 --json tagName -q '.[].tagName' | grep '^derlem-' | grep -v -e '^derlem-kesif-' -e '^derlem-dmmath$' | sort); do
+            gh release view "$T" --json assets -q '.assets[].name' 2>/dev/null | grep -q '\.jsonl\.gz$' && CORPUS="$CORPUS https://github.com/$GITHUB_REPOSITORY/releases/tag/$T"
+          done
+          echo "derlem:${CORPUS:- yok}"
+          # Kodla üretilen matematik (DeepMind üreticisi, Türkçe şablon): ek diyalog
+          DMMATH=""; gh release view derlem-dmmath --json assets -q '.assets[].name' 2>/dev/null | grep -qx dmmath.jsonl.gz && DMMATH="$R/derlem-dmmath/dmmath.jsonl.gz"
+          sed -e "s#__TOK__#$TOK#" -e "s#__EXTRA__#$EXTRA#" -e "s#__CORPUS__#${CORPUS# }#" -e "s#__DMMATH__#$DMMATH#" -e "s/__SIZE__/$SIZE/g" -e "s/__STEPS__/$STEPS/" -e "s/__BATCH__/$BATCH/" -e "s/__BUDGET__/640/" kaggle/orion_sohbet.py > kpush/orion_sohbet.py
           cat > kpush/kernel-metadata.json <<JSON
           {"id": "${{ steps.st.outputs.kid }}", "title": "orion-sohbet-$SIZE", "code_file": "orion_sohbet.py",
            "language": "python", "kernel_type": "script", "is_private": true,

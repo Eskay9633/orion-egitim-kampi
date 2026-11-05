@@ -6,6 +6,10 @@
   openstax   --tar a.tar.gz [--tar ...] --out DIR [--shards N]
   dmmath     --out dmmath.jsonl.gz [--per-module N] [--filter algebra__linear_1d,...]
   kod        --tar depo.tar.gz --repo sahip/ad --license SPDX --out DIR --seen tekil.txt.gz --stats kod.jsonl
+  tatoeba    --tsv tur_sentences_detailed.tsv.bz2 --terms sartlar.html --out DIR
+  ud         --repo UniversalDependencies/UD_Turkish-BOUN --license LICENSE.txt --dir CONLLU_KLASORU --out DIR
+  commonvoice --dir TXT_KLASORU --doc lisans_belgesi.md --out DIR
+  simplewiki --dump simplewiki-latest-pages-articles.xml.bz2 --out DIR --shards N --max-chars M
   kod-liste  [--lang python]                             → "dil depo" satırları (iş akışı için)
 """
 from __future__ import annotations
@@ -76,6 +80,24 @@ def main(argv=None) -> None:
     k.add_argument("--stats", required=True)
     kl = sub.add_parser("kod-liste")
     kl.add_argument("--lang")
+    t = sub.add_parser("tatoeba")
+    t.add_argument("--tsv", required=True)
+    t.add_argument("--terms", required=True)
+    t.add_argument("--out", required=True)
+    u = sub.add_parser("ud")
+    u.add_argument("--repo", required=True)
+    u.add_argument("--license", required=True)
+    u.add_argument("--dir", required=True)
+    u.add_argument("--out", required=True)
+    cv = sub.add_parser("commonvoice")
+    cv.add_argument("--dir", required=True)
+    cv.add_argument("--doc", required=True)
+    cv.add_argument("--out", required=True)
+    sw = sub.add_parser("simplewiki")
+    sw.add_argument("--dump", required=True)
+    sw.add_argument("--out", required=True)
+    sw.add_argument("--shards", type=int, default=20)
+    sw.add_argument("--max-chars", type=int, default=60_000_000)
     a = ap.parse_args(argv)
     cfg = config.load(a.config)
     only = [x for x in (getattr(a, "only", None) or "").split(",") if x] or None
@@ -108,6 +130,23 @@ def main(argv=None) -> None:
     elif a.cmd == "kod":
         from . import code
         st = code.main_one(a.tar, a.repo, a.license, cfg["kod"], a.out, a.seen, a.stats)
+        print(json.dumps(st, ensure_ascii=False))
+    elif a.cmd in ("tatoeba", "ud", "commonvoice", "simplewiki"):
+        from . import extra
+        try:
+            if a.cmd == "tatoeba":
+                st = extra.tatoeba(Path(a.tsv), Path(a.terms).read_text(encoding="utf-8", errors="replace"), Path(a.out))
+            elif a.cmd == "ud":
+                files = {p.name: p.read_text(encoding="utf-8", errors="replace") for p in sorted(Path(a.dir).rglob("*.conllu"))}
+                st = extra.ud_bank(a.repo, Path(a.license).read_text(encoding="utf-8", errors="replace"), files, Path(a.out))
+            elif a.cmd == "commonvoice":
+                files = {p.name: p.read_text(encoding="utf-8", errors="replace") for p in sorted(Path(a.dir).rglob("*.txt"))}
+                st = extra.common_voice(files, Path(a.doc).read_text(encoding="utf-8", errors="replace"), Path(a.out))
+            else:
+                st = extra.simplewiki_shards(collectors.iter_pages(Path(a.dump)), Path(a.out), a.shards, a.max_chars)
+        except extra.LicenseError as e:
+            print(f"HATA (lisans): {e}", file=sys.stderr)
+            sys.exit(3)
         print(json.dumps(st, ensure_ascii=False))
     elif a.cmd == "kod-liste":
         for lang, repos in cfg["kod"]["depolar"].items():
