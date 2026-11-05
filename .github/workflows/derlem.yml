@@ -239,7 +239,7 @@ jobs:
           grep -qi '^License: Apache' pipshow.txt || { echo "HATA: mathematics_dataset lisansı Apache değil/okunamadı"; exit 1; }
       - name: Üret + Türkçe şablon
         working-directory: core-model
-        run: python -m orion_core.corpus dmmath --out ../work/dmmath.jsonl.gz --per-module 3000 | tee ../work/dmmath-stats.json
+        run: mkdir -p ../work && python -m orion_core.corpus dmmath --out ../work/dmmath.jsonl.gz --per-module 3000 | tee ../work/dmmath-stats.json
       - name: Release
         run: |
           gh release view derlem-dmmath >/dev/null 2>&1 || gh release create derlem-dmmath --target "$GITHUB_SHA" \
