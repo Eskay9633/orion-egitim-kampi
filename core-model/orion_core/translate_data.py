@@ -81,11 +81,12 @@ SOURCES: dict[str, dict] = {
     # default=False: "hepsi" listesine girmez, cevir.yml'de adıyla istenir.
     "aqua-rat": dict(repo="google-deepmind/AQuA", license="apache-2.0", host="github", parser="aqua", math=True,
                      default=False, url="https://raw.githubusercontent.com/google-deepmind/AQuA/master/train.json",
-                     sha256=None, license_url="https://raw.githubusercontent.com/google-deepmind/AQuA/master/LICENSE",
+                     sha256="35b70c7cb1660c34d302bb932dfd3656ce3d05e8c982c797767fec31d7d1e0ba", license_url="https://raw.githubusercontent.com/google-deepmind/AQuA/master/LICENSE",
                      attribution="google-deepmind/AQuA (AQuA-RAT train, Ling ve ark. 2017, Apache-2.0); kitle kaynaklı "
                                  "insan yazımı problem ve gerekçeler, yalnız sayısal doğru seçenekli olanlar, Türkçe makine çevirisi"),
     "svamp": dict(repo="arkilpatel/SVAMP", license="mit", host="github", parser="svamp", math=True, format="json",
-                  default=False, url="https://raw.githubusercontent.com/arkilpatel/SVAMP/main/SVAMP.json", sha256=None,
+                  default=False, url="https://raw.githubusercontent.com/arkilpatel/SVAMP/main/SVAMP.json",
+                  sha256="5be77703a6d891ae476d7c082787ad361392aa02453b132516cdd5f4e7934e3e",
                   license_url="https://raw.githubusercontent.com/arkilpatel/SVAMP/main/LICENSE",
                   attribution="arkilpatel/SVAMP (Patel ve ark. 2021, MIT); insan yazımı problemler, çözüm adımı "
                               "veri setindeki denklemden kodla yazıldı, Türkçe makine çevirisi"),

@@ -91,6 +91,8 @@ def test_collect_requires_pinned_sha_then_reads_train_only(tmp_path, monkeypatch
                 S["svamp"]["url"]: json.dumps(SVAMP).encode(), S["math"]["url"]: math_tar()}
     lic = {S["aqua-rat"]["license_url"]: APACHE, S["svamp"]["license_url"]: MIT, S["math"]["license_url"]: MIT}
     hub = UrlHub(tmp_path / "h", payloads, lic)
+    for n in ("aqua-rat", "svamp", "math"):
+        monkeypatch.setitem(td.SOURCES[n], "sha256", None)
     # sha256 sabitlenmemiş: indirilmez, "alınamadı" raporlanır (lisans kapısı yine geçer)
     with pytest.raises(RuntimeError, match="hiçbir kaynaktan"):
         td.collect(["aqua-rat", "svamp", "math"], 100, tmp_path / "c0", hub=hub)
@@ -103,6 +105,13 @@ def test_collect_requires_pinned_sha_then_reads_train_only(tmp_path, monkeypatch
     assert {r["final"] for r in rows} == {"3", "5"} and all(r.get("final") for r in rows)
     lics = {r["source"]: r["license"] for r in rows}
     assert lics["google-deepmind/AQuA"] == "apache-2.0" and lics["arkilpatel/SVAMP"] == "mit"
+
+
+def test_pinned_sha_matches_discovery():
+    # derlem-kesif-20261105-1422 raporundaki değerler (lisans + veri adresi denetlendi)
+    assert td.SOURCES["aqua-rat"]["sha256"] == "35b70c7cb1660c34d302bb932dfd3656ce3d05e8c982c797767fec31d7d1e0ba"
+    assert td.SOURCES["svamp"]["sha256"] == "5be77703a6d891ae476d7c082787ad361392aa02453b132516cdd5f4e7934e3e"
+    assert td.SOURCES["math"]["sha256"] is None and not td.SOURCES["math"].get("default", True)
 
 
 # --------------------------------------------------------------------------- OpenStax

@@ -5,6 +5,8 @@
   collect    --source S --shard K --out DIR --state DIR --work DIR --kesif kesif.json --budget-min M
   openstax   --tar a.tar.gz [--tar ...] --out DIR [--shards N]
   dmmath     --out dmmath.jsonl.gz [--per-module N] [--filter algebra__linear_1d,...]
+  kod        --tar depo.tar.gz --repo sahip/ad --license SPDX --out DIR --seen tekil.txt.gz --stats kod.jsonl
+  kod-liste  [--lang python]                             → "dil depo" satırları (iş akışı için)
 """
 from __future__ import annotations
 
@@ -65,6 +67,15 @@ def main(argv=None) -> None:
                                           "numbers__div_remainder,numbers__round_number,comparison__pair,"
                                           "polynomials__evaluate,calculus__differentiate")
     m.add_argument("--seed", type=int, default=1)
+    k = sub.add_parser("kod")
+    k.add_argument("--tar", required=True)
+    k.add_argument("--repo", required=True)
+    k.add_argument("--license", required=True, help="GitHub API license.spdx_id")
+    k.add_argument("--out", required=True)
+    k.add_argument("--seen", required=True)
+    k.add_argument("--stats", required=True)
+    kl = sub.add_parser("kod-liste")
+    kl.add_argument("--lang")
     a = ap.parse_args(argv)
     cfg = config.load(a.config)
     only = [x for x in (getattr(a, "only", None) or "").split(",") if x] or None
@@ -94,6 +105,15 @@ def main(argv=None) -> None:
     elif a.cmd == "openstax":
         from . import openstax
         print(json.dumps(openstax.collect([Path(x) for x in a.tar], Path(a.out), a.shards, a.repo), ensure_ascii=False, indent=1))
+    elif a.cmd == "kod":
+        from . import code
+        st = code.main_one(a.tar, a.repo, a.license, cfg["kod"], a.out, a.seen, a.stats)
+        print(json.dumps(st, ensure_ascii=False))
+    elif a.cmd == "kod-liste":
+        for lang, repos in cfg["kod"]["depolar"].items():
+            if not a.lang or a.lang == lang:
+                for r in repos:
+                    print(lang, r)
     elif a.cmd == "dmmath":
         from . import dmmath
         st = dmmath.build(dmmath.dm_problems(a.per_module, [x for x in a.filter.split(",") if x], a.seed), Path(a.out))

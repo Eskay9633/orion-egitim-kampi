@@ -1,0 +1,74 @@
+{
+ "tbmm-corpus": {
+  "ad": "TBMM Corpus (Güngör ve ark. 2018, 1920–2015)",
+  "tur": "arsiv",
+  "kategori": "meclis",
+  "enabled": false,
+  "lisans": "apache-2.0",
+  "lisans_kaniti": "https://tulap.cmpe.boun.edu.tr/handle/20.500.12913/66",
+  "sayfa": "https://tulap.cmpe.boun.edu.tr/handle/20.500.12913/66",
+  "indir_url": [],
+  "surum": null,
+  "sha256": null,
+  "parca": 4,
+  "dogrulama": "doğrulanmadı",
+  "not": "Bir sayfada CC BY deniyor (ikisi de izinli). indir_url keşif raporundaki bitstream bağlantılarından elle yazılır; kayıt/oturum isterse toplanmaz.",
+  "atif": "Onur Güngör, Mert Tiftikci, Çağıl Sönmez — TBMM Corpus (LREC 2018), TULAP"
+ },
+ "parlamint-tr": {
+  "ad": "ParlaMint-TR (CLARIN.SI)",
+  "tur": "arsiv",
+  "kategori": "meclis",
+  "enabled": false,
+  "lisans": "cc-by-4.0",
+  "lisans_kaniti": "https://www.clarin.si/repository/xmlui/handle/11356/1912",
+  "sayfa": "https://www.clarin.si/repository/xmlui/handle/11356/1912",
+  "sayfalar_ek": [
+   "https://www.clarin.si/repository/xmlui/handle/11356/1432"
+  ],
+  "indir_url": [],
+  "uye_deseni": "ParlaMint-TR",
+  "tarih_sonra": "2015-07-01",
+  "surum": "4.1",
+  "sha256": null,
+  "parca": 2,
+  "dogrulama": "doğrulanmadı",
+  "not": "2.0 sürümü CC BY-SA 4.0; 2.1/4.1 CC BY 4.0. TBMM Corpus ile çakışmayı önlemek için yalnız tarih_sonra sonrası oturumlar + paragraf tekilleştirme.",
+  "atif": "ParlaMint-TR, Erjavec ve ark., CLARIN.SI, CC BY 4.0"
+ },
+ "mevzuat": {
+  "ad": "Mevzuat Bilgi Sistemi — kanun metinleri",
+  "tur": "belge_listesi",
+  "kategori": "hukuk",
+  "enabled": false,
+  "lisans": "fsek-31",
+  "lisans_kaniti": "5846 sayılı FSEK md.31",
+  "kok": "https://www.mevzuat.gov.tr/",
+  "url_sablonu": "https://www.mevzuat.gov.tr/MevzuatMetin/1.5.{n}.pdf",
+  "aralik": [
+   1,
+   7600
+  ],
+  "ornek_n": 6698,
+  "kisisel_veri_temizle": true,
+  "parca": 1,
+  "dogrulama": "doğrulanmadı",
+  "not": "URL şablonu doğrulanmadı (keşif bir örnek dener). CAPTCHA görülürse toplanmaz. Ayrı kaynak olmayan, özel yayınevi derlemeleri (lexpera vb.) kullanılmaz.",
+  "atif": "T.C. Cumhurbaşkanlığı Mevzuat Bilgi Sistemi (resmî metin; FSEK md.31)"
+ },
+ "aym-kararlar": {
+  "ad": "Anayasa Mahkemesi kararları",
+  "tur": "belge_listesi",
+  "kategori": "hukuk",
+  "enabled": false,
+  "lisans": "fsek-31",
+  "lisans_kaniti": "5846 sayılı FSEK md.31",
+  "kok": "https://kararlarbilgibankasi.anayasa.gov.tr/",
+  "url_listesi": null,
+  "kisisel_veri_temizle": true,
+  "parca": 1,
+  "dogrulama": "doğrulanmadı",
+  "not": "Karar adres listesi (url_listesi: satır başına bir adres, Release varlığı ya da yerel dosya) keşif sonrası elle hazırlanır. Yargıtay/Danıştay arama siteleri CAPTCHA/oturum kullanıyorsa toplanmaz.",
+  "atif": "T.C. Anayasa Mahkemesi Karar Bilgi Bankası (FSEK md.31)"
+ }
+}

@@ -7,12 +7,13 @@ name: derlem
 #                           durum Release'te saklanır, sonraki çalışma kaldığı yerden sürer; ZİNCİR>0 ise bitmeyen iş kendini yeniden başlatır
 #   openstax              → CC BY OpenStax matematik kitapları (koleksiyon lisansı denetlenir) → en→tr → derlem-openstax
 #   dmmath                → mathematics_dataset (Apache-2.0 üretici) + Türkçe şablon → derlem-dmmath
+#   kod                   → insan yazımı açık kaynak kod (Python/Kotlin/Java/CSS); depo lisansı GitHub API ile denetlenir → derlem-kod
 # Kaggle/sohbet/ceviri işlerine dokunmaz (ayrı eşzamanlılık grubu).
 on:
   workflow_dispatch:
     inputs:
       islem:
-        description: 'kesif | topla | openstax | dmmath'
+        description: 'kesif | topla | openstax | dmmath | kod'
         default: 'kesif'
       kaynaklar:
         description: 'topla: virgüllü kaynak adları ya da etkin'
@@ -29,7 +30,8 @@ permissions:
   actions: write
 
 concurrency:
-  group: derlem
+  # işlem türü başına tek sıra (topla ile kod aynı anda yürüyebilir); itme ile başlatmada işlem commit mesajında: 'derlem: <işlem>'
+  group: derlem-${{ inputs.islem || github.event.head_commit.message }}
   cancel-in-progress: false
 
 env:
@@ -50,7 +52,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then I="${{ inputs.islem }}"; K="${{ inputs.kaynaklar }}"; Z="${{ inputs.zincir }}"
           else read I K Z < <(head -1 derlem/istek.txt); fi
           K=${K:-etkin}; Z=${Z:-0}
-          case "$I" in kesif|topla|openstax|dmmath) ;; *) echo "HATA: islem kesif|topla|openstax|dmmath olmalı"; exit 1;; esac
+          case "$I" in kesif|topla|openstax|dmmath|kod) ;; *) echo "HATA: islem kesif|topla|openstax|dmmath|kod olmalı"; exit 1;; esac
           case "$K" in *[!a-z0-9,-]*) echo "HATA: kaynak adları küçük harf, virgüllü"; exit 1;; esac
           case "$Z" in *[!0-9]*) echo "HATA: zincir sayı olmalı"; exit 1;; esac
           [ "$Z" -le 30 ] || { echo "HATA: zincir ≤30"; exit 1; }
@@ -244,3 +246,40 @@ jobs:
             --title "Derlem: kodla üretilen matematik (Türkçe şablon)" --prerelease \
             --notes "google-deepmind/mathematics_dataset üreticisi (Apache-2.0); dil modeli/çeviri yok. chat prepare --extra-dialogs ile kullanılır."
           gh release upload derlem-dmmath work/dmmath.jsonl.gz work/dmmath-stats.json --clobber
+
+  kod:
+    needs: ayar
+    if: needs.ayar.outputs.islem == 'kod'
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        dil: [python, kotlin, java, css]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install regex
+      - name: Depolar (lisans GitHub API'den; izinsiz depo atlanır; tarball işlenip silinir)
+        working-directory: core-model
+        run: |
+          mkdir -p ../work/out ../work/tar
+          python -m orion_core.corpus kod-liste --lang ${{ matrix.dil }} | while read L R; do
+            SPDX=$(gh api "repos/$R" -q '.license.spdx_id // "YOK"' 2>/dev/null || echo YOK)
+            echo "== $R lisans=$SPDX"
+            case "$SPDX" in MIT|Apache-2.0|BSD-2-Clause|BSD-3-Clause) ;; *) echo "{\"depo\": \"$R\", \"atlandi\": \"lisans $SPDX\"}" >> ../work/out/kod-${{ matrix.dil }}-ozet.jsonl; continue;; esac
+            if gh api "repos/$R/tarball" > ../work/tar/r.tar.gz 2>/dev/null; then
+              python -m orion_core.corpus kod --tar ../work/tar/r.tar.gz --repo "$R" --license "$SPDX" --out ../work/out \
+                --seen ../work/tekil.txt.gz --stats ../work/out/kod-${{ matrix.dil }}-ozet.jsonl || echo "uyarı: $R işlenemedi"
+            else echo "uyarı: $R indirilemedi"; fi
+            rm -f ../work/tar/r.tar.gz; sleep 1
+          done
+          ls ../work/out/*.jsonl.gz >/dev/null 2>&1 || { echo "HATA: hiç kod toplanamadı"; exit 1; }
+          du -sh ../work/out
+      - name: Release
+        run: |
+          gh release view derlem-kod >/dev/null 2>&1 || gh release create derlem-kod --target "$GITHUB_SHA" \
+            --title "Derlem: açık kaynak kod (Python/Kotlin/Java/CSS)" --prerelease \
+            --notes "İnsan yazımı kod; depo lisansı MIT/Apache-2.0/BSD (GitHub API). Lisans/atıf/adres dosya başına. Model üretimi yok." || true
+          gh release upload derlem-kod work/out/*.jsonl.gz work/out/kod-${{ matrix.dil }}-ozet.jsonl --clobber

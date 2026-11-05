@@ -9,7 +9,7 @@ TYPES = {"wikidump", "arsiv", "dergipark", "belge_listesi"}
 # Bu adlar hiçbir koşulda kaynak olamaz (sahip kararı: ODC-By web taramaları ve model üretimi setler dışarıda)
 FORBIDDEN = ("fineweb", "culturax", "oscar", "mc4", "c4", "metamath", "orca", "numina", "gsm8k_tr", "openhermes",
              "alpaca", "sharegpt", "ultrachat")
-DEFAULT_CAPS = {"vikipedi": 0.35, "meclis": 0.15, "akademik": 0.20, "hukuk": 0.10, "sozluk": 0.05,
+DEFAULT_CAPS = {"vikipedi": 0.35, "akademik": 0.20, "sozluk": 0.05, "kod": 0.12,
                 "matematik": 0.10, "genel": None}
 
 

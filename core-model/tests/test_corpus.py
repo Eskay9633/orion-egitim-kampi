@@ -65,6 +65,18 @@ def cfg_with(**sources):
     return cfg
 
 
+RESMI = json.loads((Path(__file__).parent / "fixtures_resmi_kaynaklar.json").read_text(encoding="utf-8"))
+
+
+def cfg_resmi():
+    """Resmî kurum kaynakları (meclis/hukuk) sahibin kararıyla ayardan çıktı; toplayıcı kodu genel olduğu için
+    davranışı test ayarıyla sınanmaya devam eder."""
+    cfg = cfg_with(**json.loads(json.dumps(RESMI)))
+    cfg["lisans_izinli"] = cfg["lisans_izinli"] + ["fsek-31"]
+    cfg["pay_siniri"] = {**cfg["pay_siniri"], "meclis": 0.15, "hukuk": 0.10}
+    return cfg
+
+
 def passed(*names):
     return {"kaynaklar": {n: {"durum": "gecti"} for n in names}}
 
@@ -74,14 +86,18 @@ def passed(*names):
 def test_config_rules():
     cfg = C.load()
     srcs = cfg["kaynaklar"]
-    assert srcs and all(s["enabled"] is False for s in srcs.values()), "doğrulanmadan hiçbir kaynak açık olamaz"
+    on = {n for n, s in srcs.items() if s["enabled"]}
+    assert srcs and all("gecti" in srcs[n]["dogrulama"] and "sahip onayı" in srcs[n]["dogrulama"] for n in on), \
+        "keşif + sahip onayı olmadan hiçbir kaynak açık olamaz"
+    assert on <= {"trwikisource", "trwikibooks", "trwikiquote", "trwiktionary"}
     assert all(not s.get("model_uretimi") for s in srcs.values())
     caps = C.caps(cfg)
-    assert caps["meclis"] <= 0.15 and caps["akademik"] <= 0.20 and caps["hukuk"] <= 0.10 and caps["vikipedi"] is not None
+    assert caps["akademik"] <= 0.20 and caps["kod"] <= 0.12 and caps["vikipedi"] is not None
     for bad in ("fineweb", "culturax", "oscar", "mc4"):
         assert not any(bad in n for n in srcs)
-    legal = [s for s in srcs.values() if s["kategori"] == "hukuk"]
-    assert legal and all(s.get("kisisel_veri_temizle") for s in legal)
+    # sahip kararı: resmî kurum metinleri (meclis/hukuk) Türkçe derleminde yok
+    assert not any(s["kategori"] in ("meclis", "hukuk") for s in srcs.values())
+    assert "meclis" not in caps and "hukuk" not in caps and "fsek-31" not in cfg["lisans_izinli"]
     bad = json.loads(json.dumps(cfg))
     bad["kaynaklar"]["x-fineweb-2"] = dict(srcs["trwikibooks"], ad="FineWeb-2 tr")
     with pytest.raises(C.ConfigError):
@@ -98,6 +114,8 @@ def test_config_rules():
 
 def test_gate():
     cfg = cfg_with()
+    for s in cfg["kaynaklar"].values():
+        s["enabled"] = False
     assert "enabled=false" in C.gate(cfg, "trwikibooks", passed("trwikibooks"))
     cfg["kaynaklar"]["trwikibooks"]["enabled"] = True
     assert "keşif raporunda yok" in C.gate(cfg, "trwikibooks", None)
@@ -218,6 +236,7 @@ def test_wikidump_collect_resume_and_gate(tmp_path):
     work.mkdir()
     wiki_dump(work / Path(url).name, pages)   # indirme yerine hazır döküm (ağ yok)
     cfg = cfg_with()
+    cfg["kaynaklar"]["trwikibooks"]["enabled"] = False
     with pytest.raises(CO.GateError):
         CO.run(cfg, "trwikibooks", 0, tmp_path / "o", tmp_path / "s", work, 10, passed("trwikibooks"), net=polite(FakeWeb({})))
     cfg["kaynaklar"]["trwikibooks"]["enabled"] = True
@@ -269,7 +288,7 @@ def test_parlamint_archive_dedup_and_date(tmp_path):
     work = tmp_path / "w"
     work.mkdir()
     tgz(work / f"parlamint-tr-0-ParlaMint-TR.tgz", members)
-    cfg = cfg_with()
+    cfg = cfg_resmi()
     cfg["kaynaklar"]["parlamint-tr"].update(enabled=True, parca=1)
     rep = {"kaynaklar": {"parlamint-tr": {"durum": "gecti", "indirme_adaylari": [url]}}}
     st = CO.run(cfg, "parlamint-tr", 0, tmp_path / "o", tmp_path / "s", work, 100, rep, net=polite(FakeWeb({})))
@@ -327,7 +346,7 @@ def test_dergipark_record_level_license(tmp_path):
 
 
 def test_belge_listesi_scrub_and_captcha(tmp_path):
-    cfg = cfg_with()
+    cfg = cfg_resmi()
     cfg["kaynaklar"]["mevzuat"].update(enabled=True, parca=1, aralik=[1, 3])
     body = ("KANUN\n" + tr_text("madde", 3) + "\nBaşvurucu: Ali VELİ, iletişim 0532 123 45 67, ali@ornek.com.tr\n")
     pages = {f"https://www.mevzuat.gov.tr/MevzuatMetin/1.5.{n}.pdf": b"%PDF " + str(n).encode() for n in (1, 2)}
@@ -373,7 +392,7 @@ def test_discover_no_bulk_download():
 
 
 def test_discover_dergipark_and_arsiv():
-    cfg = cfg_with()
+    cfg = cfg_resmi()
     cfg["kaynaklar"]["dergipark"]["dergiler"] = ["jtri"]
     rep = D.discover(cfg, net=polite(FakeWeb(oai_site())), only=["dergipark"], n_journals=5)
     r = rep["kaynaklar"]["dergipark"]
@@ -421,8 +440,8 @@ def corpus_dir(tmp_path):
     d = tmp_path / "derlem"
     w = ShardWriter(d, "x-00")
     for i in range(40):
-        w.write({"id": f"m{i}", "text": tr_text(f"meclis{i}", 2), "kategori": "meclis", "license": "cc-by-4.0",
-                 "training_allowed": True, "kaynak": "parlamint-tr"})
+        w.write({"id": f"m{i}", "text": tr_text(f"kodparca{i}", 2), "kategori": "kod", "license": "mit",
+                 "training_allowed": True, "kaynak": "kod-python"})
     for i in range(10):
         w.write({"id": f"g{i}", "text": tr_text(f"genel{i}", 2), "kategori": "genel", "license": "cc-by-sa-4.0",
                  "training_allowed": True, "kaynak": "trwikisource"})
@@ -442,7 +461,7 @@ def test_chat_prepare_with_corpus(tmp_path):
     der = st["derlem"]
     assert der["atilan"] == {"lisans": 1, "egitim_izni_yok": 1, "model_uretimi": 1}
     pay = der["pay"]
-    assert pay["meclis"] <= 0.15 + 0.06 and pay["vikipedi"] <= 0.35 + 0.06 and pay["genel"] > 0.3, pay
+    assert der["alinacak_karakter"]["kod"] > 0 and pay.get("kod", 0) <= 0.12 + 0.06 and pay["vikipedi"] <= 0.35 + 0.06 and pay["genel"] > 0.3, pay
     raw = (tmp_path / "data" / "raw.txt").read_text()
     assert "izinsiz" not in raw and "izinyok" not in raw and "model 0" not in raw
     assert "derlem" in st["source"] and st["train_tokens"] > 0
@@ -456,3 +475,42 @@ def test_chat_cli_corpus_args():
     from orion_core import chat
     src = Path(chat.__file__).read_text()
     assert '"--corpus", action="append"' in src and '"--extra-dialogs", action="append"' in src
+
+
+# --------------------------------------------------------------------------- kod derlemi
+
+def test_code_corpus(tmp_path):
+    from orion_core.corpus import code
+    kod = C.load()["kod"]
+    assert set(kod["lisans_kabul"]) == {"MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause"}
+    assert set(kod["depolar"]) == {"python", "kotlin", "java", "css"} and all(kod["depolar"].values())
+    body = "def topla(a, b):\n    # iki sayıyı toplar\n    return a + b\n" * 12
+    members = {
+        "o-r-abc/src/ok.py": (body + "# yazar: ali@ornek.com\n").encode(),
+        "o-r-abc/src/kopya.py": ("\n" + body + "# yazar: ali@ornek.com\n").encode(),       # boşluk farkı → tekrar
+        "o-r-abc/src/gpl.py": ("# This file is GPL licensed\n" + body).encode(),
+        "o-r-abc/src/key.py": (body + "K = 'AKIA" + "A" * 16 + "'\n").encode(),
+        "o-r-abc/src/gen.java": ("// Code generated by protoc. DO NOT EDIT.\n" + body).encode(),
+        "o-r-abc/vendor/x.py": body.encode(),
+        "o-r-abc/web/a.min.css": ("a{color:red}" * 50).encode(),
+        "o-r-abc/web/s.css": (".kart {\n  color: red;\n  margin: 0 auto;\n}\n" * 10).encode(),
+        "o-r-abc/App.kt": ("fun main() {\n    println(\"Merhaba\")\n}\n" * 12).encode(),
+        "o-r-abc/README.md": body.encode(),
+    }
+    tgz(tmp_path / "r.tar.gz", members)
+    seen = set()
+    st = code.collect_repo(tmp_path / "r.tar.gz", "o/r", "MIT", kod, tmp_path / "o", seen)
+    recs = read_out(tmp_path / "o")
+    got = {r["url"].rsplit("/HEAD/", 1)[1] for r in recs}
+    assert got == {"src/ok.py", "web/s.css", "App.kt"}, st
+    assert all(r["kategori"] == "kod" and r["license"] == "mit" and r["training_allowed"] and not r["model_uretimi"]
+               for r in recs)
+    assert not any("ali@ornek.com" in r["text"] for r in recs)
+    a = st["atilan"]
+    assert a["tekrar"] == 1 and a["dosya_lisansi"] == 1 and a["gizli_anahtar"] == 1 and a["uretilmis"] == 1 and a["yol"] >= 2
+    assert next(r for r in recs if r["dil"] == "python")["tr_yorum"] is True
+    # izinsiz depo lisansı → hiçbir şey yazılmaz
+    st2 = code.collect_repo(tmp_path / "r.tar.gz", "o/g", "GPL-3.0", kod, tmp_path / "o2", set())
+    assert st2["atlandi"] and not (tmp_path / "o2").exists()
+    # derlem karışımı kod kayıtlarının lisansını kabul eder
+    assert {"mit", "apache-2.0", "bsd-3-clause", "bsd-2-clause"} <= set(C.load()["lisans_izinli"])
