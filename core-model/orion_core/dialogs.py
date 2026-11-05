@@ -502,7 +502,8 @@ def _variants(q: str, rng: random.Random) -> str:
 # Tur 26 (sahibinin yönü: zekâ büyümesi): şablon akıl yürütme ezberleniyordu; yeni "thinkers" kolu (thinkers.py):
 # Orion problemleri sekiz düşünürün yöntemiyle çözer (Cezerî, İbn Sina, Farabi, Gazali, Ali Kuşçu, Bîrûnî, Hârezmî,
 # İbnü'l-Heysem). Akıl yürütme 0.30, düşünürler 0.20, kişilik 0.25, hafıza 0.10, ilke 0.10, yönlendirme 0.03, eski 0.02.
-MIX = {"reasoning": 0.30, "thinkers": 0.20, "personality": 0.25, "memory": 0.10, "principled": 0.10, "route": 0.03,
+# Tur 27 (sahibin kararı): düşünür adları sisteme girmez (kol kapalı); ağırlık akıl yürütme/matematiğe.
+MIX = {"reasoning": 0.45, "thinkers": 0.0, "personality": 0.30, "memory": 0.12, "principled": 0.08, "route": 0.03,
        "legacy": 0.02}
 PRINCIPLED_SHARE = MIX["principled"]
 _MIX_PREFIX = {"personality": "kisilik:", "memory": "hafiza:", "reasoning": "akil:", "route": "bilgiyol:",

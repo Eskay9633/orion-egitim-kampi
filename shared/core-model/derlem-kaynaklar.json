@@ -1,0 +1,120 @@
+{
+ "surum": 1,
+ "aciklama": "Orion Türkçe derlem kaynakları. Her kaynak varsayılan KAPALI (enabled=false); keşif işi (derlem-kesif-* Release raporu) lisansı/robots'u doğruladıktan ve sahip elle açtıktan sonra toplanır. Toplayıcı ayrıca raporda durum=gecti ister. Lisans/adres/boyut alanları keşif raporu okunmadan 'doğrulanmadı' sayılır.",
+ "lisans_izinli": ["apache-2.0", "mit", "cc-by-4.0", "cc-by-sa-3.0", "cc-by-sa-4.0", "cc0-1.0", "kamu-mali", "fsek-31"],
+ "lisans_notu": "fsek-31: 5846 sayılı FSEK md.31 (resmî mevzuat ve yargı kararları serbest) — sahibin bilinçli kararı; yalnız resmî kaynaktan, kişisel veri temizlenerek. kamu-mali: telif süresi dolmuş eser (Vikikaynak).",
+ "dislanan": {
+  "odc_by_web_taramalari": ["HuggingFaceFW/fineweb-2", "uonlp/CulturaX", "oscar-corpus/OSCAR-2301", "allenai/c4 (mC4)"],
+  "model_uretimi": "Hiçbir LLM/GPT üretimi veri girmez (MetaMathQA, Orca-Math, NuminaMath-CoT, gsm8k_tr-v0.2 vb.). Yalnız insan yazımı ya da kodla üretilmiş veri.",
+  "ticari_olmayan": "CC BY-NC / NC-SA / ND lisanslı her şey (ör. OpenStax Calculus, vngrs-web-corpus) dışarıda."
+ },
+ "pay_siniri": {
+  "_aciklama": "Örnekleme anında dil modeli akışındaki EN ÇOK pay (chat.prepare --corpus). null = sınırsız. Resmî/akademik kayıt sohbet tonunu ezmesin diye.",
+  "vikipedi": 0.35,
+  "meclis": 0.15,
+  "akademik": 0.20,
+  "hukuk": 0.10,
+  "sozluk": 0.05,
+  "matematik": 0.10,
+  "genel": null
+ },
+ "istek_araligi_sn": 1.0,
+ "istek_araligi_notu": "Ağ yoğun türlerde (dergipark, belge_listesi) parça sayısı >1 ise aralık parça sayısıyla çarpılır: aynı sunucuya toplam hız yine ≤1 istek/sn.",
+ "user_agent": "OrionDerlem/1.0 (egitim verisi toplayici; robots.txt'e uyar; https://github.com/Eskay9633/orion-egitim-kampi)",
+ "parca_bayt": 1800000000,
+ "kaynaklar": {
+  "trwikisource": {
+   "ad": "Vikikaynak (trwikisource)", "tur": "wikidump", "kategori": "genel", "enabled": false,
+   "lisans": "cc-by-sa-4.0", "lisans_kaniti": "https://dumps.wikimedia.org/legal.html",
+   "url": "https://dumps.wikimedia.org/trwikisource/latest/trwikisource-latest-pages-articles.xml.bz2",
+   "surum": "latest", "sha256": null, "parca": 1, "dogrulama": "doğrulanmadı",
+   "atif": "Vikikaynak katkıcıları, CC BY-SA 4.0 (eserlerin çoğu kamu malı)"
+  },
+  "trwikibooks": {
+   "ad": "Vikikitap (trwikibooks)", "tur": "wikidump", "kategori": "genel", "enabled": false,
+   "lisans": "cc-by-sa-4.0", "lisans_kaniti": "https://dumps.wikimedia.org/legal.html",
+   "url": "https://dumps.wikimedia.org/trwikibooks/latest/trwikibooks-latest-pages-articles.xml.bz2",
+   "surum": "latest", "sha256": null, "parca": 1, "dogrulama": "doğrulanmadı",
+   "atif": "Vikikitap katkıcıları, CC BY-SA 4.0"
+  },
+  "trwiktionary": {
+   "ad": "Vikisözlük (trwiktionary)", "tur": "wikidump", "kategori": "sozluk", "enabled": false,
+   "lisans": "cc-by-sa-4.0", "lisans_kaniti": "https://dumps.wikimedia.org/legal.html",
+   "url": "https://dumps.wikimedia.org/trwiktionary/latest/trwiktionary-latest-pages-articles.xml.bz2",
+   "surum": "latest", "sha256": null, "parca": 1, "dogrulama": "doğrulanmadı", "en_az_karakter": 120,
+   "atif": "Vikisözlük katkıcıları, CC BY-SA 4.0"
+  },
+  "trwikinews": {
+   "ad": "Vikihaber (trwikinews)", "tur": "wikidump", "kategori": "genel", "enabled": false,
+   "lisans": "cc-by-sa-4.0", "lisans_kaniti": "https://dumps.wikimedia.org/legal.html",
+   "url": "https://dumps.wikimedia.org/trwikinews/latest/trwikinews-latest-pages-articles.xml.bz2",
+   "surum": "latest", "sha256": null, "parca": 1, "dogrulama": "doğrulanmadı",
+   "atif": "Vikihaber katkıcıları (Vikihaber metinleri CC BY 2.5 olabilir — doğrulanmadı; keşif raporuna bak)"
+  },
+  "trwikiquote": {
+   "ad": "Vikisöz (trwikiquote)", "tur": "wikidump", "kategori": "genel", "enabled": false,
+   "lisans": "cc-by-sa-4.0", "lisans_kaniti": "https://dumps.wikimedia.org/legal.html",
+   "url": "https://dumps.wikimedia.org/trwikiquote/latest/trwikiquote-latest-pages-articles.xml.bz2",
+   "surum": "latest", "sha256": null, "parca": 1, "dogrulama": "doğrulanmadı",
+   "atif": "Vikisöz katkıcıları, CC BY-SA 4.0"
+  },
+  "tbmm-corpus": {
+   "ad": "TBMM Corpus (Güngör ve ark. 2018, 1920–2015)", "tur": "arsiv", "kategori": "meclis", "enabled": false,
+   "lisans": "apache-2.0", "lisans_kaniti": "https://tulap.cmpe.boun.edu.tr/handle/20.500.12913/66",
+   "sayfa": "https://tulap.cmpe.boun.edu.tr/handle/20.500.12913/66",
+   "indir_url": [], "surum": null, "sha256": null, "parca": 4, "dogrulama": "doğrulanmadı",
+   "not": "Bir sayfada CC BY deniyor (ikisi de izinli). indir_url keşif raporundaki bitstream bağlantılarından elle yazılır; kayıt/oturum isterse toplanmaz.",
+   "atif": "Onur Güngör, Mert Tiftikci, Çağıl Sönmez — TBMM Corpus (LREC 2018), TULAP"
+  },
+  "parlamint-tr": {
+   "ad": "ParlaMint-TR (CLARIN.SI)", "tur": "arsiv", "kategori": "meclis", "enabled": false,
+   "lisans": "cc-by-4.0", "lisans_kaniti": "https://www.clarin.si/repository/xmlui/handle/11356/1912",
+   "sayfa": "https://www.clarin.si/repository/xmlui/handle/11356/1912",
+   "sayfalar_ek": ["https://www.clarin.si/repository/xmlui/handle/11356/1432"],
+   "indir_url": [], "uye_deseni": "ParlaMint-TR", "tarih_sonra": "2015-07-01", "surum": "4.1", "sha256": null,
+   "parca": 2, "dogrulama": "doğrulanmadı",
+   "not": "2.0 sürümü CC BY-SA 4.0; 2.1/4.1 CC BY 4.0. TBMM Corpus ile çakışmayı önlemek için yalnız tarih_sonra sonrası oturumlar + paragraf tekilleştirme.",
+   "atif": "ParlaMint-TR, Erjavec ve ark., CLARIN.SI, CC BY 4.0"
+  },
+  "dergipark": {
+   "ad": "DergiPark (ULAKBİM) açık erişim makaleleri", "tur": "dergipark", "kategori": "akademik", "enabled": false,
+   "lisans": "kayit-duzeyinde", "kabul_lisanslar": ["cc-by-4.0", "cc-by-sa-4.0", "cc-by-sa-3.0"],
+   "oai_kok": "https://dergipark.org.tr/api/public/oai/", "dergiler": ["jtri", "nubihar", "egetdid"],
+   "ornek_dergi": 50, "parca": 1, "dogrulama": "doğrulanmadı",
+   "not": "Kayıt düzeyinde dc:rights açıkça CC BY / CC BY-SA değilse makale ATLANIR. PDF → pdftotext → Türkçe + nitelik süzgeci. Dergi listesi keşifte ListSets ile genişletilir (dergiler alanına elle yazılır).",
+   "atif": "Makale yazarları; DergiPark/ULAKBİM; lisans kayıtta"
+  },
+  "mevzuat": {
+   "ad": "Mevzuat Bilgi Sistemi — kanun metinleri", "tur": "belge_listesi", "kategori": "hukuk", "enabled": false,
+   "lisans": "fsek-31", "lisans_kaniti": "5846 sayılı FSEK md.31",
+   "kok": "https://www.mevzuat.gov.tr/", "url_sablonu": "https://www.mevzuat.gov.tr/MevzuatMetin/1.5.{n}.pdf",
+   "aralik": [1, 7600], "ornek_n": 6698, "kisisel_veri_temizle": true, "parca": 1, "dogrulama": "doğrulanmadı",
+   "not": "URL şablonu doğrulanmadı (keşif bir örnek dener). CAPTCHA görülürse toplanmaz. Ayrı kaynak olmayan, özel yayınevi derlemeleri (lexpera vb.) kullanılmaz.",
+   "atif": "T.C. Cumhurbaşkanlığı Mevzuat Bilgi Sistemi (resmî metin; FSEK md.31)"
+  },
+  "aym-kararlar": {
+   "ad": "Anayasa Mahkemesi kararları", "tur": "belge_listesi", "kategori": "hukuk", "enabled": false,
+   "lisans": "fsek-31", "lisans_kaniti": "5846 sayılı FSEK md.31",
+   "kok": "https://kararlarbilgibankasi.anayasa.gov.tr/", "url_listesi": null, "kisisel_veri_temizle": true,
+   "parca": 1, "dogrulama": "doğrulanmadı",
+   "not": "Karar adres listesi (url_listesi: satır başına bir adres, Release varlığı ya da yerel dosya) keşif sonrası elle hazırlanır. Yargıtay/Danıştay arama siteleri CAPTCHA/oturum kullanıyorsa toplanmaz.",
+   "atif": "T.C. Anayasa Mahkemesi Karar Bilgi Bankası (FSEK md.31)"
+  }
+ },
+ "matematik": {
+  "_aciklama": "Çeviri hattı (translate_data.py) ve kodla üretim kaynakları; keşif lisans dosyalarını okur.",
+  "hendrycks-math": {"lisans": "mit", "lisans_url": "https://raw.githubusercontent.com/hendrycks/math/main/LICENSE",
+                     "veri_url": "https://people.eecs.berkeley.edu/~hendrycks/MATH.tar",
+                     "risk": "HF'teki hendrycks/competition_math kopyası AoPS telif bildirimiyle kaldırıldı (doğrulanmadı); problemler AMC/AIME kaynaklı. Varsayılan kaynak listesine girmez."},
+  "aqua-rat": {"lisans": "apache-2.0", "lisans_url": "https://raw.githubusercontent.com/google-deepmind/AQuA/master/LICENSE",
+               "veri_url": "https://raw.githubusercontent.com/google-deepmind/AQuA/master/train.json"},
+  "svamp": {"lisans": "mit", "lisans_url": "https://raw.githubusercontent.com/arkilpatel/SVAMP/main/LICENSE",
+            "veri_url": "https://raw.githubusercontent.com/arkilpatel/SVAMP/main/SVAMP.json"},
+  "mathematics-dataset": {"lisans": "apache-2.0", "lisans_url": "https://raw.githubusercontent.com/google-deepmind/mathematics_dataset/master/LICENSE",
+                          "pypi": "https://pypi.org/pypi/mathematics_dataset/json"},
+  "openstax": {"lisans": "cc-by-4.0", "kategori": "matematik",
+               "depolar": ["osbooks-prealgebra-bundle", "osbooks-college-algebra-bundle", "osbooks-elementary-intermediate-algebra",
+                           "osbooks-introductory-statistics-bundle", "osbooks-contemporary-mathematics"],
+               "not": "Depo adları doğrulanmadı (keşif GitHub API ile listeler). Koleksiyon başına md:license okunur; NC/ND olan kitap (ör. Calculus) atlanır."}
+ }
+}

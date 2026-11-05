@@ -1,0 +1,246 @@
+name: derlem
+
+# Türkçe derlem hattı (orion_core.corpus). Başlatma: derlem/istek.txt'nin ilk satırını işle ya da Actions → derlem.
+#   kesif                 → derlem-kesif-<tarih> Release (kesif.json): lisans kanıtı, boyut, robots, küçük örnek. Toplu indirme yok.
+#   topla [KAYNAKLAR|etkin] [ZİNCİR]
+#                         → yalnız config enabled=true VE en yeni keşifte durum=gecti kaynaklar; parça matrisi; ≤5,5 saat/iş;
+#                           durum Release'te saklanır, sonraki çalışma kaldığı yerden sürer; ZİNCİR>0 ise bitmeyen iş kendini yeniden başlatır
+#   openstax              → CC BY OpenStax matematik kitapları (koleksiyon lisansı denetlenir) → en→tr → derlem-openstax
+#   dmmath                → mathematics_dataset (Apache-2.0 üretici) + Türkçe şablon → derlem-dmmath
+# Kaggle/sohbet/ceviri işlerine dokunmaz (ayrı eşzamanlılık grubu).
+on:
+  workflow_dispatch:
+    inputs:
+      islem:
+        description: 'kesif | topla | openstax | dmmath'
+        default: 'kesif'
+      kaynaklar:
+        description: 'topla: virgüllü kaynak adları ya da etkin'
+        default: 'etkin'
+      zincir:
+        description: 'topla: bitmeyen parça varsa kendini en çok kaç kez yeniden başlatsın'
+        default: '0'
+  push:
+    branches: [main]
+    paths: ['derlem/istek.txt']
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: derlem
+  cancel-in-progress: false
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  ayar:
+    runs-on: ubuntu-latest
+    outputs:
+      islem: ${{ steps.c.outputs.islem }}
+      kaynaklar: ${{ steps.c.outputs.kaynaklar }}
+      zincir: ${{ steps.c.outputs.zincir }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: c
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then I="${{ inputs.islem }}"; K="${{ inputs.kaynaklar }}"; Z="${{ inputs.zincir }}"
+          else read I K Z < <(head -1 derlem/istek.txt); fi
+          K=${K:-etkin}; Z=${Z:-0}
+          case "$I" in kesif|topla|openstax|dmmath) ;; *) echo "HATA: islem kesif|topla|openstax|dmmath olmalı"; exit 1;; esac
+          case "$K" in *[!a-z0-9,-]*) echo "HATA: kaynak adları küçük harf, virgüllü"; exit 1;; esac
+          case "$Z" in *[!0-9]*) echo "HATA: zincir sayı olmalı"; exit 1;; esac
+          [ "$Z" -le 30 ] || { echo "HATA: zincir ≤30"; exit 1; }
+          echo "islem=$I" >> "$GITHUB_OUTPUT"; echo "kaynaklar=$K" >> "$GITHUB_OUTPUT"; echo "zincir=$Z" >> "$GITHUB_OUTPUT"
+          echo "ayar: $I $K $Z"
+
+  kesif:
+    needs: ayar
+    if: needs.ayar.outputs.islem == 'kesif'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: sudo apt-get install -y -q poppler-utils && pip install regex
+      - name: Keşif (yalnız meta veri + küçük örnek)
+        working-directory: core-model
+        run: python -m orion_core.corpus discover --out ../kesif.json
+      - name: Release
+        run: |
+          TAG="derlem-kesif-$(date -u +%Y%m%d-%H%M)"
+          NOTES=$(python -c "import json;r=json.load(open('kesif.json'));print('Derlem keşif raporu · istek: %d · durum: %s' % (r['istek_sayisi'], ', '.join(f'{k}={v}' for k,v in r['ozet'].items())))")
+          gh release create "$TAG" kesif.json --target "$GITHUB_SHA" --title "Derlem keşfi $TAG" --notes "$NOTES" --prerelease
+
+  plan:
+    needs: ayar
+    if: needs.ayar.outputs.islem == 'topla'
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install regex
+      - name: En yeni keşif raporu
+        run: |
+          T=$(gh release list --limit 200 --json tagName -q '.[].tagName' | grep '^derlem-kesif-' | sort | tail -1 || true)
+          [ -n "$T" ] || { echo "HATA: önce 'kesif' çalıştır"; exit 1; }
+          gh release download "$T" --pattern kesif.json --dir . && echo "keşif: $T"
+      - id: p
+        working-directory: core-model
+        run: |
+          K="${{ needs.ayar.outputs.kaynaklar }}"; [ "$K" = "etkin" ] && K=""
+          M=$(python -m orion_core.corpus plan --kesif ../kesif.json ${K:+--only $K})
+          [ "$M" != "[]" ] || { echo "HATA: kapıdan geçen kaynak yok (enabled=true + keşif durum=gecti gerekir)"; exit 1; }
+          echo "matrix=$M" >> "$GITHUB_OUTPUT"
+          for S in $(echo "$M" | python -c "import json,sys;print(' '.join(sorted({j['kaynak'] for j in json.load(sys.stdin)})))"); do
+            gh release view "derlem-$S" >/dev/null 2>&1 || gh release create "derlem-$S" --target "$GITHUB_SHA" \
+              --title "Derlem: $S" --notes "Orion Türkçe derlemi, kaynak $S. Lisans/atıf belge başına (license, attribution). Durum: durum-*.json" --prerelease
+          done
+      - uses: actions/upload-artifact@v4
+        with: {name: derlem-kesif, path: kesif.json, retention-days: 3}
+
+  topla:
+    needs: [ayar, plan]
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        job: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      S: ${{ matrix.job.kaynak }}
+      K: ${{ matrix.job.parca }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: sudo apt-get install -y -q poppler-utils && pip install regex
+      - uses: actions/download-artifact@v4
+        with: {name: derlem-kesif, path: .}
+      - name: Önceki durum (sürdürme)
+        run: |
+          mkdir -p work/state work/out work/tmp
+          P=$(printf '%02d' $K)
+          gh release download "derlem-$S" --pattern "durum-$S-$P.json" --pattern "tekil-$S-$P.txt.gz" --dir work/state 2>/dev/null || echo "ilk çalışma"
+      - name: Topla (≤320 dk; süre dolunca imleç kaydedilir)
+        working-directory: core-model
+        run: |
+          python -m orion_core.corpus collect --source "$S" --shard "$K" --out ../work/out --state ../work/state \
+            --work ../work/tmp --kesif ../kesif.json --budget-min 320
+      - name: Release'e yükle (veri parçaları + durum)
+        if: always()
+        run: |
+          ls work/out/*.jsonl.gz >/dev/null 2>&1 && gh release upload "derlem-$S" work/out/*.jsonl.gz
+          ls work/state/durum-* >/dev/null 2>&1 && gh release upload "derlem-$S" work/state/durum-* work/state/tekil-* work/out/ozet-* --clobber || true
+
+  devam:
+    needs: [ayar, topla]
+    if: always() && needs.ayar.outputs.islem == 'topla' && needs.ayar.outputs.zincir != '0'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bitmeyen parça var mı → kendini yeniden başlat
+        run: |
+          KALAN=0
+          for T in $(gh release list --repo "$GITHUB_REPOSITORY" --limit 200 --json tagName -q '.[].tagName' | grep '^derlem-' | grep -v '^derlem-kesif-'); do
+            mkdir -p d/$T && gh release download "$T" --repo "$GITHUB_REPOSITORY" --pattern 'durum-*.json' --dir d/$T 2>/dev/null || true
+          done
+          KALAN=$(python3 -c "import json,glob;print(sum(not json.load(open(p)).get('bitti') and not json.load(open(p)).get('hata') for p in glob.glob('d/*/durum-*.json')))")
+          echo "bitmeyen parça: $KALAN"
+          if [ "$KALAN" -gt 0 ]; then
+            gh workflow run derlem.yml --repo "$GITHUB_REPOSITORY" -f islem=topla -f kaynaklar="${{ needs.ayar.outputs.kaynaklar }}" \
+              -f zincir=$(( ${{ needs.ayar.outputs.zincir }} - 1 ))
+          fi
+
+  openstax:
+    needs: ayar
+    if: needs.ayar.outputs.islem == 'openstax'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install regex
+      - name: Kitap depoları (tek tarball/depo) + koleksiyon lisans denetimi
+        run: |
+          mkdir -p work/os
+          ARGS=""
+          for R in $(python -c "import json;print(' '.join(json.load(open('shared/core-model/derlem-kaynaklar.json'))['matematik']['openstax']['depolar']))"); do
+            if gh api "repos/openstax/$R/tarball" > "work/os/$R.tar.gz" 2>/dev/null; then ARGS="$ARGS --tar ../work/os/$R.tar.gz --repo $R"; sleep 1
+            else echo "uyarı: $R alınamadı"; rm -f "work/os/$R.tar.gz"; fi
+          done
+          [ -n "$ARGS" ] || { echo "HATA: hiçbir OpenStax deposu alınamadı"; exit 1; }
+          cd core-model && python -m orion_core.corpus openstax $ARGS --out ../work/en --shards 3
+      - uses: actions/upload-artifact@v4
+        with: {name: openstax-en, path: work/en/, retention-days: 7}
+
+  openstax-cevir:
+    needs: openstax
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Bağımlılıklar
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -r core-model/requirements-ceviri.txt
+      - uses: actions/download-artifact@v4
+        with: {name: openstax-en, path: work/en}
+      - name: Çeviri modeli önbellekten
+        id: mcache
+        uses: actions/cache/restore@v4
+        with: {path: work/ct2, key: ct2-opus-tc-big-en-tr-tr-en-v1}
+      - name: Modeli dönüştür (önbellek yoksa)
+        if: steps.mcache.outputs.cache-hit != 'true'
+        run: ct2-transformers-converter --model Helsinki-NLP/opus-mt-tc-big-en-tr --output_dir work/ct2/en-tr --quantization int8
+      - name: Çevir (uzun metin, süre bütçeli)
+        working-directory: core-model
+        run: |
+          P=$(printf '%02d' ${{ matrix.shard }})
+          python -m orion_core.translate_data translate-longform --shard ../work/en/openstax-$P.jsonl \
+            --out ../work/rel/openstax-$P-0000.jsonl.gz --ct2 ../work/ct2/en-tr --budget-min 310 --threads 4
+      - name: Release
+        run: |
+          gh release view derlem-openstax >/dev/null 2>&1 || gh release create derlem-openstax --target "$GITHUB_SHA" \
+            --title "Derlem: OpenStax matematik (makine çevirisi)" --prerelease \
+            --notes "OpenStax CC BY 4.0 matematik kitapları; koleksiyon lisansı denetlendi (NC/ND atlandı). Atıf belge başına." || true
+          gh release upload derlem-openstax work/rel/*.jsonl.gz work/rel/*.stats.json --clobber
+          [ "${{ matrix.shard }}" = "0" ] && gh release upload derlem-openstax work/en/openstax-collect.json --clobber || true
+
+  dmmath:
+    needs: ayar
+    if: needs.ayar.outputs.islem == 'dmmath'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.10'}
+      - name: Üretici (Apache-2.0) + lisans denetimi
+        run: |
+          pip install regex mathematics_dataset
+          pip show mathematics_dataset | tee pipshow.txt
+          grep -qi '^License: Apache' pipshow.txt || { echo "HATA: mathematics_dataset lisansı Apache değil/okunamadı"; exit 1; }
+      - name: Üret + Türkçe şablon
+        working-directory: core-model
+        run: python -m orion_core.corpus dmmath --out ../work/dmmath.jsonl.gz --per-module 3000 | tee ../work/dmmath-stats.json
+      - name: Release
+        run: |
+          gh release view derlem-dmmath >/dev/null 2>&1 || gh release create derlem-dmmath --target "$GITHUB_SHA" \
+            --title "Derlem: kodla üretilen matematik (Türkçe şablon)" --prerelease \
+            --notes "google-deepmind/mathematics_dataset üreticisi (Apache-2.0); dil modeli/çeviri yok. chat prepare --extra-dialogs ile kullanılır."
+          gh release upload derlem-dmmath work/dmmath.jsonl.gz work/dmmath-stats.json --clobber

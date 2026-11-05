@@ -76,7 +76,27 @@ SOURCES: dict[str, dict] = {
                   license_url=GSM8K_RAW + "LICENSE",
                   attribution="openai/grade-school-math GSM8K train (Copyright (c) 2021 OpenAI, MIT); "
                               "insan yazımı problemler, Türkçe makine çevirisi"),
+    # Aşağıdaki matematik kaynakları insan yazımıdır (model üretimi DEĞİL). sha256 derlem keşif raporundan
+    # (derlem-kesif-* → matematik/<ad>/veri/sha256) elle sabitlenir; sabitlenmeden indirilmez (alınamadı raporlanır).
+    # default=False: "hepsi" listesine girmez, cevir.yml'de adıyla istenir.
+    "aqua-rat": dict(repo="google-deepmind/AQuA", license="apache-2.0", host="github", parser="aqua", math=True,
+                     default=False, url="https://raw.githubusercontent.com/google-deepmind/AQuA/master/train.json",
+                     sha256=None, license_url="https://raw.githubusercontent.com/google-deepmind/AQuA/master/LICENSE",
+                     attribution="google-deepmind/AQuA (AQuA-RAT train, Ling ve ark. 2017, Apache-2.0); kitle kaynaklı "
+                                 "insan yazımı problem ve gerekçeler, yalnız sayısal doğru seçenekli olanlar, Türkçe makine çevirisi"),
+    "svamp": dict(repo="arkilpatel/SVAMP", license="mit", host="github", parser="svamp", math=True, format="json",
+                  default=False, url="https://raw.githubusercontent.com/arkilpatel/SVAMP/main/SVAMP.json", sha256=None,
+                  license_url="https://raw.githubusercontent.com/arkilpatel/SVAMP/main/LICENSE",
+                  attribution="arkilpatel/SVAMP (Patel ve ark. 2021, MIT); insan yazımı problemler, çözüm adımı "
+                              "veri setindeki denklemden kodla yazıldı, Türkçe makine çevirisi"),
+    # MATH: lisans MIT (doğrulanmadı) ama HF kopyası AoPS telif bildirimiyle kaldırıldı (doğrulanmadı) → sahip kararı.
+    "math": dict(repo="hendrycks/math", license="mit", host="github", parser="math", math=True, format="tar-json",
+                 default=False, url="https://people.eecs.berkeley.edu/~hendrycks/MATH.tar", sha256=None,
+                 license_url="https://raw.githubusercontent.com/hendrycks/math/main/LICENSE", max_words=200,
+                 attribution="hendrycks/math MATH train (Hendrycks ve ark. 2021, MIT); seviye 1-3, sade LaTeX'li "
+                             "problemler, Türkçe makine çevirisi"),
 }
+DEFAULT_SOURCES = [n for n, s in SOURCES.items() if s.get("default", True)]
 # GSM8K test bölümü (1319 problem) hiçbir koşulda indirilmez/eğitilmez; testler bu adı kaynak tanımlarında arar.
 GSM8K_TEST_FILES = ("test.jsonl", "test_socratic.jsonl", "train_socratic.jsonl")
 
@@ -165,6 +185,9 @@ def license_of_text(text: str) -> str | None:
     lines = [x.strip() for x in (text or "").splitlines() if x.strip()]
     if lines and lines[0] == "MIT License" and "Permission is hereby granted, free of charge" in text:
         return "mit"
+    if lines and lines[0].startswith("Apache License") and any(x.startswith("Version 2.0") for x in lines[:3]) \
+            and "TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION" in text:
+        return "apache-2.0"
     return None
 
 
@@ -392,15 +415,141 @@ def parse_gsm8k(rows: Iterable[dict]) -> list[list[tuple[str, str]]]:
     return out
 
 
+NUM_ONLY = re.compile(r"-?\d+(?:\.\d+)?")
+AQUA_ANSWER = re.compile(r"\n?[^\n]*\b(?:answer|ans)\b[^\n]*$", re.I)
+
+
+def _num(x: str) -> str | None:
+    x = (x or "").replace(",", "").replace("$", "").strip().rstrip(".")
+    if not NUM_ONLY.fullmatch(x):
+        return None
+    if "." in x:
+        x = x.rstrip("0").rstrip(".")
+    return x
+
+
+def parse_aqua(rows: Iterable[dict]) -> list[list[tuple[str, str]]]:
+    """AQuA-RAT train: yalnız doğru seçeneği SAYI olanlar (GSM8K biçimi: soru, gerekçe, son cevap).
+    Seçenekler soruya konmaz; gerekçenin sondaki 'Answer: B' satırı atılır."""
+    out = []
+    for r in rows:
+        opts = {o[:1].upper(): o[2:].strip() for o in r.get("options") or [] if len(o) > 2 and o[1] == ")"}
+        final = _num(opts.get((r.get("correct") or "").strip().upper(), ""))
+        rat = (r.get("rationale") or "").strip()
+        rat = AQUA_ANSWER.sub("", rat).strip()
+        if final is None or not rat or re.search(r"\b(option|choice)\b|\([A-E]\)|\b[A-E]\)", rat, re.I):
+            continue
+        out.append([(gsm8k_text(r.get("question") or ""), gsm8k_text(rat) + MATH_SEP + final)])
+    return out
+
+
+def parse_svamp(rows: Iterable[dict]) -> list[list[tuple[str, str]]]:
+    """SVAMP: soru = Body + Question; çözüm adımı veri setindeki denklemden kodla: 'We compute 3 + 5 = 8.'"""
+    out = []
+    for r in rows:
+        final = _num(str(r.get("Answer", "")))
+        eq = re.sub(r"(\d+)\.0\b", r"\1", str(r.get("Equation") or "")).strip()
+        eq = re.sub(r"\s+", " ", eq)
+        if eq.startswith("( ") and eq.endswith(" )") and eq.count("(") == 1:
+            eq = eq[2:-2]
+        if final is None or not eq:
+            continue
+        q = f"{(r.get('Body') or '').strip()} {(r.get('Question') or '').strip()}".strip()
+        out.append([(gsm8k_text(q), f"We compute {eq.replace('*', ' × ')} = {final}." + MATH_SEP + final)])
+    return out
+
+
+def _braced(s: str, i: int) -> tuple[str, int]:
+    """s[i] == '{' → (içerik, kapanıştan sonraki indeks)."""
+    depth, j = 0, i
+    while j < len(s):
+        if s[j] == "{":
+            depth += 1
+        elif s[j] == "}":
+            depth -= 1
+            if depth == 0:
+                return s[i + 1:j], j + 1
+        j += 1
+    raise ValueError("kapanmamış parantez")
+
+
+def boxed(s: str) -> str | None:
+    i = s.rfind("\\boxed{")
+    if i < 0:
+        return None
+    try:
+        return _braced(s, i + len("\\boxed"))[0]
+    except ValueError:
+        return None
+
+
+LATEX_SIMPLE = [(r"\\[dt]?frac\{([^{}]+)\}\{([^{}]+)\}", r"\1/\2"), (r"\\sqrt\{([^{}]+)\}", r"√(\1)"),
+                (r"\\text\{([^{}]*)\}", r"\1"), (r"\\mbox\{([^{}]*)\}", r"\1"), (r"\\boxed\{([^{}]*)\}", r"\1"),
+                (r"\^\{([^{}]+)\}", r"^\1"), (r"\\(?:cdot|times)", "×"), (r"\\div", "÷"), (r"\\le(?:q)?\b", "≤"),
+                (r"\\ge(?:q)?\b", "≥"), (r"\\neq?\b", "≠"), (r"\\pi\b", "π"), (r"\\%", "%"), (r"\\\$", ""),
+                (r"\\left|\\right", ""), (r"\\[,!;: ]", " "), (r"\\quad|\\qquad", " "), (r"\$", "")]
+
+
+def delatex(s: str) -> str | None:
+    """Sade LaTeX'i düz metne çevirir; karmaşık (asy, ortam, kalan komut) → None (çeviri bozar)."""
+    if "[asy]" in s or "\\begin" in s:
+        return None
+    for _ in range(3):
+        for a, b in LATEX_SIMPLE:
+            s = re.sub(a, b, s)
+    if "\\" in s or "{" in s or "}" in s:
+        return None
+    return re.sub(r"[ \t]+", " ", s).strip()
+
+
+def parse_math(rows: Iterable[dict]) -> list[list[tuple[str, str]]]:
+    """MATH train: seviye 1-3, son cevap sayısal, LaTeX sade olanlar."""
+    out = []
+    for r in rows:
+        lvl = re.search(r"\d", r.get("level") or "")
+        if not lvl or int(lvl.group(0)) > 3:
+            continue
+        sol = r.get("solution") or ""
+        b = boxed(sol)
+        b2 = delatex(b) if b is not None else None
+        final = _num(b2 or "")
+        if final is None:
+            continue
+        q, steps = delatex(r.get("problem") or ""), delatex(sol)
+        if not q or not steps:
+            continue
+        out.append([(q, steps + MATH_SEP + final)])
+    return out
+
+
 PARSERS = {"oasst2": parse_oasst2, "dolly": parse_dolly, "hh": parse_hh, "helpsteer2": parse_helpsteer2,
-           "gsm8k": parse_gsm8k}
+           "gsm8k": parse_gsm8k, "aqua": parse_aqua, "svamp": parse_svamp, "math": parse_math}
+
+
+def _read_url_source(hub, spec: dict) -> list[dict]:
+    if not spec.get("sha256"):
+        raise RuntimeError(f"{spec['repo']}: sha256 sabitlenmedi (derlem keşif raporundaki değeri SOURCES'a yaz)")
+    local = hub.fetch(spec["url"], spec["sha256"])
+    fmt = spec.get("format", "jsonl")
+    if fmt == "json":
+        return json.loads(Path(local).read_text(encoding="utf-8"))
+    if fmt == "tar-json":
+        import tarfile
+        rows = []
+        with tarfile.open(local) as t:
+            for m in t:
+                # yalnız TRAIN bölümü; test asla okunmaz
+                if m.isfile() and "/train/" in m.name and "/test/" not in m.name and m.name.endswith(".json"):
+                    rows.append(json.loads(t.extractfile(m).read().decode("utf-8")))
+        return rows
+    return list(_read_jsonl(local))
 
 
 def load_source(hub, name: str) -> list[list[tuple[str, str]]]:
     spec = SOURCES[name]
     if spec.get("host") == "github":
-        assert not spec["url"].endswith(GSM8K_TEST_FILES), "test bölümü eğitim verisine giremez"
-        return PARSERS[spec["parser"]](_read_jsonl(hub.fetch(spec["url"], spec["sha256"])))
+        assert not spec["url"].endswith(GSM8K_TEST_FILES + ("dev.json", "test.json")), "test bölümü eğitim verisine giremez"
+        return PARSERS[spec["parser"]](_read_url_source(hub, spec))
     pat = re.compile(spec["pattern"])
     paths = [p for p in hub.files(spec["repo"]) if pat.search(p)]
     if not paths:
@@ -432,12 +581,12 @@ def clean_dialog(turns: list[tuple[str, str]], stats: Counter) -> list[tuple[str
     return kept
 
 
-def math_reject(q: str, steps: str) -> str | None:
+def math_reject(q: str, steps: str, max_words: int = 120) -> str | None:
     """Matematik kaynağı süzgeci: işlem/sayı ve birimler serbest; uzunluk, dil, adres, kimlik denetlenir.
     Çözüm KESİLMEZ (yarım çözüm + sonuç yanlış öğretir): 120 sözcüğü aşan atılır."""
     if not (10 <= len(q) <= 600) or len(words(q)) > 110:
         return "soru_uzunluk"
-    if len(steps.split()) > 120:
+    if len(steps.split()) > max_words:
         return "cevap_uzun"
     if not looks_english(q) or not looks_english(steps):
         return "ingilizce_degil"
@@ -448,10 +597,10 @@ def math_reject(q: str, steps: str) -> str | None:
     return None
 
 
-def clean_math(turns: list[tuple[str, str]], stats: Counter) -> tuple[list[tuple[str, str]], str | None]:
+def clean_math(turns: list[tuple[str, str]], stats: Counter, max_words: int = 120) -> tuple[list[tuple[str, str]], str | None]:
     q, a = turns[0]
     steps, final = a.rsplit(MATH_SEP, 1)
-    why = math_reject(q, steps)
+    why = math_reject(q, steps, max_words)
     if why:
         stats[why] += 1
         return [], None
@@ -489,7 +638,7 @@ def collect(sources: list[str], limit: int, out: Path, n_shards: int = 3, hub=No
         for turns in raw:
             final = None
             if SOURCES[name].get("math"):
-                t, final = clean_math(turns, drop)
+                t, final = clean_math(turns, drop, SOURCES[name].get("max_words", 120))
             else:
                 t = clean_dialog(turns, drop)
             if not t:
@@ -778,6 +927,59 @@ def translate_shard(shard: Path, out: Path, translator: Callable, backtranslator
     return st
 
 
+def translate_longform(shard: Path, out: Path, translator: Callable, licenses: dict | None = None,
+                       budget_min: float = 0, chunk: int = 4, min_chars: int = 300) -> dict:
+    """Uzun metin (OpenStax bölümleri): paragraf paragraf çevrilir; geçemeyen paragraf (Türkçe süzgeci, sayı kaybı)
+    düşer, kalanlar derlem belgesi olur (kategori matematik). Çıktı: jsonl.gz, derlem kaydı biçimi (chat --corpus)."""
+    licenses = licenses or {}
+    tl = (licenses.get("translator") or {}).get("license", MT_LICENSE)
+    rows = list(_read_jsonl(shard))
+    drop: Counter = Counter()
+    t0 = time.time()
+    done = kept = paras_in = paras_out = 0
+    out = Path(out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with gzip.open(out, "wt", encoding="utf-8") as f:
+        for i in range(0, len(rows), chunk):
+            if budget_min and time.time() - t0 > budget_min * 60:
+                print("süre bütçesi doldu; kalan bölümler çevrilmedi", flush=True)
+                break
+            part = rows[i:i + chunk]
+            flat = [p["en"] for d in part for p in d["paras"]]
+            tr = translate_texts(flat, translator)
+            k = 0
+            for d in part:
+                done += 1
+                good = []
+                for p in d["paras"]:
+                    src, tgt = p["en"], to_sen(tr[k])
+                    k += 1
+                    paras_in += 1
+                    why = tr_reject(src, tgt) or (None if numbers_kept(src, tgt) else "sayi_bozuldu")
+                    if why:
+                        drop[why] += 1
+                        continue
+                    good.append(("Örnek: " if p.get("tur") == "ornek" else "") + tgt)
+                text = "\n".join(good)
+                if len(text) < min_chars:
+                    drop["bolum_kisa"] += 1
+                    continue
+                paras_out += len(good)
+                f.write(json.dumps({"id": d["id"], "text": text, "kaynak": d.get("kaynak", "openstax"),
+                                    "source": d["source"], "kategori": d.get("kategori", "matematik"),
+                                    "license": d["license"], "title": d.get("title"), "url": d.get("url"),
+                                    "translator": f"{MT_MODEL} (CTranslate2 int8)", "translator_license": tl,
+                                    "training_allowed": True, "model_uretimi": False,
+                                    "attribution": d["attribution"] + f"; makine çevirisi: {MT_MODEL} ({tl})"},
+                                   ensure_ascii=False) + "\n")
+                kept += 1
+            print(f"{done}/{len(rows)} bölüm, {kept} kaldı", flush=True)
+    st = {"parca": Path(shard).name, "girdi": len(rows), "islenen": done, "kalan": kept, "paragraf": paras_in,
+          "paragraf_kalan": paras_out, "atilan": dict(drop), "yarim": done < len(rows), "sure_sn": round(time.time() - t0)}
+    Path(str(out) + ".stats.json").write_text(json.dumps(st, ensure_ascii=False, indent=1), encoding="utf-8")
+    return st
+
+
 # --------------------------------------------------------------------------- birleştirme
 
 def percentile(xs: list[float], p: float) -> float:
@@ -802,6 +1004,10 @@ Her satırın `source`, `license`, `translator`, `attribution` alanları kaynağ
 - openai/grade-school-math (GSM8K, yalnız train) — MIT (Copyright (c) 2021 OpenAI). Problemler ve çözümler insan
   yazımıdır; hesap notları atıldı, "$" tutarları "lira" yazıldı, son cevap "Sonuç: N." olarak eklendi. GSM8K test
   bölümü kullanılmadı.
+- google-deepmind/AQuA (AQuA-RAT train) — Apache-2.0; yalnız doğru seçeneği sayı olan problemler, seçenekler atıldı.
+- arkilpatel/SVAMP — MIT; çözüm cümlesi veri setindeki denklemden kodla yazıldı.
+- hendrycks/math (MATH train, seviye 1-3, sade LaTeX) — MIT (doğrulanmadı); problemlerin kaynak telifi: doğrulanmadı.
+  (Bu üç kaynak yalnız adıyla istenirse girer; bu Release'te olup olmadıkları "kaynaklar" satırında yazar.)
 - Çevirmen model: Helsinki-NLP/opus-mt-tc-big-en-tr — lisansı çalışma anında model kartından okundu (aşağıda).
   Makine çevirisi çıktısının ayrıca bir lisans koşulu olup olmadığı: doğrulanmadı.
 
@@ -892,7 +1098,7 @@ def main(argv=None) -> None:
     c.add_argument("--out", required=True)
     c.add_argument("--pairs", type=int, default=100_000)
     c.add_argument("--shards", type=int, default=3)
-    c.add_argument("--sources", default=",".join(SOURCES))
+    c.add_argument("--sources", default=",".join(DEFAULT_SOURCES))
     t = sub.add_parser("translate")
     t.add_argument("--shard", required=True)
     t.add_argument("--out", required=True)
@@ -902,6 +1108,13 @@ def main(argv=None) -> None:
     t.add_argument("--budget-min", type=float, default=320)
     t.add_argument("--threads", type=int, default=4)
     t.add_argument("--beam", type=int, default=2)
+    tl_ = sub.add_parser("translate-longform", help="OpenStax gibi uzun metin parçasını çevirir (derlem kaydı çıktısı)")
+    tl_.add_argument("--shard", required=True)
+    tl_.add_argument("--out", required=True)
+    tl_.add_argument("--ct2", required=True)
+    tl_.add_argument("--budget-min", type=float, default=320)
+    tl_.add_argument("--threads", type=int, default=4)
+    tl_.add_argument("--beam", type=int, default=2)
     m = sub.add_parser("merge")
     m.add_argument("--out", required=True)
     m.add_argument("--collect", help="collect.json (lisans kaydı için)")
@@ -921,6 +1134,11 @@ def main(argv=None) -> None:
             tr = Ct2Translator(a.ct2, MT_MODEL, threads=a.threads, beam=a.beam)
             bt = Ct2Translator(a.ct2_back, BT_MODEL, threads=a.threads, beam=1) if a.ct2_back else None
             st = translate_shard(Path(a.shard), Path(a.out), tr, bt, lic, a.budget_min)
+        elif a.cmd == "translate-longform":
+            hub = HfHub(Path("."))
+            lic = {"translator": check_license(hub, MT_MODEL, MT_LICENSE, kind="models")}
+            tr = Ct2Translator(a.ct2, MT_MODEL, threads=a.threads, beam=a.beam)
+            st = translate_longform(Path(a.shard), Path(a.out), tr, lic, a.budget_min)
         elif a.cmd == "merge":
             st = merge([Path(p) for p in a.parts], Path(a.out), collect_stats=Path(a.collect) if a.collect else None,
                        prev=Path(a.prev) if a.prev else None)

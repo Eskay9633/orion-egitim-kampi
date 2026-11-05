@@ -22,14 +22,13 @@ def _num(s):
     return float(s.replace(",", "."))
 
 
-def test_mix_has_thinkers_branch():
-    assert dialogs.MIX == {"reasoning": 0.30, "thinkers": 0.20, "personality": 0.25, "memory": 0.10,
-                           "principled": 0.10, "route": 0.03, "legacy": 0.02}
+def test_mix_has_no_thinkers():
+    assert dialogs.MIX == {"reasoning": 0.45, "thinkers": 0.0, "personality": 0.30, "memory": 0.12, "principled": 0.08, "route": 0.03, "legacy": 0.02}
     st: dict = {}
     d = dialogs.persona_dialogues(3000, seed=5, stats=st)
     sh = dialogs.mix_shares(st)
-    assert abs(sh["thinkers"] - 0.20) < 0.03, sh
-    assert any(T.thinker_of(x) for x in d)
+    assert sh.get("thinkers", 0) == 0, sh  # Tur 27: kol kapalı
+    assert not any(T.thinker_of(x) for x in d)  # düşünür adları eğitim diyaloglarına girmez
 
 
 def test_answers_correct(samples):

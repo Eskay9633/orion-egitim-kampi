@@ -28,6 +28,12 @@ küçük GPT'si, kendi veri üreticisi (`grammar.py`). Hazır model ağırlığ�
   Hugging Face API'sinden okunur, uymazsa iş durur; satır başına kaynak/lisans/atıf kaydı tutulur. OpenAI üretimi
   veri yok. Başlatma: `ceviri/hedef.txt` dosyasına `100000 3` yazıp işle ya da Actions → ceviri. Kaggle en yeni
   `ceviri-*` Release'ini kendiliğinden kullanır (ince ayar: diyalog payı 0.75, lr 1.5e-4).
+- Türkçe derlem (`derlem.yml`, Release `derlem-*`): Vikikaynak/Vikikitap/Vikisözlük/Vikisöz (CC BY-SA), TBMM Corpus
+  (Apache-2.0), ParlaMint-TR (CC BY 4.0), DergiPark'ta kayıt düzeyinde CC BY / CC BY-SA makaleler, resmî mevzuat ve
+  yargı kararları (FSEK md.31, kişisel veri temizlenerek). Her kaynak önce keşif işinden (`derlem/istek.txt` → `kesif`)
+  geçer ve `shared/core-model/derlem-kaynaklar.json`'da elle açılır. ODC-By web taramaları (FineWeb-2, CulturaX, OSCAR,
+  mC4) ve model üretimi veri yoktur. Sohbet beyninde pay sınırı: meclis ≤%15, akademik ≤%20, hukuk ≤%10, Vikipedi ≤%35.
+  Ayrıntı: `derlem/README.md`.
 - Kullanıcının telefon verisi bu depoya **asla** gelmez; o veri yalnızca gizli işlem deposunda kalır.
 - Bu depoda parola/anahtar yoktur.
 

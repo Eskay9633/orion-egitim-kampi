@@ -4,7 +4,7 @@ name: ceviri
 # sohbet beyni için ek veri olarak Release'e koyar (etiket ceviri-YYYYMMDD-HHMM, ön sürüm). Veri depoya İŞLENMEZ.
 # Kaggle (kaggle.yml) en yeni ceviri-* Release'indeki ceviri.jsonl.gz'yi kendiliğinden kullanır.
 # Başlatma: Actions → ceviri → Run workflow YA DA ceviri/hedef.txt dosyasına "ÇİFT PARÇA [KAYNAKLAR] [ÖNCEKİ]"
-# (ör. "100000 3" ya da "8000 2 gsm8k") yazıp main'e işlemek. KAYNAKLAR virgüllü (oasst2,dolly,hh-rlhf,helpsteer2,
+# (ör. "100000 3" ya da "8000 2 gsm8k") yazıp main'e işlemek. KAYNAKLAR virgüllü (oasst2,dolly,hh-rlhf,helpsteer2,aqua-rat,svamp,math,
 # gsm8k; boş/"hepsi" = hepsi). ÖNCEKİ: "koru" (varsayılan) = bir önceki ceviri-* Release'inin satırları yeni
 # Release'e aynen taşınır (eski + yeni tek dosyada; Kaggle yine tek dosya okur); "yeni" = yalnız bu çalışmanınkiler. Lisans kapısı: her veri setinin ve çevirmen modelin lisansı Hugging Face
 # API'sinden okunur; izin listesinde ya da beklenenle aynı değilse iş durur.
@@ -58,7 +58,7 @@ jobs:
             K="${{ inputs.sources }}"; O="${{ inputs.onceki }}"
           else read P S K O < ceviri/hedef.txt; fi
           P=${P:-100000}; S=${S:-3}; O=${O:-koru}
-          if [ -z "$K" ] || [ "$K" = "hepsi" ]; then K=$(cd core-model && python -c "from orion_core.translate_data import SOURCES;print(','.join(SOURCES))"); fi
+          if [ -z "$K" ] || [ "$K" = "hepsi" ]; then K=$(cd core-model && python -c "from orion_core.translate_data import DEFAULT_SOURCES;print(','.join(DEFAULT_SOURCES))"); fi
           case "$P$S" in *[!0-9]*) echo "HATA: hedef.txt biçimi 'ÇİFT PARÇA [KAYNAKLAR] [koru|yeni]' olmalı (ör. 8000 2 gsm8k)"; exit 1;; esac
           case "$K" in *[!a-z0-9,-]*) echo "HATA: kaynak adları küçük harf, virgüllü olmalı"; exit 1;; esac
           case "$O" in koru|yeni) ;; *) echo "HATA: dördüncü alan 'koru' ya da 'yeni' olmalı"; exit 1;; esac

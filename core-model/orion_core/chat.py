@@ -153,26 +153,47 @@ def encode_to(path: Path, bpe: BPE, texts) -> int:
 
 
 def prepare(out: Path, max_chars: int, vocab: int, tok_sample_chars: int = 30_000_000, texts=None,
-            tokenizer: Path | None = None, open_data: bool = True, extra_dialogs: str | None = None,
-            mkqa_src: str | None = None) -> dict:
+            tokenizer: Path | None = None, open_data: bool = True, extra_dialogs: str | list[str] | None = None,
+            mkqa_src: str | None = None, corpus: list[str] | None = None,
+            corpus_max_chars: int = 2_000_000_000) -> dict:
     """tokenizer: önceki eğitimin tokenizer'ı (Kaggle'da kaldığı yerden devam ederken AYNI olmalı).
     extra_dialogs: ek (ör. çeviri) diyalog jsonl yolu/URL'si; bkz. extra_dialogues. Yoksa davranış değişmez.
     mkqa_src: MKQA Türkçe bilgi soruları ("auto": open_data açıksa sabit commit adresinden indirilir; yol/URL de
     verilebilir; None: kapalı). sha256 uymazsa ya da indirilemezse HATA (sessiz atlama yok). 1000 soru eğitime
-    girmez, data/mkqa-eval.jsonl'e yazılır (yalnızca rapor)."""
+    girmez, data/mkqa-eval.jsonl'e yazılır (yalnızca rapor).
+    corpus: derlem Release adresleri / yerel klasörler (orion_core.corpus çıktısı, *.jsonl.gz). Verilirse dil modeli
+    akışı Vikipedi + derlem olur ve kategori pay sınırları (derlem-kaynaklar.json pay_siniri; Vikipedi de sınırlı)
+    uygulanır; toplam en çok corpus_max_chars karakter. Yalnız training_allowed=true, izinli lisanslı, model üretimi
+    olmayan belgeler alınır. Ayrıntı data.json → derlem."""
     out.mkdir(parents=True, exist_ok=True)
     raw = out / "raw.txt"
+    corpus_stats = None
     if not raw.exists():
         it = texts if texts is not None else wikipedia_texts(out / "hf", max_chars)
-        with open(raw, "w", encoding="utf-8") as f:
-            for t in it:
-                f.write(t.replace("\x00", " ") + "\x00")
+        if corpus:
+            corpus_stats = _write_mixed(raw, it, corpus, out / "corpus", corpus_max_chars)
+        else:
+            with open(raw, "w", encoding="utf-8") as f:
+                for t in it:
+                    f.write(t.replace("\x00", " ") + "\x00")
     docs = raw.read_text(encoding="utf-8").split("\x00")
     docs = [d for d in docs if d.strip()]
     persona_stats: dict = {}
     dialogs = persona_dialogues(60000, stats=persona_stats)
     open_texts, open_stats = open_dialogues(out / "hf-dialog") if open_data else ([], {})
-    extra_texts, extra_stats = extra_dialogues(extra_dialogs, out / "extra") if extra_dialogs else ([], None)
+    extra_texts, extra_stats = [], None
+    for i, src in enumerate([extra_dialogs] if isinstance(extra_dialogs, str) else (extra_dialogs or [])):
+        t_, s_ = extra_dialogues(src, out / ("extra" if i == 0 else f"extra{i}"))
+        extra_texts += t_
+        if extra_stats is None:
+            extra_stats = s_
+        else:  # birden çok ek dosya (ör. ceviri-* + derlem-dmmath): sayılar toplanır
+            extra_stats["ceviri_cift"] += s_["ceviri_cift"]
+            for k, v in s_["kaynaklar"].items():
+                extra_stats["kaynaklar"][k] = extra_stats["kaynaklar"].get(k, 0) + v
+            for k, v in s_["atilan"].items():
+                extra_stats["atilan"][k] = extra_stats["atilan"].get(k, 0) + v
+            extra_stats["dosya"] = f"{extra_stats['dosya']} + {s_['dosya']}"
     # Tur 22: MKQA varsayılan KAPALI (beyin olguları ezberleyemedi, kalıpla uydurdu); yalnızca açıkça istenirse
     if mkqa_src == "auto":
         mkqa_src = _mkqa.MKQA_URL if open_data else None
@@ -214,6 +235,12 @@ def prepare(out: Path, max_chars: int, vocab: int, tok_sample_chars: int = 30_00
     if mkqa_stats is not None:
         stats["mkqa"] = mkqa_stats
         stats["source"] += " + Apple MKQA Türkçe bilgi soruları (CC BY-SA 3.0; github.com/apple/ml-mkqa)"
+    if corpus_stats is None and (out / "derlem.json").exists():
+        corpus_stats = json.loads((out / "derlem.json").read_text(encoding="utf-8"))
+    if corpus_stats is not None:
+        stats["derlem"] = corpus_stats
+        stats["source"] += " + Orion Türkçe derlemi (kategori payları: " + ", ".join(
+            f"{k} %{round(v * 100, 1)}" for k, v in sorted(corpus_stats["pay"].items())) + "; ayrıntı: derlem)"
     if extra_stats is not None:
         stats["ceviri_cift"] = extra_stats["ceviri_cift"]
         stats["ceviri"] = extra_stats
@@ -221,6 +248,33 @@ def prepare(out: Path, max_chars: int, vocab: int, tok_sample_chars: int = 30_00
                             ", ".join(sorted(extra_stats["kaynaklar"])) + "; ayrıntı: ceviri)")
     (out / "data.json").write_text(json.dumps(stats, ensure_ascii=False, indent=1), encoding="utf-8")
     return stats
+
+
+def _write_mixed(raw: Path, wiki_iter, corpus: list[str], cache: Path, max_chars: int) -> dict:
+    """Vikipedi + derlem → raw.txt, kategori pay sınırlarıyla (corpus.mix.plan)."""
+    from .corpus import config as dcfg, mix
+    cfg = dcfg.load() if dcfg.DEFAULT_PATH.exists() else None
+    caps = dcfg.caps(cfg)
+    allow = set(cfg["lisans_izinli"]) if cfg else set(EXTRA_LICENSES)
+    wiki = [t.replace("\x00", " ") for t in wiki_iter]
+    files = mix.resolve(corpus, cache)
+    ratio, st = mix.sample(files, caps, allow, {"vikipedi": sum(map(len, wiki))}, max_chars=max_chars)
+    got: dict = {}
+    with open(raw, "w", encoding="utf-8") as f:
+        for i, t in enumerate(wiki):
+            if mix.keep_fraction(f"vikipedi-{i}") < ratio.get("vikipedi", 0.0):
+                f.write(t + "\x00")
+                got["vikipedi"] = got.get("vikipedi", 0) + len(t)
+        by_src: dict = {}
+        for r in mix.select(files, ratio, allow):
+            f.write(r["text"].replace("\x00", " ") + "\x00")
+            got[r["kategori"]] = got.get(r["kategori"], 0) + len(r["text"])
+            by_src[r.get("kaynak", "?")] = by_src.get(r.get("kaynak", "?"), 0) + 1
+    tot = sum(got.values())
+    st.update({"gercek_karakter": got, "pay": {k: round(v / tot, 4) for k, v in got.items()} if tot else {},
+               "kaynak_belge": by_src, "girdi": list(corpus)})
+    (raw.parent / "derlem.json").write_text(json.dumps(st, ensure_ascii=False, indent=1), encoding="utf-8")
+    return st
 
 
 # --------------------------------------------------------------------------- eğitim
@@ -625,8 +679,11 @@ def main(argv=None) -> None:
     p.add_argument("--mkqa", default=None, help="MKQA jsonl.gz yolu/URL'si (varsayılan: sabit commit adresi, "
                                                    "sha256 doğrulamalı; --no-open-data ile kapanır)")
     p.add_argument("--no-mkqa", action="store_true", help="MKQA bilgi sorularını ekleme")
-    p.add_argument("--extra-dialogs", help="ek diyalog jsonl(.gz) yolu ya da URL'si (ör. ceviri-* Release'i); "
-                                           "yalnız training_allowed=true satırlar")
+    p.add_argument("--extra-dialogs", action="append", help="ek diyalog jsonl(.gz) yolu ya da URL'si (ör. ceviri-* "
+                   "ya da derlem-dmmath Release'i); tekrarlanabilir; yalnız training_allowed=true satırlar")
+    p.add_argument("--corpus", action="append", help="derlem Release adresi (github.com/.../releases/tag/derlem-x) ya da "
+                   "yerel klasör; tekrarlanabilir. Kategori pay sınırlarıyla dil modeli akışına katılır")
+    p.add_argument("--corpus-max-chars", type=int, default=2_000_000_000, help="Vikipedi + derlem toplam karakter sınırı")
     t = sub.add_parser("train")
     t.add_argument("--data", required=True)
     t.add_argument("--out", required=True)
@@ -655,7 +712,8 @@ def main(argv=None) -> None:
     if a.cmd == "prepare":
         print(json.dumps(prepare(Path(a.out), a.max_chars, a.vocab, tokenizer=Path(a.tokenizer) if a.tokenizer else None,
                                  open_data=not a.no_open_data, extra_dialogs=a.extra_dialogs,
-                                 mkqa_src=None if a.no_mkqa else a.mkqa), ensure_ascii=False, indent=1))
+                                 mkqa_src=None if a.no_mkqa else a.mkqa, corpus=a.corpus,
+                                 corpus_max_chars=a.corpus_max_chars), ensure_ascii=False, indent=1))
     elif a.cmd == "train":
         train(Path(a.data), Path(a.out), a.steps, a.budget_min, a.batch, a.lr, a.dialog_frac, a.threads,
               config=SIZES[a.size], resume_from=Path(a.resume_from) if a.resume_from else None, grad_accum=a.grad_accum,
