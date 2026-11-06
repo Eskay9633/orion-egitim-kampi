@@ -20,6 +20,11 @@ on:
         default: 'otomatik'
   schedule:
     - cron: '23 */2 * * *'
+  # GitHub zamanlanmış çalışmaları seyrek depolarda saatlerce geciktirebiliyor: kaggle/topla-istek.txt'ye işlemek
+  # zamanlanmış çalışmanın aynısını hemen yapar (durum → bittiyse topla/yayınla → gerekirse yeni oturum)
+  push:
+    branches: [main]
+    paths: ['kaggle/topla-istek.txt']
 
 permissions:
   contents: write
