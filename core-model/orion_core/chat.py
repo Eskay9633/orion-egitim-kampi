@@ -557,7 +557,8 @@ def clean_reply(raw: str) -> str:
 @torch.no_grad()
 def generate(model: TinyGpt, bpe: BPE, text: str, max_new: int = 80, temperature: float = 0.0, top_k: int = 40,
              seed: int = 0) -> str:
-    g = torch.Generator().manual_seed(seed)
+    # üreteç modelle aynı aygıtta olmalı (ekran kartında örneklemede "Expected a 'cuda' device type" hatası)
+    g = torch.Generator(device=next(model.parameters()).device).manual_seed(seed)
     ids = [BOS] + bpe.encode(text)
     out: list[int] = []
     model.eval()

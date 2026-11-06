@@ -112,11 +112,11 @@ jobs:
             gh release upload "$CK" "$RUN/ckpt.pt" "$RUN/tokenizer.json" --clobber
             # Kendi kendine öğrenme çıktısı (doğrulanmış kendi çözümleri) → sonraki oturumun ek verisi
             OZF=$(find kout -name 'ozogrenme.jsonl.gz' | head -1)
-            if [ -n "$OZF" ]; then
+            if [ -n "$OZF" ] && [ -s "$OZF" ]; then
               cp "$OZF" "kout/ozogrenme-$(printf '%07d' $STEP).jsonl.gz"; cp "$OZF.stats.json" "kout/ozogrenme-$(printf '%07d' $STEP).stats.json" 2>/dev/null || true
               gh release view orion-ozogrenme >/dev/null 2>&1 || gh release create orion-ozogrenme --prerelease --title "Orion kendi kendine öğrenme" \
                 --notes "Orion'un denetlenebilir problemlerde kendi ürettiği, son cevabı kodla doğrulanmış çözümleri (lisans: orion-kendi). Sonraki oturumlarda ek diyalog olarak girer."
-              gh release upload orion-ozogrenme kout/ozogrenme-*.jsonl.gz kout/ozogrenme-*.stats.json --clobber
+              gh release upload orion-ozogrenme kout/ozogrenme-*.jsonl.gz $(ls kout/ozogrenme-*.stats.json 2>/dev/null) --clobber || echo "uyarı: kendi çözümleri yüklenemedi"
               NOTES2="kendi kendine öğrenme: $(cat "$OZF.stats.json" 2>/dev/null | tr -d '\n ')"; echo "$NOTES2"
             fi
             echo "next=start" >> "$GITHUB_OUTPUT"

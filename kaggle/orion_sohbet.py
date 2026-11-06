@@ -186,7 +186,7 @@ for f in glob.glob(f"{out}/chat-run/*.tmp"):
     os.remove(f)
 # Kendi kendine öğrenme: denetlenebilir problemleri (çeviri "final" + kodla üretilen matematik) kendisi çözer; yalnız son
 # cevabı doğru olan adımlı çözümler sonraki oturumun ek verisi olur. Hata olursa eğitim sonucu yine yayınlanır.
-probs = sorted(glob.glob(f"{data}/extra*/extra-dialogs.jsonl*"))
+probs = sorted(glob.glob(f"{data}/extra*/extra-dialogs.jsonl*")) + ([extra] if extra and os.path.exists(extra) else [])
 if probs:
     try:
         sl = [sys.executable, "-m", "orion_core.selflearn", "--model", f"{out}/chat-export", "--out", f"{out}/ozogrenme.jsonl.gz",
