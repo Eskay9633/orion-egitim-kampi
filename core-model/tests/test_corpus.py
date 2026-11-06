@@ -92,7 +92,7 @@ def test_config_rules():
     assert on <= {"trwikisource", "trwikibooks", "trwikiquote", "trwiktionary"}
     assert all(not s.get("model_uretimi") for s in srcs.values())
     caps = C.caps(cfg)
-    assert caps["akademik"] <= 0.20 and caps["kod"] <= 0.12 and caps["vikipedi"] is not None
+    assert caps["akademik"] <= 0.20 and caps["kod"] <= 0.15 and caps["vikipedi"] is not None
     for bad in ("fineweb", "culturax", "oscar", "mc4"):
         assert not any(bad in n for n in srcs)
     # sahip kararı: resmî kurum metinleri (meclis/hukuk) Türkçe derleminde yok
@@ -461,7 +461,7 @@ def test_chat_prepare_with_corpus(tmp_path):
     der = st["derlem"]
     assert der["atilan"] == {"lisans": 1, "egitim_izni_yok": 1, "model_uretimi": 1}
     pay = der["pay"]
-    assert der["alinacak_karakter"]["kod"] > 0 and pay.get("kod", 0) <= 0.12 + 0.06 and pay["vikipedi"] <= 0.35 + 0.06 and pay["genel"] > 0.3, pay
+    assert der["alinacak_karakter"]["kod"] > 0 and pay.get("kod", 0) <= 0.15 + 0.06 and pay["vikipedi"] <= 0.35 + 0.06 and pay["genel"] > 0.3, pay
     raw = (tmp_path / "data" / "raw.txt").read_text()
     assert "izinsiz" not in raw and "izinyok" not in raw and "model 0" not in raw
     assert "derlem" in st["source"] and st["train_tokens"] > 0
@@ -556,4 +556,16 @@ def test_extra_sources(tmp_path):
     lines = [json.loads(l) for p in (tmp_path / "sw").glob("*.jsonl") for l in open(p)]
     assert st["madde"] == 1 and len(lines) == 1 and lines[0]["kategori"] == "ceviri_metin"
     assert lines[0]["license"] == "cc-by-sa-4.0" and len(lines[0]["paras"]) == 4 and "makine çevirisi" in lines[0]["attribution"]
-    assert C.caps(C.load())["ceviri_metin"] <= 0.30
+    assert C.caps(C.load())["ceviri_metin"] <= 0.45
+
+
+def test_enwiki_shard_window(tmp_path):
+    from orion_core.corpus import extra as X
+    para = "The river flows through the old town and many people walk along its banks on summer evenings together."
+    pages = [(f"Art {i}", "0", "\n".join([para] * 5), False) for i in range(10)] + [("List of rivers", "0", "\n".join([para] * 5), False)]
+    st = X.enwiki_shard(iter(pages), tmp_path / "a.jsonl", skip=3, max_chars=10**9, gid=7, window=4)
+    lines = [json.loads(l) for l in open(tmp_path / "a.jsonl")]
+    assert [l["title"] for l in lines] == ["Art 3", "Art 4", "Art 5", "Art 6"] and st["madde"] == 4 and not st["kaynak_bitti"]
+    assert all(l["license"] == "cc-by-sa-4.0" and l["kategori"] == "ceviri_metin" for l in lines)
+    st = X.enwiki_shard(iter(pages), tmp_path / "b.jsonl", skip=8, max_chars=10**9, gid=8, window=10)
+    assert st["madde"] == 2 and st["kaynak_bitti"] and st["kisa_ya_da_liste"] == 1

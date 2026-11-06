@@ -8,6 +8,7 @@ name: derlem
 #   openstax              → CC BY OpenStax matematik kitapları (koleksiyon lisansı denetlenir) → en→tr → derlem-openstax
 #   dmmath                → mathematics_dataset (Apache-2.0 üretici) + Türkçe şablon → derlem-dmmath
 #   ek                    → Tatoeba (CC BY 2.0) + UD Türkçe ağaç bankaları + Common Voice cümleleri (CC0); lisans kaynağın metninden → derlem-tatoeba/ud/commonvoice
+#   enwiki BAŞ ZİNCİR     → İngilizce Wikipedia (CC BY-SA) parça parça en→tr; her çalışma 20 parça (≤40M karakter), ZİNCİR kadar kendini sürdürür → derlem-enwiki
 #   simplewiki            → Simple English Wikipedia (CC BY-SA) → en→tr makine çevirisi (20 parça) → derlem-simplewiki
 #   kod                   → insan yazımı açık kaynak kod (Python/Kotlin/Java/CSS); depo lisansı GitHub API ile denetlenir → derlem-kod
 # Kaggle/sohbet/ceviri işlerine dokunmaz (ayrı eşzamanlılık grubu).
@@ -15,7 +16,7 @@ on:
   workflow_dispatch:
     inputs:
       islem:
-        description: 'kesif | topla | openstax | dmmath | kod | ek | simplewiki'
+        description: 'kesif | topla | openstax | dmmath | kod | ek | simplewiki | enwiki'
         default: 'kesif'
       kaynaklar:
         description: 'topla: virgüllü kaynak adları ya da etkin'
@@ -54,7 +55,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then I="${{ inputs.islem }}"; K="${{ inputs.kaynaklar }}"; Z="${{ inputs.zincir }}"
           else read I K Z < <(head -1 derlem/istek.txt); fi
           K=${K:-etkin}; Z=${Z:-0}
-          case "$I" in kesif|topla|openstax|dmmath|kod|ek|simplewiki) ;; *) echo "HATA: islem kesif|topla|openstax|dmmath|kod|ek|simplewiki olmalı"; exit 1;; esac
+          case "$I" in kesif|topla|openstax|dmmath|kod|ek|simplewiki|enwiki) ;; *) echo "HATA: islem kesif|topla|openstax|dmmath|kod|ek|simplewiki|enwiki olmalı"; exit 1;; esac
           case "$K" in *[!a-z0-9,-]*) echo "HATA: kaynak adları küçük harf, virgüllü"; exit 1;; esac
           case "$Z" in *[!0-9]*) echo "HATA: zincir sayı olmalı"; exit 1;; esac
           [ "$Z" -le 30 ] || { echo "HATA: zincir ≤30"; exit 1; }
@@ -398,3 +399,87 @@ jobs:
             --title "Derlem: Simple English Wikipedia (Türkçe makine çevirisi)" \
             --notes "Simple English Wikipedia (CC BY-SA 4.0) → opus-mt-tc-big-en-tr makine çevirisi. Atıf belge başına. Kategori ceviri_metin (pay ≤%30)." || true
           for D in 0 30 90; do sleep $D; gh release upload derlem-simplewiki work/rel/*.jsonl.gz work/rel/*.stats.json --clobber && break; done
+
+  enwiki-plan:
+    needs: ayar
+    if: needs.ayar.outputs.islem == 'enwiki'
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - name: Döküm parçaları + lisans + bu çalışmanın 20 parçası
+        id: p
+        run: |
+          curl -fsSL https://dumps.wikimedia.org/legal.html | grep -qiE "Attribution[- ]?Share[- ]?Alike" || { echo "HATA: Wikimedia lisans sayfası CC BY-SA demiyor"; exit 1; }
+          curl -fsSL -A "OrionDerlem/1.0" https://dumps.wikimedia.org/enwiki/latest/ | grep -oE 'enwiki-latest-pages-articles[0-9]+\.xml-p[0-9]+p[0-9]+\.bz2' | sort -u -V > parts.txt
+          wc -l parts.txt; [ -s parts.txt ] || { echo "HATA: parça listesi alınamadı"; exit 1; }
+          R="${{ needs.ayar.outputs.kaynaklar }}"; case "$R" in ''|etkin) R=0;; esac
+          python3 - "$R" > matrix.json <<'PY'
+          import json, sys
+          parts = [l.strip() for l in open("parts.txt") if l.strip()]
+          R, P, W = int(sys.argv[1]), len(parts), 12000
+          jobs = []
+          for g in range(R * 20, R * 20 + 20):
+              jobs.append({"g": g, "url": "https://dumps.wikimedia.org/enwiki/latest/" + parts[g % P], "skip": (g // P) * W})
+          print(json.dumps(jobs))
+          PY
+          cat matrix.json; echo "matrix=$(cat matrix.json)" >> "$GITHUB_OUTPUT"
+
+  enwiki-cevir:
+    needs: [ayar, enwiki-plan]
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        job: ${{ fromJSON(needs.enwiki-plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Bağımlılıklar
+        run: |
+          pip install regex
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -r core-model/requirements-ceviri.txt
+      - name: Parça (≤12000 madde, ≤40M karakter)
+        working-directory: core-model
+        run: |
+          mkdir -p ../work/en ../work/rel
+          curl -fsSL -A "OrionDerlem/1.0" -o ../work/part.xml.bz2 "${{ matrix.job.url }}"
+          G=$(printf '%04d' ${{ matrix.job.g }})
+          python -m orion_core.corpus enwiki --dump ../work/part.xml.bz2 --out ../work/en/enwiki-$G.jsonl --skip ${{ matrix.job.skip }} \
+            --window 12000 --max-chars 40000000 --gid ${{ matrix.job.g }} | tee ../work/rel/enwiki-$G.kaynak.json
+          rm -f ../work/part.xml.bz2
+      - name: Çeviri modeli önbellekten
+        id: mcache
+        uses: actions/cache/restore@v4
+        with: {path: work/ct2, key: ct2-opus-tc-big-en-tr-tr-en-v1}
+      - name: Modeli dönüştür (önbellek yoksa)
+        if: steps.mcache.outputs.cache-hit != 'true'
+        run: ct2-transformers-converter --model Helsinki-NLP/opus-mt-tc-big-en-tr --output_dir work/ct2/en-tr --quantization int8
+      - name: Çevir (süre bütçeli)
+        working-directory: core-model
+        run: |
+          G=$(printf '%04d' ${{ matrix.job.g }})
+          [ -s ../work/en/enwiki-$G.jsonl ] || { echo "bu parçada madde kalmadı"; exit 0; }
+          python -m orion_core.translate_data translate-longform --shard ../work/en/enwiki-$G.jsonl \
+            --out ../work/rel/enwiki-$G-0000.jsonl.gz --ct2 ../work/ct2/en-tr --budget-min 300 --threads 4
+      - name: Release
+        run: |
+          ls work/rel/*.jsonl.gz >/dev/null 2>&1 || { echo "yüklenecek veri yok"; exit 0; }
+          gh release view derlem-enwiki >/dev/null 2>&1 || gh release create derlem-enwiki --target "$GITHUB_SHA" --prerelease \
+            --title "Derlem: İngilizce Wikipedia (Türkçe makine çevirisi)" \
+            --notes "English Wikipedia (CC BY-SA 4.0) → opus-mt-tc-big-en-tr makine çevirisi. Atıf belge başına. Kategori ceviri_metin." || true
+          for D in 0 30 90; do sleep $D; gh release upload derlem-enwiki work/rel/* --clobber && break; done
+
+  enwiki-devam:
+    needs: [ayar, enwiki-cevir]
+    if: always() && needs.ayar.outputs.islem == 'enwiki' && needs.ayar.outputs.zincir != '0'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sonraki 20 parça (kendini yeniden başlat)
+        run: |
+          R="${{ needs.ayar.outputs.kaynaklar }}"; case "$R" in ''|etkin) R=0;; esac
+          gh workflow run derlem.yml --repo "$GITHUB_REPOSITORY" -f islem=enwiki -f kaynaklar=$(( R + 1 )) -f zincir=$(( ${{ needs.ayar.outputs.zincir }} - 1 ))

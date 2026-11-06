@@ -18,7 +18,7 @@ TOK_URL = "__TOK__"  # önceki eğitimin tokenizer'ı (devam ederken aynısı ş
 EXTRA_URL = "__EXTRA__"  # isteğe bağlı çeviri verisi (en son ceviri-* Release'indeki ceviri.jsonl.gz); boşsa yok
 CORPUS_URLS = "__CORPUS__"  # boşlukla ayrılmış derlem-* Release adresleri (Türkçe derlem + kod + çeviri metin); boşsa yok
 DMMATH_URL = "__DMMATH__"  # kodla üretilen matematik (derlem-dmmath); boşsa yok
-CORPUS_MAX_CHARS = "1200000000"
+CORPUS_MAX_CHARS = "2400000000"
 OZ_URLS = "__OZ__"  # Orion'un önceki oturumlarda kendi çözüp doğrulanan cevapları (orion-ozogrenme Release); boşsa yok
 SELF_MIN = 35  # oturum sonunda kendi kendine öğrenmeye ayrılan dakika  # Vikipedi + derlem toplamı (pay sınırları derlem-kaynaklar.json)
 # İNCE AYAR (yalnız ek veri varsa): diyalog payı 0.75, taban lr 1.5e-4. lr_at kosinüs takvimi toplam hedef adıma

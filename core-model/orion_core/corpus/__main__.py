@@ -98,6 +98,13 @@ def main(argv=None) -> None:
     sw.add_argument("--out", required=True)
     sw.add_argument("--shards", type=int, default=20)
     sw.add_argument("--max-chars", type=int, default=60_000_000)
+    ew = sub.add_parser("enwiki")
+    ew.add_argument("--dump", required=True)
+    ew.add_argument("--out", required=True)
+    ew.add_argument("--skip", type=int, default=0)
+    ew.add_argument("--max-chars", type=int, default=40_000_000)
+    ew.add_argument("--gid", type=int, default=0)
+    ew.add_argument("--window", type=int, default=0, help="en çok bu kadar madde (atlanandan sonra)")
     a = ap.parse_args(argv)
     cfg = config.load(a.config)
     only = [x for x in (getattr(a, "only", None) or "").split(",") if x] or None
@@ -147,6 +154,11 @@ def main(argv=None) -> None:
         except extra.LicenseError as e:
             print(f"HATA (lisans): {e}", file=sys.stderr)
             sys.exit(3)
+        print(json.dumps(st, ensure_ascii=False))
+    elif a.cmd == "enwiki":
+        from . import extra
+        st = extra.enwiki_shard(collectors.iter_pages(Path(a.dump)), Path(a.out), a.skip, a.max_chars, a.gid,
+                                    window=a.window)
         print(json.dumps(st, ensure_ascii=False))
     elif a.cmd == "kod-liste":
         for lang, repos in cfg["kod"]["depolar"].items():

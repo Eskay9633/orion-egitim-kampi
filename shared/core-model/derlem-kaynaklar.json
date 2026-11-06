@@ -25,14 +25,14 @@
   "resmi_kurum_metinleri": "Sahip kararı (2026-11-05): meclis tutanakları, mevzuat, mahkeme kararları Türkçe öğrenmenin çekirdeği değil — dışarıda."
  },
  "pay_siniri": {
-  "_aciklama": "Örnekleme anında dil modeli akışındaki EN ÇOK pay (chat.prepare --corpus). null = sınırsız. Kod payı Türkçeyi ezmesin diye ≤%12. Makine çevirisi uzun metin (ceviri_metin, ör. Simple Wikipedia) ≤%30: doğal Türkçeyi ezmesin.",
+  "_aciklama": "Örnekleme anında dil modeli akışındaki EN ÇOK pay (chat.prepare --corpus). null = sınırsız. Sahibin yönü (2026-11-06): asıl veri kaynağı İngilizceden çeviri; çeviri metin ≤%45, kod ≤%15, Vikipedi ≤%35.",
   "vikipedi": 0.35,
   "akademik": 0.2,
   "sozluk": 0.05,
   "matematik": 0.1,
   "genel": null,
-  "kod": 0.12,
-  "ceviri_metin": 0.3
+  "kod": 0.15,
+  "ceviri_metin": 0.45
  },
  "istek_araligi_sn": 1.0,
  "istek_araligi_notu": "Ağ yoğun türlerde (dergipark, belge_listesi) parça sayısı >1 ise aralık parça sayısıyla çarpılır: aynı sunucuya toplam hız yine ≤1 istek/sn.",

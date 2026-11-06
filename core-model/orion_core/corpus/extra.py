@@ -175,3 +175,39 @@ def simplewiki_shards(pages, out_dir: Path, n_shards: int, max_chars: int, min_p
     for f in fs:
         f.close()
     return dict(st)
+
+
+# --------------------------------------------------------------------------- İngilizce Wikipedia → çeviri girdisi (büyük)
+
+def enwiki_shard(pages, out_file: Path, skip: int, max_chars: int, gid: int, min_paras: int = 4,
+                 window: int = 0) -> dict:
+    """enwiki-latest-pages-articlesN parçasından: ilk `skip` maddeyi (ad alanı 0, yönlendirme değil) atla, sonra
+    `max_chars` İngilizce karakter dolana kadar translate-longform girdisi yaz. Lisans: CC BY-SA 4.0 (Wikipedia)."""
+    out_file = Path(out_file)
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    st = Counter()
+    seen = 0
+    with open(out_file, "w", encoding="utf-8") as f:
+        for title, ns, text, redirect in pages:
+            if ns != "0" or redirect or text.lstrip().lower().startswith("#redirect"):
+                continue
+            seen += 1
+            if seen <= skip:
+                continue
+            if st["karakter"] >= max_chars or (window and seen > skip + window):
+                break
+            paras = _paras(text)
+            if len(paras) < min_paras or (title or "").startswith(("List of", "Lists of")):
+                st["kisa_ya_da_liste"] += 1
+                continue
+            did = "enwiki-" + _id(title or "")
+            url = "https://en.wikipedia.org/wiki/" + (title or "").replace(" ", "_")
+            f.write(json.dumps({"id": did, "kaynak": "enwiki", "source": f"English Wikipedia — {title}",
+                                "kategori": "ceviri_metin", "license": "cc-by-sa-4.0", "title": title, "url": url,
+                                "paras": [{"en": p} for p in paras],
+                                "attribution": f"Wikipedia katkıcıları, \"{title}\", CC BY-SA 4.0, {url}; "
+                                               f"İngilizceden Türkçeye makine çevirisi, değiştirilmiştir"},
+                               ensure_ascii=False) + "\n")
+            st["madde"] += 1
+            st["karakter"] += sum(map(len, paras))
+    return {"parca": gid, "atlanan_madde": skip, "pencere": window, **dict(st), "kaynak_bitti": seen < skip + window}
