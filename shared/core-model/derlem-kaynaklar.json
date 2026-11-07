@@ -32,7 +32,8 @@
   "matematik": 0.1,
   "genel": null,
   "kod": 0.15,
-  "ceviri_metin": 0.45
+  "ceviri_metin": 0.45,
+  "kod_soru": 0.12
  },
  "istek_araligi_sn": 1.0,
  "istek_araligi_notu": "Ağ yoğun türlerde (dergipark, belge_listesi) parça sayısı >1 ise aralık parça sayısıyla çarpılır: aynı sunucuya toplam hız yine ≤1 istek/sn.",
@@ -477,6 +478,17 @@
    "/migrations/",
    "/generated/"
   ],
-  "dogrulama": "doğrulanmadı (depo listesi; lisans çalışma anında denetlenir)"
+  "dogrulama": "doğrulanmadı (depo listesi; lisans çalışma anında denetlenir)",
+  "stackexchange": {
+   "lisans": "cc-by-sa-4.0",
+   "lisans_kaniti": "https://archive.org/metadata/stackexchange (licenseurl by-sa/4.0); kaynak-kesif-20261107-1005: gecti",
+   "siteler": [
+    "codereview.stackexchange.com",
+    "cs.stackexchange.com",
+    "softwareengineering.stackexchange.com",
+    "unix.stackexchange.com"
+   ],
+   "not": "stackoverflow.com-Posts.7z 23 GB (GitHub diskine sığmıyor) şimdilik dışarıda. Kod blokları çevrilmez."
+  }
  }
 }

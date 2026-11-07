@@ -577,3 +577,37 @@ def test_kesif2_license_patterns():
     assert "cc-by-nc" in K.licenses_in("Creative Commons Attribution-NonCommercial 4.0")
     assert "cc0" in K.licenses_in("released under CC0")
     assert all("instruct" not in n and "alpaca" not in n and "magicoder" not in n for n in K.ADAYLAR)
+
+
+def test_stackexchange_build_and_code_passthrough(tmp_path):
+    from orion_core.corpus import stackex as SE
+    from orion_core import translate_data as td
+    posts = tmp_path / "Posts.xml"
+    q = ("<p>How can I reverse a list in Python without changing the original list object?</p>"
+         "<pre><code>xs = [1, 2, 3]\nys = xs[::-1]</code></pre><p>Is there a cleaner way to write this code?</p>")
+    a = "<p>You can use the built-in reversed function and convert the result back to a list.</p><pre><code>ys = list(reversed(xs))</code></pre>"
+    posts.write_text('<?xml version="1.0"?><posts>'
+                     f'<row Id="1" PostTypeId="1" Score="5" AnswerCount="2" AcceptedAnswerId="3" Title="Reverse a list" OwnerUserId="7" Body="{H(q)}"/>'
+                     f'<row Id="2" PostTypeId="2" ParentId="1" Score="9" OwnerUserId="8" Body="{H("<p>Some other answer that is not accepted by the asker.</p>")}"/>'
+                     f'<row Id="3" PostTypeId="2" ParentId="1" Score="2" OwnerUserId="9" Body="{H(a)}"/>'
+                     f'<row Id="4" PostTypeId="1" Score="0" AnswerCount="1" Title="Low" Body="{H(q)}"/>'
+                     '</posts>', encoding="utf-8")
+    st = SE.build(posts, "codereview.stackexchange.com", tmp_path / "o", 1)
+    rec = json.loads(open(tmp_path / "o" / "se-codereview-00.jsonl").readline())
+    assert st["belge"] == 1 and rec["license"] == "cc-by-sa-4.0" and rec["url"].endswith("/q/1")
+    assert "/a/3" in rec["attribution"] and "/users/9" in rec["attribution"]  # kabul edilen cevap seçilir
+    kinds = ["kod" if "kod" in p else "en" for p in rec["paras"]]
+    assert kinds.count("kod") == 2 and rec["paras"][0]["en"] == "Reverse a list"
+    # translate-longform: kod parçaları çevrilmez, ``` içinde aynen kalır
+    shard = tmp_path / "s.jsonl"
+    shard.write_text(json.dumps(rec, ensure_ascii=False) + "\n")
+    fake = lambda texts: ["Türkçe çeviri: " + t for t in texts]
+    td.translate_longform(shard, tmp_path / "t.jsonl.gz", lambda xs: [f"Bu bir Türkçe cümle ve gayet doğal bir çeviri {i}." for i, _ in enumerate(xs)],
+                          min_chars=10)
+    out = [json.loads(l) for l in gzip.open(tmp_path / "t.jsonl.gz", "rt")]
+    assert out and "```\nys = list(reversed(xs))\n```" in out[0]["text"]
+
+
+def H(s):
+    import html
+    return html.escape(s, quote=True)

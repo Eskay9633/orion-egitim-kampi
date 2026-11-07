@@ -9,6 +9,7 @@ name: derlem
 #   dmmath                → mathematics_dataset (Apache-2.0 üretici) + Türkçe şablon → derlem-dmmath
 #   ek                    → Tatoeba (CC BY 2.0) + UD Türkçe ağaç bankaları + Common Voice cümleleri (CC0); lisans kaynağın metninden → derlem-tatoeba/ud/commonvoice
 #   enwiki BAŞ ZİNCİR     → İngilizce Wikipedia (CC BY-SA) parça parça en→tr; her çalışma 20 parça (≤40M karakter), ZİNCİR kadar kendini sürdürür → derlem-enwiki
+#   stackex               → StackExchange programlama siteleri (CC BY-SA 4.0): soru + en iyi cevap; açıklama en→tr, kod aynen → derlem-stackex
 #   kesif2                → kodlama/görsel/video/eğitim kodu adaylarının lisans + erişim keşfi → kaynak-kesif-<tarih>
 #   simplewiki            → Simple English Wikipedia (CC BY-SA) → en→tr makine çevirisi (20 parça) → derlem-simplewiki
 #   kod                   → insan yazımı açık kaynak kod (Python/Kotlin/Java/CSS); depo lisansı GitHub API ile denetlenir → derlem-kod
@@ -17,7 +18,7 @@ on:
   workflow_dispatch:
     inputs:
       islem:
-        description: 'kesif | kesif2 | topla | openstax | dmmath | kod | ek | simplewiki | enwiki'
+        description: 'kesif | kesif2 | stackex | topla | openstax | dmmath | kod | ek | simplewiki | enwiki'
         default: 'kesif'
       kaynaklar:
         description: 'topla: virgüllü kaynak adları ya da etkin'
@@ -56,7 +57,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then I="${{ inputs.islem }}"; K="${{ inputs.kaynaklar }}"; Z="${{ inputs.zincir }}"
           else read I K Z < <(head -1 derlem/istek.txt); fi
           K=${K:-etkin}; Z=${Z:-0}
-          case "$I" in kesif|kesif2|topla|openstax|dmmath|kod|ek|simplewiki|enwiki) ;; *) echo "HATA: islem kesif|kesif2|topla|openstax|dmmath|kod|ek|simplewiki|enwiki olmalı"; exit 1;; esac
+          case "$I" in kesif|kesif2|stackex|topla|openstax|dmmath|kod|ek|simplewiki|enwiki) ;; *) echo "HATA: islem kesif|kesif2|stackex|topla|openstax|dmmath|kod|ek|simplewiki|enwiki olmalı"; exit 1;; esac
           case "$K" in *[!a-z0-9,-]*) echo "HATA: kaynak adları küçük harf, virgüllü"; exit 1;; esac
           case "$Z" in *[!0-9]*) echo "HATA: zincir sayı olmalı"; exit 1;; esac
           [ "$Z" -le 30 ] || { echo "HATA: zincir ≤30"; exit 1; }
@@ -502,3 +503,72 @@ jobs:
           TAG="kaynak-kesif-$(date -u +%Y%m%d-%H%M)"
           NOTES=$(python -c "import json;r=json.load(open('kaynak-kesif.json'));print('Kaynak keşfi · ' + ', '.join(f'{k}={v}' for k,v in r['ozet'].items()))")
           gh release create "$TAG" kaynak-kesif.json --target "$GITHUB_SHA" --title "Kaynak keşfi $TAG" --notes "$NOTES" --prerelease
+
+  stackex-hazirla:
+    needs: ayar
+    if: needs.ayar.outputs.islem == 'stackex'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Dökümler (site başına Posts.xml) → çeviri girdisi
+        working-directory: core-model
+        run: |
+          sudo apt-get install -y -q p7zip-full
+          curl -fsSL https://archive.org/metadata/stackexchange | python -c "import json,sys;m=json.load(sys.stdin)['metadata'];l=m.get('licenseurl','');print(l);sys.exit(0 if 'by-sa' in l else 1)" || { echo "HATA: dökümün lisansı CC BY-SA değil"; exit 1; }
+          mkdir -p ../work/en
+          for S in $(python -c "import json;print(' '.join(json.load(open('../shared/core-model/derlem-kaynaklar.json'))['kod']['stackexchange']['siteler']))"); do
+            curl -fsSL -A "OrionDerlem/1.0" -o ../work/s.7z "https://archive.org/download/stackexchange/$S.7z"
+            7z e -y -o../work/x ../work/s.7z Posts.xml >/dev/null
+            python -m orion_core.corpus.stackex --posts ../work/x/Posts.xml --site "$S" --out ../work/en --shards 5 | tee -a ../work/en/ozet.jsonl
+            rm -rf ../work/s.7z ../work/x
+          done
+          ls -la ../work/en
+      - uses: actions/upload-artifact@v4
+        with: {name: stackex-en, path: work/en/, retention-days: 7}
+
+  stackex-cevir:
+    needs: stackex-hazirla
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        site: [codereview, cs, softwareengineering, unix]
+        k: [0, 1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Bağımlılıklar
+        run: |
+          pip install regex
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -r core-model/requirements-ceviri.txt
+      - uses: actions/download-artifact@v4
+        with: {name: stackex-en, path: work/en}
+      - name: Çeviri modeli önbellekten
+        id: mcache
+        uses: actions/cache/restore@v4
+        with: {path: work/ct2, key: ct2-opus-tc-big-en-tr-tr-en-v1}
+      - name: Modeli dönüştür (önbellek yoksa)
+        if: steps.mcache.outputs.cache-hit != 'true'
+        run: ct2-transformers-converter --model Helsinki-NLP/opus-mt-tc-big-en-tr --output_dir work/ct2/en-tr --quantization int8
+      - name: Çevir (açıklamalar; kod aynen)
+        working-directory: core-model
+        run: |
+          F=../work/en/se-${{ matrix.site }}-0${{ matrix.k }}.jsonl
+          [ -s "$F" ] || { echo "parça boş"; exit 0; }
+          mkdir -p ../work/rel
+          python -m orion_core.translate_data translate-longform --shard "$F" \
+            --out ../work/rel/se-${{ matrix.site }}-0${{ matrix.k }}-0000.jsonl.gz --ct2 ../work/ct2/en-tr --budget-min 300 --threads 4
+      - name: Release
+        run: |
+          ls work/rel/*.jsonl.gz >/dev/null 2>&1 || exit 0
+          gh release view derlem-stackex >/dev/null 2>&1 || gh release create derlem-stackex --target "$GITHUB_SHA" --prerelease \
+            --title "Derlem: StackExchange programlama (açıklamalar Türkçe, kod aynen)" \
+            --notes "codereview, cs, softwareengineering, unix (CC BY-SA 4.0, archive.org dökümü). Soru + en iyi cevap; atıf belge başına (soru/cevap/yazar adresi). Kategori kod_soru." || true
+          for D in 0 30 90; do sleep $D; gh release upload derlem-stackex work/rel/* --clobber && break; done

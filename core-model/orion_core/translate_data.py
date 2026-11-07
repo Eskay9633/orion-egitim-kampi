@@ -952,13 +952,17 @@ def translate_longform(shard: Path, out: Path, translator: Callable, licenses: d
                 print("süre bütçesi doldu; kalan bölümler çevrilmedi", flush=True)
                 break
             part = rows[i:i + chunk]
-            flat = [p["en"] for d in part for p in d["paras"]]
+            # {"kod": …} parçaları (StackExchange kod blokları) ÇEVRİLMEZ, olduğu gibi ``` içinde kalır
+            flat = [p["en"] for d in part for p in d["paras"] if "en" in p]
             tr = translate_texts(flat, translator)
             k = 0
             for d in part:
                 done += 1
                 good = []
                 for p in d["paras"]:
+                    if "kod" in p:
+                        good.append("```\n" + p["kod"] + "\n```")
+                        continue
                     src, tgt = p["en"], to_sen(tr[k])
                     k += 1
                     paras_in += 1
@@ -968,6 +972,9 @@ def translate_longform(shard: Path, out: Path, translator: Callable, licenses: d
                         continue
                     good.append(("Örnek: " if p.get("tur") == "ornek" else "") + tgt)
                 text = "\n".join(good)
+                if any("kod" in p for p in d["paras"]) and not any(not g.startswith("```") for g in good):
+                    drop["yalniz_kod_kaldi"] += 1
+                    continue
                 if len(text) < min_chars:
                     drop["bolum_kisa"] += 1
                     continue
