@@ -104,8 +104,18 @@ jobs:
             fi
             CEV=$(python -c "import json;d=json.load(open('$M')).get('data',{});print(d.get('ceviri_cift',''))")
             if [ -n "$CEV" ]; then NOTES="$NOTES · çeviri çifti $CEV"; else NOTES="$NOTES · çeviri verisi KULLANILMADI"; fi
-            gh release create "$TAG" $EXP/model.bin $EXP/tokenizer.json $EXP/manifest.json $EXP/parity.json $EXP/samples.json $EXTRA_FILES \
-              --target "$GITHUB_SHA" --title "Sohbet beyni (Kaggle) $TAG" --notes "$NOTES" --prerelease
+            # GitHub ara sıra 403 veriyor (iki kez görüldü): 4 deneme; varlıklar yarım yüklendiyse tamamlanır
+            OKREL=""
+            for D in 0 30 90 240; do
+              sleep $D
+              if gh release view "$TAG" >/dev/null 2>&1; then
+                gh release upload "$TAG" $EXP/model.bin $EXP/tokenizer.json $EXP/manifest.json $EXP/parity.json $EXP/samples.json $EXTRA_FILES --clobber && { OKREL=1; break; }
+              else
+                gh release create "$TAG" $EXP/model.bin $EXP/tokenizer.json $EXP/manifest.json $EXP/parity.json $EXP/samples.json $EXTRA_FILES \
+                  --target "$GITHUB_SHA" --title "Sohbet beyni (Kaggle) $TAG" --notes "$NOTES" --prerelease && { OKREL=1; break; }
+              fi
+            done
+            [ -n "$OKREL" ] || { echo "HATA: sonuç Release'i oluşturulamadı"; exit 1; }
             # Devam için checkpoint (sonraki oturum indirir)
             CK="kaggle-devam-${{ steps.st.outputs.size }}"
             gh release view "$CK" >/dev/null 2>&1 || gh release create "$CK" --title "Kaggle devam noktası" --notes "Eğitimin kaldığı yer (otomatik)" --prerelease
