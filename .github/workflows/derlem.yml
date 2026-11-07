@@ -522,8 +522,10 @@ jobs:
           python -c "import re,sys;t=open('../work-meta.json',encoding='utf-8').read();m=re.search(r'.{0,80}(by-sa|Attribution[- ]?Share[- ]?Alike|CC BY-SA).{0,80}',t,re.I);print(m.group(0) if m else 'yok');sys.exit(0 if m and not re.search('NonCommercial',t) else 1)" || { echo "HATA: dökümün lisansı CC BY-SA olarak bulunamadı"; exit 1; }
           mkdir -p ../work/en
           for S in $(python -c "import json;print(' '.join(json.load(open('../shared/core-model/derlem-kaynaklar.json'))['kod']['stackexchange']['siteler']))"); do
-            curl -fsSL -A "OrionDerlem/1.0" -o ../work/s.7z "https://archive.org/download/stackexchange/$S.7z"
-            7z e -y -o../work/x ../work/s.7z Posts.xml >/dev/null
+            # archive.org ara sıra 500 veriyor: yeniden dene; yine olmazsa o site atlanır (diğerleri sürer)
+            curl -fsSL --retry 6 --retry-all-errors --retry-delay 20 -A "OrionDerlem/1.0" -o ../work/s.7z "https://archive.org/download/stackexchange/$S.7z" \
+              || { echo "::warning::$S indirilemedi, atlandı"; continue; }
+            7z e -y -o../work/x ../work/s.7z Posts.xml >/dev/null || { echo "::warning::$S açılamadı"; rm -rf ../work/s.7z ../work/x; continue; }
             python -m orion_core.corpus.stackex --posts ../work/x/Posts.xml --site "$S" --out ../work/en --shards 5 | tee -a ../work/en/ozet.jsonl
             rm -rf ../work/s.7z ../work/x
           done
