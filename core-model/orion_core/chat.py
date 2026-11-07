@@ -365,7 +365,8 @@ def kd_loss(student_logits: torch.Tensor, teacher_logits: torch.Tensor, T: float
 def train(data: Path, out: Path, steps: int, budget_min: float, batch: int, lr: float, dialog_frac: float,
           threads: int = 0, config: dict | None = None, resume_from: Path | None = None, grad_accum: int = 1,
           save_every: int = 500, exam_every: int = 0, teacher: Path | None = None, init_grown_from: Path | None = None,
-          kd_alpha: float = KD_ALPHA, kd_t: float = KD_T, kd_reverse: bool = False) -> dict:
+          kd_alpha: float = KD_ALPHA, kd_t: float = KD_T, kd_reverse: bool = False, optim: str = "adamw",
+          muon_lr: float = 0.02) -> dict:
     """save_every: ckpt.pt + status.json yazma aralığı (erken durdurma için ara durum).
     exam_every > 0: o aralıkla sınav (run_exam, 40 soru, açgözlü çözme) yapılır; exam.jsonl'e yazılır ve en iyi
     qa_score'lu ağırlıklar best.pt'ye (ckpt.pt biçiminde, export'a verilebilir) kaydedilir. 0 = kapalı (varsayılan).
@@ -386,14 +387,26 @@ def train(data: Path, out: Path, steps: int, budget_min: float, batch: int, lr: 
     dev = device()
     cfg = GptConfig(vocab_size=bpe.vocab_size, **(config or CHAT_CONFIG))
     model = TinyGpt(cfg)
-    opt = torch.optim.AdamW(model.parameters(), lr=lr, betas=(0.9, 0.95), weight_decay=0.1)
+
+    def make_opt(m, kind):
+        # optim "muon": blok içi 2B ağırlıklar Muon (speedrun; muon.py, MIT), geri kalanı AdamW
+        if kind == "muon":
+            from .muon import build
+            return build(m, lr, muon_lr=muon_lr)
+        return torch.optim.AdamW(m.parameters(), lr=lr, betas=(0.9, 0.95), weight_decay=0.1)
+
+    opt = make_opt(model, optim)
     step = 0
     if ckpt.exists():
         ck = torch.load(ckpt, map_location="cpu", weights_only=False)
         model = TinyGpt(GptConfig(**ck["config"]))
         model.load_state_dict(ck["model"])
-        opt = torch.optim.AdamW(model.parameters(), lr=lr, betas=(0.9, 0.95), weight_decay=0.1)
-        opt.load_state_dict(ck["opt"])
+        saved = ck.get("optim", "adamw")
+        opt = make_opt(model, optim)
+        if saved == optim:
+            opt.load_state_dict(ck["opt"])
+        else:  # optimizer değişti (ör. AdamW → Muon): ağırlıklar korunur, optimizer durumu sıfırdan
+            print(f"optimizer değişti ({saved} → {optim}): durum sıfırdan başlıyor", flush=True)
         step = ck["step"]
         cfg = model.config
         print(f"devam: adım {step}", flush=True)
@@ -402,7 +415,7 @@ def train(data: Path, out: Path, steps: int, budget_min: float, batch: int, lr: 
         _same_tokenizer(init_grown_from, data, "büyütme kaynağı")
         model = grow_from_dir(Path(init_grown_from), {k: v for k, v in cfg.to_dict().items() if k != "vocab_size"})
         cfg = model.config
-        opt = torch.optim.AdamW(model.parameters(), lr=lr, betas=(0.9, 0.95), weight_decay=0.1)
+        opt = make_opt(model, optim)
         print(f"büyütüldü: {init_grown_from} → {model.n_params():,} parametre, adım 0", flush=True)
     model.to(dev)
     tmodel = load_teacher(Path(teacher), data, dev) if teacher is not None else None
@@ -418,7 +431,8 @@ def train(data: Path, out: Path, steps: int, budget_min: float, batch: int, lr: 
                 st[k] = v.to(dev)
     use_amp = dev.type == "cuda"
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
-    print(f"sohbet modeli: {model.n_params():,} parametre, cihaz {dev}", flush=True)
+    gpus = ([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())] if dev.type == "cuda" else [])
+    print(f"sohbet modeli: {model.n_params():,} parametre, cihaz {dev} {gpus}, optimizer {optim}", flush=True)
     win = Windows(data, cfg.ctx, 1000 + step, dialog_frac)
     t0 = time.time()
     log = open(out / "train.log", "a", encoding="utf-8")
@@ -428,6 +442,7 @@ def train(data: Path, out: Path, steps: int, budget_min: float, batch: int, lr: 
         ck = {"config": cfg.to_dict(), "model": model.state_dict(), "step": step}
         if with_opt:
             ck["opt"] = opt.state_dict()
+            ck["optim"] = optim
         torch.save(ck, tmp)
         tmp.replace(path)
 
@@ -469,7 +484,7 @@ def train(data: Path, out: Path, steps: int, budget_min: float, batch: int, lr: 
     ema = kd_ema = None
     while step < steps:
         for g in opt.param_groups:
-            g["lr"] = lr_at(step, steps, lr)
+            g["lr"] = lr_at(step, steps, g.get("base_lr", lr))
         opt.zero_grad(set_to_none=True)
         for _ in range(grad_accum):
             x, y, dmask = win.batch_mask(batch)
@@ -706,6 +721,8 @@ def main(argv=None) -> None:
     t.add_argument("--teacher", help="damıtma öğretmeni: model.bin+tokenizer.json klasörü (yalnız diyalog satırları)")
     t.add_argument("--init-grown-from", help="ckpt yoksa bu klasördeki model.bin'den genişlik büyütüp adım 0'dan başla")
     t.add_argument("--kd-alpha", type=float, default=KD_ALPHA)
+    t.add_argument("--optim", choices=["adamw", "muon"], default="adamw", help="muon: speedrun optimizer (muon.py)")
+    t.add_argument("--muon-lr", type=float, default=0.02)
     t.add_argument("--kd-t", type=float, default=KD_T)
     t.add_argument("--kd-reverse", action="store_true", help="KL(öğrenci‖öğretmen) (varsayılan: Hinton, KL(öğretmen‖öğrenci))")
     e = sub.add_parser("export")
@@ -723,7 +740,7 @@ def main(argv=None) -> None:
         train(Path(a.data), Path(a.out), a.steps, a.budget_min, a.batch, a.lr, a.dialog_frac, a.threads,
               config=SIZES[a.size], resume_from=Path(a.resume_from) if a.resume_from else None, grad_accum=a.grad_accum,
               save_every=a.save_every, exam_every=a.exam_every, teacher=Path(a.teacher) if a.teacher else None,
-              init_grown_from=Path(a.init_grown_from) if a.init_grown_from else None, kd_alpha=a.kd_alpha,
+              init_grown_from=Path(a.init_grown_from) if a.init_grown_from else None, kd_alpha=a.kd_alpha, optim=a.optim, muon_lr=a.muon_lr,
               kd_t=a.kd_t, kd_reverse=a.kd_reverse)
     else:
         export_chat(Path(a.run), Path(a.data), Path(a.out), a.ckpt)

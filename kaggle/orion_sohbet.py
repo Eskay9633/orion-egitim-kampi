@@ -230,8 +230,9 @@ if teacher:
     # sonraki oturumlar ckpt'den devam (büyütme yok sayılır)
     args += ["--teacher", teacher, "--init-grown-from", teacher]
 if SIZE == "dev":
-    # ~361M: ekran kartı belleği için küçük toplu iş × 3 biriktirme (etkin toplu iş 24, buyuk ile aynı)
-    args += ["--grad-accum", "3"]
+    # ~361M: ekran kartı belleği için küçük toplu iş × 3 biriktirme (etkin toplu iş 24, buyuk ile aynı);
+    # Muon optimizer (speedrun tekniği, muon.py, MIT): aynı öğrenme daha az adımda (Kaggle'da ölçülecek)
+    args += ["--grad-accum", "3", "--optim", "muon"]
 if prev:
     args += ["--resume-from", prev]
 sh(*args)
