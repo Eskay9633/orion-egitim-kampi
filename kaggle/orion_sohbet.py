@@ -50,10 +50,32 @@ def sha256(path):
     return h.hexdigest()
 
 
+def teacher_spec():
+    """(etiket, {dosya: sha256}). buyuk: sabit orta-86000. dev (~361M): shared/core-model/dev-ogretmen.json'da sahibin
+    seçtiği buyuk sürümü (etiket + model.bin/tokenizer.json sha256); dosya yoksa ya da eksikse oturum DURUR."""
+    global TEACHER_TAG, TEACHER_URL
+    if SIZE != "dev":
+        return TEACHER_TAG, TEACHER_SHA
+    import json
+    path = "/kaggle/working/src/shared/core-model/dev-ogretmen.json"
+    if not os.path.exists(path):
+        raise SystemExit("ORION HATA: dev için öğretmen seçilmedi (shared/core-model/dev-ogretmen.json yok)")
+    c = json.load(open(path, encoding="utf-8"))
+    if not (c.get("etiket") and c.get("model_sha256") and c.get("tokenizer_sha256")):
+        raise SystemExit("ORION HATA: dev-ogretmen.json eksik (etiket, model_sha256, tokenizer_sha256)")
+    TEACHER_TAG = c["etiket"]
+    TEACHER_URL = "https://github.com/Eskay9633/orion-egitim-kampi/releases/download/" + TEACHER_TAG + "/"
+    return TEACHER_TAG, {"model.bin": c["model_sha256"], "tokenizer.json": c["tokenizer_sha256"]}
+
+
 def fetch_teacher(dst):
-    """Öğretmen (86000) dosyalarını indirir ve sha256 ile doğrular; her hata oturumu DURDURUR (sessiz geri dönüş yok)."""
+    """Öğretmen dosyalarını indirir ve sha256 ile doğrular; her hata oturumu DURDURUR (sessiz geri dönüş yok).
+    buyuk: orta 86000; dev: dev-ogretmen.json'daki buyuk sürümü."""
     import json
     import time
+    tag, shas = teacher_spec()
+    TEACHER_SHA.clear()
+    TEACHER_SHA.update(shas)
     os.makedirs(dst, exist_ok=True)
     for name in ("manifest.json", "model.bin", "tokenizer.json"):
         err = None
@@ -88,8 +110,39 @@ os.makedirs(out, exist_ok=True)
 # Kaggle'ın yeni görüntüsünde /kaggle/tmp hazır gelmiyor (29 Eki: tüm indirmeler FileNotFoundError verdi).
 os.makedirs("/kaggle/tmp", exist_ok=True)
 prev = "/kaggle/tmp/prev-ckpt.pt"
+
+
+def fetch_ckpt(dst):
+    """ckpt.pt; yoksa 2GB Release sınırı yüzünden bölünmüş parçalar (ckpt.pt.part00, part01, ...) birleştirilir."""
+    try:
+        urllib.request.urlretrieve(CKPT_URL, dst)
+        return
+    except Exception as e0:
+        parts, k = [], 0
+        while True:
+            pth = f"{dst}.part{k:02d}"
+            try:
+                urllib.request.urlretrieve(f"{CKPT_URL}.part{k:02d}", pth)
+            except Exception:
+                break
+            parts.append(pth)
+            k += 1
+        if not parts:
+            raise e0
+        with open(dst, "wb") as w:
+            for pth in parts:
+                with open(pth, "rb") as r:
+                    while True:
+                        b = r.read(1 << 24)
+                        if not b:
+                            break
+                        w.write(b)
+                os.remove(pth)
+        print(f"ORION: checkpoint {len(parts)} parçadan birleştirildi", flush=True)
+
+
 try:
-    urllib.request.urlretrieve(CKPT_URL, prev)
+    fetch_ckpt(prev)
     print("ORION: önceki checkpoint indirildi, devam edilecek", flush=True)
 except Exception as e:
     # Devam noktası varken (tokenizer adresi verilmiş) checkpoint inemezse sıfırdan eğitmek beyni bozar: dur.
@@ -97,7 +150,7 @@ except Exception as e:
         raise SystemExit(f"ORION HATA: devam checkpoint'i indirilemedi: {e!r}")
     print("önceki checkpoint yok (ilk oturum):", e, flush=True)
     prev = ""
-teacher = fetch_teacher("/kaggle/tmp/teacher") if SIZE == "buyuk" else ""
+teacher = fetch_teacher("/kaggle/tmp/teacher") if SIZE in ("buyuk", "dev") else ""
 tok = ""
 if prev and TOK_URL.startswith("http"):
     try:
@@ -173,8 +226,12 @@ args = [sys.executable, "-m", "orion_core.chat", "train", "--data", data, "--out
 if ft:
     args += ["--exam-every", FT_EXAM_EVERY]
 if teacher:
-    # İlk oturum (ckpt yok): 86000'den büyüt, adım 0; sonraki oturumlar ckpt'den devam (büyütme yok sayılır)
+    # İlk oturum (ckpt yok): öğretmenden büyüt (buyuk: genişlik; dev: genişlik + derinlik, işlev korunur), adım 0;
+    # sonraki oturumlar ckpt'den devam (büyütme yok sayılır)
     args += ["--teacher", teacher, "--init-grown-from", teacher]
+if SIZE == "dev":
+    # ~361M: ekran kartı belleği için küçük toplu iş × 3 biriktirme (etkin toplu iş 24, buyuk ile aynı)
+    args += ["--grad-accum", "3"]
 if prev:
     args += ["--resume-from", prev]
 sh(*args)

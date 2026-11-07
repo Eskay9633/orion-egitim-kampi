@@ -37,7 +37,7 @@ def _check(src: GptConfig, dst: GptConfig) -> int:
     if dst.d_model < src.d_model or dst.d_ff < src.d_ff or dst.n_head < src.n_head:
         raise ValueError("yalnızca büyütme desteklenir")
     if (dst.vocab_size, dst.n_layer) != (src.vocab_size, src.n_layer):
-        raise ValueError("sözlük ve katman sayısı aynı kalmalı (genişlik büyütme)")
+        raise ValueError("sözlük ve katman sayısı aynı kalmalı (genişlik büyütme; derinlik: grow_depth_state)")
     if dst.ctx < src.ctx:
         raise ValueError("bağlam küçülemez")
     return hd
@@ -111,11 +111,55 @@ def grow_state(sd: dict, src: GptConfig, dst: GptConfig, seed: int = 0, std: flo
     return out
 
 
+def depth_plan(n0: int, n1: int) -> list[int | None]:
+    """Yeni katman sırası: her öğe kaynak katman indisi (aynen) ya da None (yeni katman). Yeni katmanlar eşit aralıkla
+    serpiştirilir; ilk ve son kaynak katman yerinde kalır (girdi/çıktıya yakın katmanlar en hassas olanlardır)."""
+    if n1 < n0:
+        raise ValueError("katman sayısı küçülemez")
+    extra = n1 - n0
+    plan: list[int | None] = []
+    for i in range(n0):
+        plan.append(i)
+        # i. kaynak katmandan sonra eklenecek yeni katman sayısı (son katmandan sonra yok)
+        if i < n0 - 1:
+            k = (extra * (i + 1)) // (n0 - 1) - (extra * i) // (n0 - 1)
+            plan += [None] * k
+    return plan
+
+
+@torch.no_grad()
+def grow_depth_state(sd: dict, cfg: GptConfig, n_layer: int) -> dict:
+    """Derinlik büyütme, İŞLEVİ KORUYARAK: yeni katman bir önceki kaynak katmanın kopyasıdır ama kalıntıya yazan
+    proj/fc2 ağırlık+sapması SIFIR → blok kimlik işlevi görür (x + 0 + 0). Eğitim bu çıkışları açtıkça yeni katman
+    öğrenmeye başlar (ReZero/ön-LN derinlik büyütme ailesi). fp32'de logitler kaynakla aynıdır."""
+    plan = depth_plan(cfg.n_layer, n_layer)
+    out = {k: v.float().clone() for k, v in sd.items() if not k.startswith("blocks.")}
+    last = 0
+    for j, src_i in enumerate(plan):
+        i = last if src_i is None else src_i
+        last = i
+        p, q = f"blocks.{i}.", f"blocks.{j}."
+        for k, v in sd.items():
+            if k.startswith(p):
+                name = k[len(p):]
+                t = v.float().clone()
+                if src_i is None and name.split(".")[0] in ("proj", "fc2"):
+                    t.zero_()
+                out[q + name] = t
+    return out
+
+
 def grow_model(model: TinyGpt, dst: GptConfig, seed: int = 0) -> TinyGpt:
-    """Büyütülmüş yeni TinyGpt (fp32, eval kipinde değil)."""
+    """Büyütülmüş yeni TinyGpt (fp32, eval kipinde değil). Önce genişlik (aynı katman sayısıyla), sonra derinlik."""
     sd = {k: v.detach().cpu() for k, v in model.state_dict().items()}
+    src = model.config
+    wide = GptConfig(**{**dst.to_dict(), "n_layer": src.n_layer})
+    if (wide.d_model, wide.d_ff, wide.n_head, wide.ctx) != (src.d_model, src.d_ff, src.n_head, src.ctx):
+        sd = grow_state(sd, src, wide, seed=seed)
+    if dst.n_layer != src.n_layer:
+        sd = grow_depth_state(sd, wide, dst.n_layer)
     big = TinyGpt(dst)
-    big.load_state_dict(grow_state(sd, model.config, dst, seed=seed))
+    big.load_state_dict(sd)
     return big
 
 
@@ -129,7 +173,7 @@ def grow_from_dir(src_dir: Path, dst_cfg: dict, seed: int = 0) -> TinyGpt:
 
 def main(argv=None) -> None:
     from .chat import SIZES
-    ap = argparse.ArgumentParser(description="ORN1 sohbet modelini genişlik olarak büyütür (ckpt.pt, adım 0)")
+    ap = argparse.ArgumentParser(description="ORN1 sohbet modelini genişlik ve derinlik olarak büyütür (ckpt.pt, adım 0)")
     ap.add_argument("--src", required=True, help="model.bin içeren klasör (ör. sohbet-kaggle-orta-0086000)")
     ap.add_argument("--size", choices=list(SIZES), default="buyuk")
     ap.add_argument("--out", required=True, help="yazılacak ckpt.pt (chat.train --resume-from ile kullanılabilir)")

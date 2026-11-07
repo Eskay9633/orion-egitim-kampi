@@ -119,3 +119,41 @@ def test_kd_loss_zero_when_equal_and_positive_otherwise():
     assert kd_loss(a, a).abs().max() < 1e-5
     b = torch.randn(2, 5, 11)
     assert (kd_loss(a, b) > 0).all() and (kd_loss(a, b, reverse=True) > 0).all()
+
+
+# --------------------------------------------------------------------------- derinlik + genişlik (dev, ~361M)
+
+def test_depth_plan_spreads_new_layers():
+    from orion_core.grow import depth_plan
+    p = depth_plan(12, 28)
+    assert len(p) == 28 and [x for x in p if x is not None] == list(range(12))
+    assert p[0] == 0 and p[-1] == 11 and p.count(None) == 16
+    assert depth_plan(3, 3) == [0, 1, 2]
+    with pytest.raises(ValueError):
+        depth_plan(4, 3)
+
+
+def test_width_and_depth_growth_preserves_function():
+    src = _trained_like()
+    deep = GptConfig(vocab_size=97, ctx=24, d_model=48, n_layer=5, n_head=6, d_ff=96)
+    big = grow_model(src, deep).eval()
+    assert len(big.blocks) == 5
+    for x in _prompts():
+        with torch.no_grad():
+            assert (src(x) - big(x)).abs().max().item() < 1e-4
+    # yalnız derinlik de işlevi korur ve yeni katmanların çıkışı eğitilebilir (sıfır başlar)
+    only_deep = grow_model(src, GptConfig(vocab_size=97, ctx=24, d_model=32, n_layer=4, n_head=4, d_ff=64)).eval()
+    x = _prompts()[1]
+    with torch.no_grad():
+        assert (src(x) - only_deep(x)).abs().max().item() < 1e-4
+    new = [j for j, b in enumerate(only_deep.blocks) if float(b.proj.weight.abs().sum()) == 0]
+    assert len(new) == 2
+    only_deep.train()
+    F.cross_entropy(only_deep(x).reshape(-1, 97), x.reshape(-1)).backward()
+    assert only_deep.blocks[new[0]].proj.weight.grad.abs().sum() > 0
+
+
+def test_dev_size_is_about_370m():
+    from orion_core.chat import SIZES
+    m = TinyGpt(GptConfig(vocab_size=8192, **SIZES["dev"]))
+    assert 340e6 < m.n_params() < 380e6, m.n_params()

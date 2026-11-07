@@ -41,6 +41,8 @@ SIZES = {
     "kucuk": CHAT_CONFIG,                                                        # ~17M
     "orta": dict(ctx=512, d_model=512, n_layer=12, n_head=8, d_ff=2048),         # ~42M
     "buyuk": dict(ctx=512, d_model=768, n_layer=12, n_head=12, d_ff=3072),       # ~92M
+    # dev: buyuk'tan genişlik (768→1024) + derinlik (12→28) büyütmeyle, işlev korunarak (grow.py)
+    "dev": dict(ctx=512, d_model=1024, n_layer=28, n_head=16, d_ff=4096),        # ~361M
 }
 
 

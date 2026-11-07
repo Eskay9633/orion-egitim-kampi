@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       size:
-        description: 'Beyin boyutu: orta (~42M) ya da buyuk (~92M; orta 86000 modelinden büyütülür ve ona damıtılır)'
+        description: 'Beyin boyutu: orta (~42M), buyuk (~92M, orta 86000 modelinden büyütülür) ya da dev (~361M, shared/core-model/dev-ogretmen.json içindeki buyuk sürümünden büyütülür ve ona damıtılır)'
         default: 'orta'
       steps:
         description: 'Hedef adım (buyuk: yeni modelin adımı, ör. 40000; oturum başına 640 dk, gerekirse çok oturum)'
@@ -109,7 +109,14 @@ jobs:
             # Devam için checkpoint (sonraki oturum indirir)
             CK="kaggle-devam-${{ steps.st.outputs.size }}"
             gh release view "$CK" >/dev/null 2>&1 || gh release create "$CK" --title "Kaggle devam noktası" --notes "Eğitimin kaldığı yer (otomatik)" --prerelease
-            gh release upload "$CK" "$RUN/ckpt.pt" "$RUN/tokenizer.json" --clobber
+            # Release varlığı en çok 2GB: büyük checkpoint (dev ~4GB) parçalara bölünür; orion_sohbet.py birleştirir
+            if [ "$(stat -c %s "$RUN/ckpt.pt")" -gt 1900000000 ]; then
+              split -b 1900000000 -d -a 2 "$RUN/ckpt.pt" "$RUN/ckpt.pt.part"
+              gh release delete-asset "$CK" ckpt.pt -y 2>/dev/null || true
+              gh release upload "$CK" "$RUN"/ckpt.pt.part* "$RUN/tokenizer.json" --clobber
+            else
+              gh release upload "$CK" "$RUN/ckpt.pt" "$RUN/tokenizer.json" --clobber
+            fi
             # Kendi kendine öğrenme çıktısı (doğrulanmış kendi çözümleri) → sonraki oturumun ek verisi
             OZF=$(find kout -name 'ozogrenme.jsonl.gz' | head -1)
             if [ -n "$OZF" ] && [ -s "$OZF" ]; then
@@ -127,7 +134,7 @@ jobs:
         if: steps.st.outputs.go == 'start' || steps.col.outputs.next == 'start'
         run: |
           SIZE=${{ steps.st.outputs.size }}; STEPS=${{ steps.st.outputs.steps }}
-          if [ "$SIZE" = "buyuk" ]; then BATCH=24; else BATCH=32; fi
+          case "$SIZE" in buyuk) BATCH=24;; dev) BATCH=8;; *) BATCH=32;; esac
           mkdir -p kpush
           # Devam ederken tokenizer AYNI olmalı: devam noktasındaki, yoksa en son Kaggle sürümündeki tokenizer
           R="https://github.com/$GITHUB_REPOSITORY/releases/download"
