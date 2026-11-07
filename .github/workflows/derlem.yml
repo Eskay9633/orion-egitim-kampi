@@ -517,7 +517,9 @@ jobs:
         working-directory: core-model
         run: |
           sudo apt-get install -y -q p7zip-full
-          curl -fsSL https://archive.org/metadata/stackexchange | python -c "import json,sys;m=json.load(sys.stdin)['metadata'];l=m.get('licenseurl','');print(l);sys.exit(0 if 'by-sa' in l else 1)" || { echo "HATA: dökümün lisansı CC BY-SA değil"; exit 1; }
+          # licenseurl alanı boş olabiliyor: lisans tüm üst veri metninde aranır (keşif de böyle buldu)
+          curl -fsSL https://archive.org/metadata/stackexchange > ../work-meta.json
+          python -c "import re,sys;t=open('../work-meta.json',encoding='utf-8').read();m=re.search(r'.{0,80}(by-sa|Attribution[- ]?Share[- ]?Alike|CC BY-SA).{0,80}',t,re.I);print(m.group(0) if m else 'yok');sys.exit(0 if m and not re.search('NonCommercial',t) else 1)" || { echo "HATA: dökümün lisansı CC BY-SA olarak bulunamadı"; exit 1; }
           mkdir -p ../work/en
           for S in $(python -c "import json;print(' '.join(json.load(open('../shared/core-model/derlem-kaynaklar.json'))['kod']['stackexchange']['siteler']))"); do
             curl -fsSL -A "OrionDerlem/1.0" -o ../work/s.7z "https://archive.org/download/stackexchange/$S.7z"
