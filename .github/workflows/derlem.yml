@@ -369,7 +369,7 @@ jobs:
     timeout-minutes: 350
     strategy:
       fail-fast: false
-      max-parallel: 20
+      max-parallel: 10
       matrix:
         shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
     steps:
@@ -433,7 +433,7 @@ jobs:
     timeout-minutes: 350
     strategy:
       fail-fast: false
-      max-parallel: 20
+      max-parallel: 10  # toplam 20 GitHub işinden en az 4'ü Kaggle/diğer işlere boş kalsın
       matrix:
         job: ${{ fromJSON(needs.enwiki-plan.outputs.matrix) }}
     steps:
@@ -539,7 +539,7 @@ jobs:
     timeout-minutes: 350
     strategy:
       fail-fast: false
-      max-parallel: 20
+      max-parallel: 6
       matrix:
         site: [codereview, cs, softwareengineering, unix]
         k: [0, 1, 2, 3, 4]
