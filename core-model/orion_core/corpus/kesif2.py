@@ -10,7 +10,7 @@ import sys
 import time
 import urllib.request
 
-UA = "OrionDerlem/1.0 (lisans keşfi; https://github.com/Eskay9633/orion-egitim-kampi)"
+UA = "OrionDerlem/1.0 (license discovery; https://github.com/Eskay9633/orion-egitim-kampi)"
 
 # lisans_url: lisans metni; veri: erişim/boyut denetlenecek adres(ler); bekle: izin verilen lisans kalıpları
 ADAYLAR = {
