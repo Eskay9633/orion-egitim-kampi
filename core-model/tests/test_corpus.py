@@ -569,3 +569,11 @@ def test_enwiki_shard_window(tmp_path):
     assert all(l["license"] == "cc-by-sa-4.0" and l["kategori"] == "ceviri_metin" for l in lines)
     st = X.enwiki_shard(iter(pages), tmp_path / "b.jsonl", skip=8, max_chars=10**9, gid=8, window=10)
     assert st["madde"] == 2 and st["kaynak_bitti"] and st["kisa_ya_da_liste"] == 1
+
+
+def test_kesif2_license_patterns():
+    from orion_core.corpus import kesif2 as K
+    assert "mit" in K.licenses_in("MIT License\n\nPermission is hereby granted, free of charge, to any person")
+    assert "cc-by-nc" in K.licenses_in("Creative Commons Attribution-NonCommercial 4.0")
+    assert "cc0" in K.licenses_in("released under CC0")
+    assert all("instruct" not in n and "alpaca" not in n and "magicoder" not in n for n in K.ADAYLAR)

@@ -9,6 +9,7 @@ name: derlem
 #   dmmath                → mathematics_dataset (Apache-2.0 üretici) + Türkçe şablon → derlem-dmmath
 #   ek                    → Tatoeba (CC BY 2.0) + UD Türkçe ağaç bankaları + Common Voice cümleleri (CC0); lisans kaynağın metninden → derlem-tatoeba/ud/commonvoice
 #   enwiki BAŞ ZİNCİR     → İngilizce Wikipedia (CC BY-SA) parça parça en→tr; her çalışma 20 parça (≤40M karakter), ZİNCİR kadar kendini sürdürür → derlem-enwiki
+#   kesif2                → kodlama/görsel/video/eğitim kodu adaylarının lisans + erişim keşfi → kaynak-kesif-<tarih>
 #   simplewiki            → Simple English Wikipedia (CC BY-SA) → en→tr makine çevirisi (20 parça) → derlem-simplewiki
 #   kod                   → insan yazımı açık kaynak kod (Python/Kotlin/Java/CSS); depo lisansı GitHub API ile denetlenir → derlem-kod
 # Kaggle/sohbet/ceviri işlerine dokunmaz (ayrı eşzamanlılık grubu).
@@ -16,7 +17,7 @@ on:
   workflow_dispatch:
     inputs:
       islem:
-        description: 'kesif | topla | openstax | dmmath | kod | ek | simplewiki | enwiki'
+        description: 'kesif | kesif2 | topla | openstax | dmmath | kod | ek | simplewiki | enwiki'
         default: 'kesif'
       kaynaklar:
         description: 'topla: virgüllü kaynak adları ya da etkin'
@@ -55,7 +56,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then I="${{ inputs.islem }}"; K="${{ inputs.kaynaklar }}"; Z="${{ inputs.zincir }}"
           else read I K Z < <(head -1 derlem/istek.txt); fi
           K=${K:-etkin}; Z=${Z:-0}
-          case "$I" in kesif|topla|openstax|dmmath|kod|ek|simplewiki|enwiki) ;; *) echo "HATA: islem kesif|topla|openstax|dmmath|kod|ek|simplewiki|enwiki olmalı"; exit 1;; esac
+          case "$I" in kesif|kesif2|topla|openstax|dmmath|kod|ek|simplewiki|enwiki) ;; *) echo "HATA: islem kesif|kesif2|topla|openstax|dmmath|kod|ek|simplewiki|enwiki olmalı"; exit 1;; esac
           case "$K" in *[!a-z0-9,-]*) echo "HATA: kaynak adları küçük harf, virgüllü"; exit 1;; esac
           case "$Z" in *[!0-9]*) echo "HATA: zincir sayı olmalı"; exit 1;; esac
           [ "$Z" -le 30 ] || { echo "HATA: zincir ≤30"; exit 1; }
@@ -483,3 +484,21 @@ jobs:
         run: |
           R="${{ needs.ayar.outputs.kaynaklar }}"; case "$R" in ''|etkin) R=0;; esac
           gh workflow run derlem.yml --repo "$GITHUB_REPOSITORY" -f islem=enwiki -f kaynaklar=$(( R + 1 )) -f zincir=$(( ${{ needs.ayar.outputs.zincir }} - 1 ))
+
+  kesif2:
+    needs: ayar
+    if: needs.ayar.outputs.islem == 'kesif2'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Lisans + erişim keşfi (toplu indirme yok)
+        working-directory: core-model
+        run: python -m orion_core.corpus.kesif2 ../kaynak-kesif.json
+      - name: Release
+        run: |
+          TAG="kaynak-kesif-$(date -u +%Y%m%d-%H%M)"
+          NOTES=$(python -c "import json;r=json.load(open('kaynak-kesif.json'));print('Kaynak keşfi · ' + ', '.join(f'{k}={v}' for k,v in r['ozet'].items()))")
+          gh release create "$TAG" kaynak-kesif.json --target "$GITHUB_SHA" --title "Kaynak keşfi $TAG" --notes "$NOTES" --prerelease
