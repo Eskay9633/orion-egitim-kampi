@@ -1,1 +1,1 @@
-buyuk 200000 otomatik
+dev 60000 otomatik
