@@ -74,6 +74,7 @@ def fetch_teacher(dst):
     import json
     import time
     tag, shas = teacher_spec()
+    shas = dict(shas)  # buyuk'ta teacher_spec TEACHER_SHA'nın kendisini döner: kopyalamadan clear() onu da boşaltırdı
     TEACHER_SHA.clear()
     TEACHER_SHA.update(shas)
     os.makedirs(dst, exist_ok=True)

@@ -1,0 +1,6 @@
+{
+ "_aciklama": "370M (dev) öğretmeni ve büyütme kaynağı: buyuk 185740 (sınav 0,43; en iyi ara 162000'de 0,45; bilişsel en iyi 0,0985). model.bin manifest sha256'sı; tokenizer orta 86000 ile aynı. Seçim: 2026-11-07.",
+ "etiket": "sohbet-kaggle-buyuk-0185740",
+ "model_sha256": "4ee44a290d7c4a7ea6870c15f7cfcd02e9d4940ba2048ecf8be4ff9b0d3e009b",
+ "tokenizer_sha256": "bbb70d528167b52b9b8d160b66e33ee017a5cdb6b70c77aa8aee82201cfd4c0f"
+}
