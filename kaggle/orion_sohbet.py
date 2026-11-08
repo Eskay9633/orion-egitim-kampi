@@ -12,6 +12,7 @@ SIZE = "__SIZE__"
 STEPS = "__STEPS__"
 BATCH = "__BATCH__"
 BUDGET_MIN = "__BUDGET__"
+ACCEL = "__ACCEL__"  # gpu | tpu (tpu: PyTorch/XLA, ORION_XLA=1; sınav/üretim işlemcide)
 REPO = "https://github.com/Eskay9633/orion-egitim-kampi.git"
 CKPT_URL = "https://github.com/Eskay9633/orion-egitim-kampi/releases/download/kaggle-devam-__SIZE__/ckpt.pt"
 TOK_URL = "__TOK__"  # önceki eğitimin tokenizer'ı (devam ederken aynısı şart); boşsa ilk eğitim
@@ -103,6 +104,14 @@ def fetch_teacher(dst):
     return dst
 
 
+if ACCEL == "tpu":
+    os.environ["ORION_XLA"] = "1"  # alt süreçlere (chat train) geçer
+    SELF_MIN = 15  # TPU oturumu daha kısa; kendi kendine öğrenme işlemcide yavaş
+    try:
+        import torch_xla  # noqa: F401
+        print("ORION: TPU, torch_xla", torch_xla.__version__, flush=True)
+    except Exception as e:
+        raise SystemExit(f"ORION HATA: TPU görüntüsünde torch_xla yok: {e!r}")
 sh("git", "clone", "--depth", "1", REPO, "/kaggle/working/src")
 sh(sys.executable, "-m", "pip", "install", "-q", "pyarrow", "regex")
 os.chdir("/kaggle/working/src/core-model")
