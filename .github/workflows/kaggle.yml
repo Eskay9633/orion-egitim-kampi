@@ -175,7 +175,14 @@ jobs:
            "language": "python", "kernel_type": "script", "is_private": true,
            "enable_gpu": true, "enable_internet": true, "dataset_sources": [], "kernel_sources": [], "competition_sources": []}
           JSON
-          kaggle kernels push -p kpush
+          # dev (~361M): iki T4 kartı iste (tensör çekirdekli; P100'den hızlı, DataParallel ile 2 kart). Alan Kaggle
+          # API'sinde tanınmazsa (doğrulanmadı) itme hatası verir: o zaman alan olmadan yeniden itilir.
+          if [ "$SIZE" = "dev" ]; then
+            python3 -c "import json;p='kpush/kernel-metadata.json';m=json.load(open(p));m['machine_shape']='NvidiaTeslaT4';json.dump(m,open(p,'w'))"
+            kaggle kernels push -p kpush || { python3 -c "import json;p='kpush/kernel-metadata.json';m=json.load(open(p));m.pop('machine_shape',None);json.dump(m,open(p,'w'))"; kaggle kernels push -p kpush; }
+          else
+            kaggle kernels push -p kpush
+          fi
       - name: Hedefi depoya yaz (zamanlanmış toplama için)
         if: github.event_name == 'workflow_dispatch' && steps.k.outputs.ok == 'true'
         run: |

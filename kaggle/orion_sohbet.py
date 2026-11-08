@@ -233,7 +233,9 @@ if teacher:
 if SIZE == "dev":
     # ~361M: ekran kartı belleği için küçük toplu iş × 3 biriktirme (etkin toplu iş 24, buyuk ile aynı);
     # Muon optimizer (speedrun tekniği, muon.py, MIT): aynı öğrenme daha az adımda (Kaggle'da ölçülecek)
-    args += ["--grad-accum", "3", "--optim", "muon"]
+    # Muon öğrenme hızı 0.02 sıfırdan eğitim içindir; büyütülmüş, eğitilmiş modelde ilk oturumda bozulma görüldü
+    # (ara sınav 2000'de 0,36): devamda daha düşük (doğrulanmadı, sonraki oturumda ölçülecek)
+    args += ["--grad-accum", "3", "--optim", "muon", "--muon-lr", "0.008"]
 if prev:
     args += ["--resume-from", prev]
 sh(*args)

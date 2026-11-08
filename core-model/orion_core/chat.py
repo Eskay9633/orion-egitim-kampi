@@ -432,7 +432,11 @@ def train(data: Path, out: Path, steps: int, budget_min: float, batch: int, lr: 
     use_amp = dev.type == "cuda"
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
     gpus = ([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())] if dev.type == "cuda" else [])
-    print(f"sohbet modeli: {model.n_params():,} parametre, cihaz {dev} {gpus}, optimizer {optim}", flush=True)
+    # Birden çok ekran kartı (Kaggle T4×2): toplu iş kartlara bölünür (DataParallel). Ağırlıklar, kayıt ve sınav tek
+    # modelde kalır; yalnız eğitim ileri geçişi fwd üzerinden. Tek kartta fwd = model (davranış aynı).
+    fwd = torch.nn.DataParallel(model) if len(gpus) > 1 else model
+    print(f"ORION: sohbet modeli {model.n_params():,} parametre, cihaz {dev} {gpus}, optimizer {optim}"
+          f"{', DataParallel ' + str(len(gpus)) + ' kart' if len(gpus) > 1 else ''}", flush=True)
     win = Windows(data, cfg.ctx, 1000 + step, dialog_frac)
     t0 = time.time()
     log = open(out / "train.log", "a", encoding="utf-8")
@@ -490,7 +494,7 @@ def train(data: Path, out: Path, steps: int, budget_min: float, batch: int, lr: 
             x, y, dmask = win.batch_mask(batch)
             x, y = x.to(dev, non_blocking=True), y.to(dev, non_blocking=True)
             with torch.autocast(device_type=dev.type, dtype=torch.float16, enabled=use_amp):
-                logits = model(x)
+                logits = fwd(x)
                 if tmodel is None:
                     loss = F.cross_entropy(logits.float().reshape(-1, logits.size(-1)), y.reshape(-1)) / grad_accum
                 else:
