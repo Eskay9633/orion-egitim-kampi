@@ -107,11 +107,19 @@ def fetch_teacher(dst):
 if ACCEL == "tpu":
     os.environ["ORION_XLA"] = "1"  # alt süreçlere (chat train) geçer
     SELF_MIN = 15  # TPU oturumu daha kısa; kendi kendine öğrenme işlemcide yavaş
-    try:
-        import torch_xla  # noqa: F401
-        print("ORION: TPU, torch_xla", torch_xla.__version__, flush=True)
-    except Exception as e:
-        raise SystemExit(f"ORION HATA: TPU görüntüsünde torch_xla yok: {e!r}")
+    os.environ.setdefault("PJRT_DEVICE", "TPU")
+    # Kaggle'ın TPU görüntüsünde torch_xla gelmiyor (8 Kas denemesi): torch ile EŞ sürüm kurulur. Sürüm/adres
+    # doğrulanmadı; kurulum ya da içe aktarma olmazsa oturum hemen durur (kota harcanmaz).
+    chk = [sys.executable, "-c", "import torch, torch_xla; print('ORION: TPU, torch', torch.__version__, 'torch_xla', torch_xla.__version__)"]
+    if subprocess.run(chk).returncode != 0:
+        print("ORION: torch_xla kuruluyor (torch 2.6.0 + torch_xla[tpu] 2.6.0)", flush=True)
+        r = subprocess.run([sys.executable, "-m", "pip", "install", "-q", "torch==2.6.0", "torch_xla[tpu]==2.6.0",
+                            "-f", "https://storage.googleapis.com/libtpu-releases/index.html"])
+        if r.returncode != 0 or subprocess.run(chk).returncode != 0:
+            raise SystemExit("ORION HATA: torch_xla kurulamadı ya da yüklenemedi (TPU)")
+    r = subprocess.run([sys.executable, "-c", "import torch_xla.core.xla_model as xm; print('ORION: XLA aygıtı', xm.xla_device())"])
+    if r.returncode != 0:
+        raise SystemExit("ORION HATA: XLA aygıtı açılamadı (TPU)")
 sh("git", "clone", "--depth", "1", REPO, "/kaggle/working/src")
 sh(sys.executable, "-m", "pip", "install", "-q", "pyarrow", "regex")
 os.chdir("/kaggle/working/src/core-model")
