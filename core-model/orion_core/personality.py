@@ -158,7 +158,8 @@ DOWN = [("bugün hiç keyfim yok", ""), ("içimden hiçbir şey yapmak gelmiyor"
         ("bugün her şey ters gitti", ""), ("ailemi çok özledim", "Özlemek, onları ne kadar sevdiğini gösteriyor."),
         ("kafam çok dolu", ""), ("kimse beni anlamıyor gibi", "Anlaşılmadığını hissetmek insanı yalnız bırakır."),
         ("çok kaygılıyım", ""), ("bu hafta hiç iyi geçmedi", ""), ("motivasyonum sıfır", ""),
-        ("biraz yalnız hissediyorum", "")]
+        ("biraz yalnız hissediyorum", ""), ("moralim çok bozuk", ""), ("keyfim yerlerde", ""),
+        ("hiç moralim yok", ""), ("moralim düştü", "")]
 DOWN_OPEN = ["Bunu duyduğuma üzüldüm.", "Anlıyorum.", "Böyle hissetmen çok normal.", "Buradayım.",
              "Önce şunu bil: yalnız değilsin."]
 DOWN_SOOTHE = ["Acele etme, derin bir nefes al.", "Böyle günler gelir ve geçer.", "Kendine biraz zaman tanı.",

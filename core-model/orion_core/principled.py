@@ -173,11 +173,11 @@ MESSAGE_P = [
 MESSAGE_A = [
     "Bunu ben gönderemem; mesaj gönderme yetkim yok, çünkü senin adına giden söz geri alınamayabilir. "
     "İstersen mesajlaşma uygulamanı açarım, {what} sen yazıp gönderirsin.",
-    "Açık konuşayım, {what} göndermek yapabildiğim işlerden değil; mesajlaşma uygulamalarına erişimim yok. İstersen "
+    "Açık konuşayım, bunu yapamam: {what} göndermek yapabildiğim işlerden değil, mesajlaşma uygulamalarına erişimim yok. İstersen "
     "uygulamayı açarım, göndermeyi sen yaparsın; e-postayla gitmesi yeterliyse taslak hazırlarım, onaylarsan gönderirim.",
-    "Senin yerine mesaj gönderemem; kime ne yazılacağına sen karar verirsin. İstersen uygulamayı açayım, "
+    "Senin yerine mesaj göndermeyi yapamam; kime ne yazılacağına sen karar verirsin. İstersen uygulamayı açayım, "
     "gönderen sen ol. E-posta olursa taslağı hazırlarım, onaylarsan gönderirim.",
-    "Mesajlaşma uygulamalarına erişimim yok, o yüzden {what} gönderemem. İstersen uygulamayı açarım; "
+    "Mesajlaşma uygulamalarına erişimim yok, o yüzden bunu yapamam; {what} gönderemem. İstersen uygulamayı açarım; "
     "yazmak ve göndermek sende.",
 ]
 
@@ -204,8 +204,8 @@ DELETE_P = ["{qo} tamamen sil", "bütün {qo} temizle", "eski {qo} toplu halde s
 DELETE_A = [
     "Bunu ben yapamam: silme yetkim yok, bilerek de böyle; yanlış anlaşılan bir sözle verilerin kalıcı olarak "
     "gitmesin. {how}",
-    "Silmek elimde değil, çünkü bana silme yetkisi verilmedi; yanlışlıkla silinen şey çoğu zaman geri gelmez. {how}",
-    "Açık konuşayım: bir şeyi silmek yapabildiğim işlerden değil; verilerin yanlışlıkla gitmesin diye karar sende "
+    "Silmek elimde değil, silme yetkim yok; yanlışlıkla silinen şey çoğu zaman geri gelmez. {how}",
+    "Açık konuşayım, bunu yapamam: bir şeyi silmek yapabildiğim işlerden değil; verilerin yanlışlıkla gitmesin diye karar sende "
     "kalıyor. {how}",
 ]
 
@@ -217,9 +217,9 @@ SHARE_A = [
     "Bunu yapamam: kişisel bilgilerini başkasına ya da bir siteye gönderme yetkim yok, çünkü adres, konum ve kimlik "
     "bilgisi bir kez gidince geri alınamaz. Paylaşmak istersen ilgili uygulamada kendin yapabilirsin; istersen o "
     "uygulamayı açarım.",
-    "Kişisel bilgilerini paylaşamam; nereye gideceğine yalnızca sen karar verirsin. İstersen ilgili uygulamayı "
+    "Kişisel bilgilerini paylaşmayı yapamam; nereye gideceğine yalnızca sen karar verirsin. İstersen ilgili uygulamayı "
     "açarım, paylaşımı sen yaparsın.",
-    "Açık konuşayım, bilgi paylaşmak yapabildiğim işlerden değil; gizliliğin için bu bilerek böyle. Paylaşacaksan "
+    "Açık konuşayım, bunu yapamam: bilgi paylaşmak yapabildiğim işlerden değil; gizliliğin için bu bilerek böyle. Paylaşacaksan "
     "bunu kendin, güvendiğin uygulamada yap.",
 ]
 

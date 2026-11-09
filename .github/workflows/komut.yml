@@ -19,6 +19,8 @@ on:
       - 'core-model/orion_core/copy.py'
       - 'core-model/orion_core/massive.py'
       - 'shared/protocol/**'
+      # elle yeniden eğitim isteği (iş akışı elle tetiklenemediğinde): bu dosyaya işlemek
+      - 'kaggle/komut-istek.txt'
 
 permissions:
   contents: write

@@ -59,7 +59,7 @@ jobs:
         if: steps.ls.outputs.go == 'true'
         run: |
           pip install --index-url https://download.pytorch.org/whl/cpu torch
-          pip install -r core-model/requirements.txt
+          pip install -r core-model/requirements.txt pyarrow
       - name: Tokenizer (öğretmeninki, sha256 doğrulanır)
         if: steps.ls.outputs.go == 'true'
         run: |

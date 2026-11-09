@@ -28,7 +28,7 @@ def test_chat_exam_floor():
     import json
     from orion_core import SHARED
     real = json.loads((SHARED / "chat-model-floor.json").read_text(encoding="utf-8"))
-    assert real["qa_min"] >= 0.7
+    assert real["qa_min"] >= 0.6  # sahibin kararı 2026-11-09 (0.70 → 0.60); daha aşağısı sahibin onayıyla
     floor = dict(FLOOR, qa_min=0.7)
     assert not chat_ok({"val_ppl_int8": 14, "persona_ok": True, "qa_score": 0.3, "sha256": "x"}, floor, None)[0]
     assert not chat_ok({"val_ppl_int8": 14, "persona_ok": True, "sha256": "x"}, floor, None)[0]
@@ -112,11 +112,12 @@ def test_hold_prevents_import(monkeypatch, tmp_path):
     assert not (shared / "chat-model").exists()
 
 
-def test_real_floor_is_on_hold():
-    """Kullanıcı onayı gelene kadar sohbet beyni uygulamaya alınmaz (yeni APK yok)."""
+def test_real_floor_hold_is_owner_decision():
+    """Bekletme sahibin kararıdır (2026-11-09: kaldırıldı); karar dosyada kayıtlı olmalı."""
     import json
     from orion_core import SHARED
-    assert json.loads((SHARED / "chat-model-floor.json").read_text(encoding="utf-8")).get("hold") is True
+    d = json.loads((SHARED / "chat-model-floor.json").read_text(encoding="utf-8"))
+    assert d.get("hold") is False and "sahibin kararı" in d.get("_doc_owner", "")
 
 
 def test_newest_passing_and_download_limit(monkeypatch, tmp_path):
