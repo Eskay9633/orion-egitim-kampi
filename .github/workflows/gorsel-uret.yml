@@ -1,0 +1,54 @@
+name: gorsel-uretici
+
+# Orion'un ilk görsel üreticisi: Türkçe açıklama → 16x16 emoji tarzı ikon (orion_core/imagegen.py). Sohbet beyniyle aynı
+# mimari (telefonda aynı çalışma zamanı). Veri: gorsel-ikon Release'i. GitHub işlemcisinde eğitilir (Kaggle kotası
+# sohbet beynine kalır). Sonuç: gorsel-uretici-<tarih> Release'i (model.bin int8, vocab.json, manifest.json, ornekler.png).
+# Tetikleme: kaggle/gorsel-egit-istek.txt'ye işlemek ya da elle.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['kaggle/gorsel-egit-istek.txt']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gorsel-uretici
+  cancel-in-progress: false
+
+jobs:
+  egit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Kurulum
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -r core-model/requirements.txt
+      - name: Veri
+        run: |
+          mkdir -p gv
+          gh release download gorsel-ikon -p 'gorsel-*.jsonl.gz' -D gv
+          ls -la gv
+      - name: Eğit (yaklaşık 4,5 saat), dışa aktar, renk sınavı, örnekler
+        working-directory: core-model
+        run: |
+          ARGS=""; for F in ../gv/gorsel-*.jsonl.gz; do ARGS="$ARGS --data $F"; done
+          python -m orion_core.imagegen $ARGS --out ../go --steps 20000 --budget-min 270 --batch 32 --threads 4
+      - name: Yayınla
+        run: |
+          TAG="gorsel-uretici-$(date -u +%Y%m%d-%H%M)"
+          cd go/export
+          N=$(python3 -c "import json;m=json.load(open('manifest.json'));print('adım', m['adim'], '· doğrulama kaybı', m['dogrulama_kaybi'], '· renk sınavı', m['renk_sinavi']['puan'])")
+          for i in 1 2 3 4; do
+            gh release create "$TAG" model.bin vocab.json manifest.json ornekler.png --title "Görsel üretici $TAG" \
+              --notes "Türkçe açıklamadan 16x16 emoji tarzı ikon (deneme). $N. Veri: Twemoji (CC BY 4.0), OpenMoji (CC BY-SA 4.0), Türkçe adlar Unicode CLDR." && break
+            echo "yeniden deneniyor ($i)"; sleep $((i*20))
+          done
