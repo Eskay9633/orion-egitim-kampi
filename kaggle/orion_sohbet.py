@@ -112,10 +112,18 @@ if ACCEL == "tpu":
     # doğrulanmadı; kurulum ya da içe aktarma olmazsa oturum hemen durur (kota harcanmaz).
     chk = [sys.executable, "-c", "import torch, torch_xla; print('ORION: TPU, torch', torch.__version__, 'torch_xla', torch_xla.__version__)"]
     if subprocess.run(chk).returncode != 0:
-        print("ORION: torch_xla kuruluyor (torch 2.6.0 + torch_xla[tpu] 2.6.0)", flush=True)
-        r = subprocess.run([sys.executable, "-m", "pip", "install", "-q", "torch==2.6.0", "torch_xla[tpu]==2.6.0",
-                            "-f", "https://storage.googleapis.com/libtpu-releases/index.html"])
-        if r.returncode != 0 or subprocess.run(chk).returncode != 0:
+        print("ORION: Python", sys.version.split()[0], "- torch_xla yok, kuruluyor (sürüm sabitlenmeden, uyumlu çift)", flush=True)
+        ok = False
+        for pkgs in (["torch", "torch_xla[tpu]"], ["torch~=2.8.0", "torch_xla[tpu]~=2.8.0"], ["torch~=2.7.0", "torch_xla[tpu]~=2.7.0"]):
+            r = subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", *pkgs,
+                                "-f", "https://storage.googleapis.com/libtpu-releases/index.html"],
+                               capture_output=True, text=True)
+            for ln in (r.stdout + r.stderr).splitlines()[-8:]:
+                print("ORION pip:", ln[:220], flush=True)
+            if r.returncode == 0 and subprocess.run(chk).returncode == 0:
+                ok = True
+                break
+        if not ok:
             raise SystemExit("ORION HATA: torch_xla kurulamadı ya da yüklenemedi (TPU)")
     r = subprocess.run([sys.executable, "-c", "import torch_xla.core.xla_model as xm; print('ORION: XLA aygıtı', xm.xla_device())"])
     if r.returncode != 0:
