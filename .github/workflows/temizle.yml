@@ -1,0 +1,26 @@
+name: temizle
+
+# Sahibin isteğiyle kaldırılan deneme çıktılarını siler (2026-11-09: emoji görsel verisi ve 16x16 görsel üretici).
+# Tetikleme: kaggle/temizle-istek.txt'ye işlemek ya da elle. Yalnız aşağıda adı geçen Release'ler silinir.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['kaggle/temizle-istek.txt']
+
+permissions:
+  contents: write
+
+jobs:
+  sil:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Görsel deneme Release'lerini sil
+        run: |
+          for T in $(gh release list --limit 200 --json tagName -q '.[].tagName' | grep -E '^(gorsel-ikon|gorsel-uretici-)'); do
+            echo "siliniyor: $T"; gh release delete "$T" -y --cleanup-tag
+          done
+          gh release list --limit 200 --json tagName -q '.[].tagName' | grep -E '^gorsel' || echo "görsel Release'i kalmadı"
