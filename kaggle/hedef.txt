@@ -1,1 +1,1 @@
-dev 60000 otomatik tpu 30
+dev 60000 otomatik

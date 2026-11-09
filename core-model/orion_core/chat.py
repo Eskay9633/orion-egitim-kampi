@@ -48,22 +48,7 @@ SIZES = {
 
 
 def device() -> torch.device:
-    # ORION_XLA=1: Kaggle TPU (PyTorch/XLA, tek çekirdek). Yalnız eğitim döngüsü XLA'da; sınav/üretim işlemcide.
-    if os.environ.get("ORION_XLA") == "1":
-        import torch_xla.core.xla_model as xm
-        return xm.xla_device()
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-def _to_cpu(obj):
-    """XLA tensörlerini kayıt için işlemciye taşır (iç içe sözlük/liste)."""
-    if torch.is_tensor(obj):
-        return obj.detach().cpu()
-    if isinstance(obj, dict):
-        return {k: _to_cpu(v) for k, v in obj.items()}
-    if isinstance(obj, (list, tuple)):
-        return type(obj)(_to_cpu(v) for v in obj)
-    return obj
 
 
 # --------------------------------------------------------------------------- veri
@@ -447,19 +432,8 @@ def train(data: Path, out: Path, steps: int, budget_min: float, batch: int, lr: 
                 st[k] = v.to(dev)
     use_amp = dev.type == "cuda"
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
-    xla = dev.type == "xla"
-    if xla:
-        import contextlib
-        import torch_xla.core.xla_model as xm
-
-        def autocast_ctx():
-            try:
-                return torch.autocast(device_type="xla", dtype=torch.bfloat16)
-            except Exception:  # eski torch_xla: bf16 otomatik dönüşüm yok, fp32 sürer
-                return contextlib.nullcontext()
-    else:
-        def autocast_ctx():
-            return torch.autocast(device_type=dev.type, dtype=torch.float16, enabled=use_amp)
+    def autocast_ctx():
+        return torch.autocast(device_type=dev.type, dtype=torch.float16, enabled=use_amp)
     gpus = ([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())] if dev.type == "cuda" else [])
     # Birden çok ekran kartı (Kaggle T4×2): toplu iş kartlara bölünür (DataParallel). Ağırlıklar, kayıt ve sınav tek
     # modelde kalır; yalnız eğitim ileri geçişi fwd üzerinden. Tek kartta fwd = model (davranış aynı).
@@ -476,8 +450,6 @@ def train(data: Path, out: Path, steps: int, budget_min: float, batch: int, lr: 
         if with_opt:
             ck["opt"] = opt.state_dict()
             ck["optim"] = optim
-        if xla:
-            ck = _to_cpu(ck)
         torch.save(ck, tmp)
         tmp.replace(path)
 
@@ -504,12 +476,7 @@ def train(data: Path, out: Path, steps: int, budget_min: float, batch: int, lr: 
         return st
 
     def exam():
-        if xla:  # XLA'da belirteç belirteç üretim her uzunlukta yeniden derler: sınav işlemcide, kopya modelle
-            cm = TinyGpt(cfg)
-            cm.load_state_dict(_to_cpu(model.state_dict()))
-            ex = run_exam(cm.eval(), bpe)
-        else:
-            ex = run_exam(model, bpe)
+        ex = run_exam(model, bpe)
         model.train()
         e = {"step": step, "qa_score": ex["qa_score"], "persona_ok": ex["persona_ok"]}
         is_best = not exams or e["qa_score"] > max(x["qa_score"] for x in exams)
@@ -538,15 +505,7 @@ def train(data: Path, out: Path, steps: int, budget_min: float, batch: int, lr: 
                                          reduction="none").view(y.shape).mean(-1)  # satır başına
                     row = ce
                     dm = dmask.to(dev)
-                    if xla:
-                        # XLA: maskeyle alt küme seçmek şekli değiştirir (her adımda yeniden derleme); öğretmen tüm
-                        # toplu işe uygulanır, kayıp maskeyle birleştirilir (aynı matematik)
-                        with torch.no_grad():
-                            tl = tmodel(x)
-                        kd = kd_loss(logits, tl, kd_t, kd_reverse)
-                        dmf = dm.to(ce.dtype)
-                        row = ce * (1 - dmf) + ((1 - kd_alpha) * ce + kd_alpha * kd) * dmf
-                    elif bool(dm.any()):
+                    if bool(dm.any()):
                         with torch.no_grad():
                             tl = tmodel(x[dm])
                         kd = kd_loss(logits[dm], tl, kd_t, kd_reverse)
@@ -560,8 +519,6 @@ def train(data: Path, out: Path, steps: int, budget_min: float, batch: int, lr: 
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         scaler.step(opt)
         scaler.update()
-        if xla:
-            xm.mark_step()  # tembel grafiği bu adımda çalıştır
         loss = loss * grad_accum
         step += 1
         ema = loss.item() if ema is None else 0.98 * ema + 0.02 * loss.item()
@@ -625,8 +582,7 @@ def clean_reply(raw: str) -> str:
 def generate(model: TinyGpt, bpe: BPE, text: str, max_new: int = 80, temperature: float = 0.0, top_k: int = 40,
              seed: int = 0) -> str:
     # üreteç modelle aynı aygıtta olmalı (ekran kartında örneklemede "Expected a 'cuda' device type" hatası)
-    _d = next(model.parameters()).device
-    g = torch.Generator(device=_d if _d.type in ("cpu", "cuda") else "cpu").manual_seed(seed)
+    g = torch.Generator(device=next(model.parameters()).device).manual_seed(seed)
     ids = [BOS] + bpe.encode(text)
     out: list[int] = []
     model.eval()

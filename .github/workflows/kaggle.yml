@@ -18,11 +18,8 @@ on:
       ceviri:
         description: 'Çeviri verisi: otomatik (en son ceviri-* Release, yoksa hiç), yok, ya da bir etiket (ceviri-...)'
         default: 'otomatik'
-      hizlandirici:
-        description: 'gpu (varsayılan) ya da tpu (Kaggle TPU, ayrı haftalık kota; PyTorch/XLA). GPU ve TPU aynı kayıt noktasını sırayla kullanır, aynı anda çalışmaz.'
-        default: 'gpu'
       sure:
-        description: 'İsteğe bağlı eğitim süresi (dakika; ör. TPU denemesi için 30). Boş = gpu 540, tpu 400.'
+        description: 'İsteğe bağlı eğitim süresi (dakika). Boş = 540.'
         default: ''
   schedule:
     - cron: '23 */2 * * *'
@@ -66,22 +63,16 @@ jobs:
         run: |
           # Ayarlar elle başlatmada girdiden, zamanlanmışta depodaki kaggle/hedef.txt'den
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "${{ inputs.size }} ${{ inputs.steps }} ${{ inputs.ceviri }} ${{ inputs.hizlandirici }} ${{ inputs.sure }}" > kaggle/hedef.txt
+            echo "${{ inputs.size }} ${{ inputs.steps }} ${{ inputs.ceviri }} ${{ inputs.sure }}" > kaggle/hedef.txt
           fi
           if [ ! -f kaggle/hedef.txt ]; then echo "Hedef yok (henüz elle başlatılmadı)."; echo "go=false" >> "$GITHUB_OUTPUT"; exit 0; fi
           # Biçim: "BOYUT ADIM [CEVIRI]" — CEVIRI yoksa "otomatik"
-          # Biçim: "BOYUT ADIM [CEVIRI] [gpu|tpu] [SÜRE_DK]"
-          read SIZE STEPS CEVIRI ACCEL SURE < kaggle/hedef.txt
-          ACCEL=${ACCEL:-gpu}; case "$ACCEL" in gpu|tpu) ;; *) echo "HATA: hızlandırıcı gpu ya da tpu"; exit 1;; esac
+          # Biçim: "BOYUT ADIM [CEVIRI] [SÜRE_DK]"
+          read SIZE STEPS CEVIRI SURE < kaggle/hedef.txt
           case "$SURE" in ''|*[!0-9]*) SURE="";; esac
           echo "size=$SIZE" >> "$GITHUB_OUTPUT"; echo "steps=$STEPS" >> "$GITHUB_OUTPUT"; echo "ceviri=${CEVIRI:-otomatik}" >> "$GITHUB_OUTPUT"
-          echo "accel=$ACCEL" >> "$GITHUB_OUTPUT"; echo "sure=$SURE" >> "$GITHUB_OUTPUT"
-          SUF=""; [ "$ACCEL" = "tpu" ] && SUF="-tpu"
-          KID="$KAGGLE_USERNAME/orion-sohbet-$SIZE$SUF"; echo "kid=$KID" >> "$GITHUB_OUTPUT"
-          # Diğer hızlandırıcının defteri çalışıyorsa bu çalışma yeni oturum açmaz (aynı kayıt noktası, karışmasın)
-          OTHER="$KAGGLE_USERNAME/orion-sohbet-$SIZE"; [ "$ACCEL" = "gpu" ] && OTHER="$KAGGLE_USERNAME/orion-sohbet-$SIZE-tpu"
-          OST=$(kaggle kernels status "$OTHER" 2>&1 | tr 'A-Z' 'a-z' || true)
-          case "$OST" in *running*|*queued*) echo "busy=1" >> "$GITHUB_OUTPUT"; echo "Diğer hızlandırıcı ($OTHER) çalışıyor; yeni oturum açılmayacak.";; esac
+          echo "sure=$SURE" >> "$GITHUB_OUTPUT"
+          KID="$KAGGLE_USERNAME/orion-sohbet-$SIZE"; echo "kid=$KID" >> "$GITHUB_OUTPUT"
           STATUS=$(kaggle kernels status "$KID" 2>&1 | tr 'A-Z' 'a-z' || true); echo "$STATUS"
           case "$STATUS" in
             *running*|*queued*) echo "go=false" >> "$GITHUB_OUTPUT"; echo "Oturum sürüyor." ;;
@@ -156,11 +147,10 @@ jobs:
           DONE=$(python -c "import json;print(json.load(open('$M'))['step'] >= ${{ steps.st.outputs.steps }})")
           if [ "$DONE" = "True" ]; then echo "Hedefe ulaşıldı."; echo "next=done" >> "$GITHUB_OUTPUT"; fi
       - name: Yeni oturum başlat
-        if: (steps.st.outputs.go == 'start' || steps.col.outputs.next == 'start') && steps.st.outputs.busy != '1'
+        if: steps.st.outputs.go == 'start' || steps.col.outputs.next == 'start'
         run: |
           SIZE=${{ steps.st.outputs.size }}; STEPS=${{ steps.st.outputs.steps }}
-          ACCEL=${{ steps.st.outputs.accel }}; SURE=${{ steps.st.outputs.sure }}
-          [ -n "$SURE" ] || { [ "$ACCEL" = "tpu" ] && SURE=400 || SURE=540; }
+          SURE=${{ steps.st.outputs.sure }}; [ -n "$SURE" ] || SURE=540
           case "$SIZE" in buyuk) BATCH=24;; dev) BATCH=8;; *) BATCH=32;; esac
           mkdir -p kpush
           # Devam ederken tokenizer AYNI olmalı: devam noktasındaki, yoksa en son Kaggle sürümündeki tokenizer
@@ -186,17 +176,12 @@ jobs:
           # Orion'un kendi doğrulanmış çözümleri (önceki oturumlar)
           OZ=""; for F in $(gh release view orion-ozogrenme --json assets -q '.assets[].name' 2>/dev/null | grep '\.jsonl\.gz$' | sort); do OZ="$OZ $R/orion-ozogrenme/$F"; done
           echo "kendi çözümleri:${OZ:- yok}"
-          sed -e "s#__TOK__#$TOK#" -e "s#__EXTRA__#$EXTRA#" -e "s#__CORPUS__#${CORPUS# }#" -e "s#__DMMATH__#$DMMATH#" -e "s#__OZ__#${OZ# }#" -e "s/__SIZE__/$SIZE/g" -e "s/__STEPS__/$STEPS/" -e "s/__BATCH__/$BATCH/" -e "s/__BUDGET__/$SURE/" -e "s/__ACCEL__/$ACCEL/" kaggle/orion_sohbet.py > kpush/orion_sohbet.py
+          sed -e "s#__TOK__#$TOK#" -e "s#__EXTRA__#$EXTRA#" -e "s#__CORPUS__#${CORPUS# }#" -e "s#__DMMATH__#$DMMATH#" -e "s#__OZ__#${OZ# }#" -e "s/__SIZE__/$SIZE/g" -e "s/__STEPS__/$STEPS/" -e "s/__BATCH__/$BATCH/" -e "s/__BUDGET__/$SURE/" kaggle/orion_sohbet.py > kpush/orion_sohbet.py
           cat > kpush/kernel-metadata.json <<JSON
           {"id": "${{ steps.st.outputs.kid }}", "title": "$(basename ${{ steps.st.outputs.kid }})", "code_file": "orion_sohbet.py",
            "language": "python", "kernel_type": "script", "is_private": true,
            "enable_gpu": true, "enable_internet": true, "dataset_sources": [], "kernel_sources": [], "competition_sources": []}
           JSON
-          if [ "$ACCEL" = "tpu" ]; then
-            python3 -c "import json;p='kpush/kernel-metadata.json';m=json.load(open(p));m['enable_gpu']=False;m['enable_tpu']=True;json.dump(m,open(p,'w'))"
-            kaggle kernels push -p kpush
-            exit 0
-          fi
           # dev (~361M): iki T4 kartı iste (tensör çekirdekli; P100'den hızlı, DataParallel ile 2 kart). Alan Kaggle
           # API'sinde tanınmazsa (doğrulanmadı) itme hatası verir: o zaman alan olmadan yeniden itilir.
           if [ "$SIZE" = "dev" ]; then
