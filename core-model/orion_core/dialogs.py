@@ -533,8 +533,11 @@ def _variants(q: str, rng: random.Random) -> str:
 # Tur 27 (sahibin kararı): düşünür adları sisteme girmez (kol kapalı); ağırlık akıl yürütme/matematiğe.
 # Tur 28 (sahibin kararı): tek ilke "izinsiz hareket etme"; ilke kolu yalnız onay davranışı (0.05), kalan akıl
 # yürütmeye.
-MIX = {"reasoning": 0.48, "thinkers": 0.0, "personality": 0.30, "memory": 0.12, "principled": 0.05, "route": 0.03,
-       "legacy": 0.02}
+# 2026-11-09 (sahibin kararı, sınav analizinden sonra): temel sohbet ve yetenek soruları (eski kol) %2'de kalmıştı,
+# sınavın yarısı bu sorular. Akıl yürütme 0.45, kişilik 0.30, temel sohbet 0.10; kalan hafıza 0.10, ilke 0.03
+# (onay davranışı eski kolda da var), bilgi yönlendirme 0.02.
+MIX = {"reasoning": 0.45, "thinkers": 0.0, "personality": 0.30, "memory": 0.10, "principled": 0.03, "route": 0.02,
+       "legacy": 0.10}
 PRINCIPLED_SHARE = MIX["principled"]
 _MIX_PREFIX = {"personality": "kisilik:", "memory": "hafiza:", "reasoning": "akil:", "route": "bilgiyol:",
                "thinkers": "dusunur:"}
