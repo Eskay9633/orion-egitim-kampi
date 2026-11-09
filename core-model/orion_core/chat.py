@@ -688,6 +688,16 @@ def export_chat(run: Path, data: Path, out: Path, ckpt_name: str = "ckpt.pt", co
             # Ana puan (sahibin ağırlığı): bilişsel öncelikli; bölümler ayrıca raporlanır, kapı yok
             # sahibin kararı (2026-11-05): ilkesel bölüm yalnız raporlanır; ana puan = bilişsel
             manifest["cog_ana"] = round(cog["bilissel"]["score"], 4)
+    # Kodlama sınavı (HumanEval, 164 problem, açgözlü pass@1; yalnız rapor, kapı yok). Kod kum havuzunda çalışır.
+    he = os.environ.get("ORION_HUMANEVAL")
+    if he and Path(he).exists():
+        from . import codeprob
+        gm = m.to("cuda") if torch.cuda.is_available() else m
+        probs = list(codeprob._jsonl(Path(he)))
+        kod = codeprob.humaneval_exam(probs, lambda q: generate(gm, bpe, prompt_for(q), max_new=200))
+        (out / "kodsinav.json").write_text(json.dumps(kod, ensure_ascii=False, indent=1), encoding="utf-8")
+        manifest["kod_sinav"] = kod["puan"]
+        m = gm.cpu()
     (out / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8")
     print(json.dumps(manifest, ensure_ascii=False, indent=1))
     print(json.dumps(samples, ensure_ascii=False, indent=1))

@@ -653,7 +653,10 @@ TR_STOP = {"ve", "bir", "bu", "için", "ile", "da", "de", "mi", "ne", "çok", "d
 def clean_pair(q: str, a: str) -> tuple[str, str] | None:
     """Kalite süzgeci: kısa/uzun, Türkçe olmayan, başka model kimliğiyle konuşan cevaplar atılır."""
     q, a = (q or "").strip(), (a or "").strip()
-    if not (3 <= len(q) <= 600 and 2 <= len(a) <= 1500):
+    # Kod cevabı (```…```, ör. MBPP/APPS insan çözümleri): kod İngilizcedir, Türkçe oranı denetlenmez; problem metni
+    # ve kod daha uzun olabilir
+    code = a.startswith("```") and a.rstrip().endswith("```")
+    if not (3 <= len(q) <= (1900 if code else 600) and 2 <= len(a) <= (2000 if code else 1500)):
         return None
     if IDENTITY.search(a) or IDENTITY.search(q):
         return None
@@ -662,6 +665,8 @@ def clean_pair(q: str, a: str) -> tuple[str, str] | None:
     from .cogexam import near_cogexam
     if near_cogexam(q):  # bilişsel sınavın mesajları ve yakın biçimleri de girmez
         return None
+    if code:
+        return q, a
     words = re.findall(r"\w+", a.lower())
     if len(words) >= 5 and sum(w in TR_STOP or any(c in TR_CHARS for c in w) for w in words) / len(words) < 0.15:
         return None

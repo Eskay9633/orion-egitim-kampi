@@ -10,6 +10,7 @@ name: derlem
 #   ek                    → Tatoeba (CC BY 2.0) + UD Türkçe ağaç bankaları + Common Voice cümleleri (CC0); lisans kaynağın metninden → derlem-tatoeba/ud/commonvoice
 #   enwiki BAŞ ZİNCİR     → İngilizce Wikipedia (CC BY-SA) parça parça en→tr; her çalışma 20 parça (≤40M karakter), ZİNCİR kadar kendini sürdürür → derlem-enwiki
 #   stackex               → StackExchange programlama siteleri (CC BY-SA 4.0): soru + en iyi cevap; açıklama en→tr, kod aynen → derlem-stackex
+#   kodprob               → testli kod problemleri: MBPP (Apache-2.0) + APPS (MIT) eğitim diyalogları ve testleri, HumanEval (MIT) yalnız sınav → derlem-kodprob
 #   kesif2                → kodlama/görsel/video/eğitim kodu adaylarının lisans + erişim keşfi → kaynak-kesif-<tarih>
 #   simplewiki            → Simple English Wikipedia (CC BY-SA) → en→tr makine çevirisi (20 parça) → derlem-simplewiki
 #   kod                   → insan yazımı açık kaynak kod (Python/Kotlin/Java/CSS); depo lisansı GitHub API ile denetlenir → derlem-kod
@@ -18,7 +19,7 @@ on:
   workflow_dispatch:
     inputs:
       islem:
-        description: 'kesif | kesif2 | stackex | topla | openstax | dmmath | kod | ek | simplewiki | enwiki'
+        description: 'kesif | kesif2 | kodprob | stackex | topla | openstax | dmmath | kod | ek | simplewiki | enwiki'
         default: 'kesif'
       kaynaklar:
         description: 'topla: virgüllü kaynak adları ya da etkin'
@@ -57,7 +58,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then I="${{ inputs.islem }}"; K="${{ inputs.kaynaklar }}"; Z="${{ inputs.zincir }}"
           else read I K Z < <(head -1 derlem/istek.txt); fi
           K=${K:-etkin}; Z=${Z:-0}
-          case "$I" in kesif|kesif2|stackex|topla|openstax|dmmath|kod|ek|simplewiki|enwiki) ;; *) echo "HATA: islem kesif|kesif2|stackex|topla|openstax|dmmath|kod|ek|simplewiki|enwiki olmalı"; exit 1;; esac
+          case "$I" in kesif|kesif2|kodprob|stackex|topla|openstax|dmmath|kod|ek|simplewiki|enwiki) ;; *) echo "HATA: islem kesif|kesif2|kodprob|stackex|topla|openstax|dmmath|kod|ek|simplewiki|enwiki olmalı"; exit 1;; esac
           case "$K" in *[!a-z0-9,-]*) echo "HATA: kaynak adları küçük harf, virgüllü"; exit 1;; esac
           case "$Z" in *[!0-9]*) echo "HATA: zincir sayı olmalı"; exit 1;; esac
           [ "$Z" -le 30 ] || { echo "HATA: zincir ≤30"; exit 1; }
@@ -576,3 +577,34 @@ jobs:
             --title "Derlem: StackExchange programlama (açıklamalar Türkçe, kod aynen)" \
             --notes "codereview, cs, softwareengineering, unix (CC BY-SA 4.0, archive.org dökümü). Soru + en iyi cevap; atıf belge başına (soru/cevap/yazar adresi). Kategori kod_soru." || true
           for D in 0 30 90; do sleep $D; gh release upload derlem-stackex work/rel/* --clobber && break; done
+
+  kodprob:
+    needs: ayar
+    if: needs.ayar.outputs.islem == 'kodprob'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install regex
+      - name: İndir + lisans denetimi + diyalog/problem dosyaları
+        working-directory: core-model
+        run: |
+          mkdir -p ../work/in ../work/out
+          G=https://raw.githubusercontent.com
+          curl -fsSL $G/google-research/google-research/master/LICENSE | grep -q "Apache License" || { echo "HATA: MBPP deposu Apache değil"; exit 1; }
+          curl -fsSL $G/hendrycks/apps/main/LICENSE | grep -qE "MIT License|Permission is hereby granted" || { echo "HATA: APPS MIT değil"; exit 1; }
+          curl -fsSL $G/openai/human-eval/master/LICENSE | grep -qE "MIT License|Permission is hereby granted" || { echo "HATA: HumanEval MIT değil"; exit 1; }
+          curl -fsSL -o ../work/in/mbpp.jsonl $G/google-research/google-research/master/mbpp/mbpp.jsonl
+          curl -fsSL -o ../work/out/humaneval.jsonl.gz $G/openai/human-eval/master/data/HumanEval.jsonl.gz
+          curl -fsSL --retry 3 -o ../work/in/apps.tar.gz https://people.eecs.berkeley.edu/~hendrycks/APPS.tar.gz
+          tar -xzf ../work/in/apps.tar.gz -C ../work/in && rm ../work/in/apps.tar.gz
+          A=$(find ../work/in -maxdepth 2 -type d -name train | head -1); A=$(dirname "$A")
+          python -m orion_core.codeprob --mbpp ../work/in/mbpp.jsonl --apps "$A" --out ../work/out
+      - name: Release
+        run: |
+          gh release view derlem-kodprob >/dev/null 2>&1 || gh release create derlem-kodprob --target "$GITHUB_SHA" --prerelease \
+            --title "Derlem: testli kod problemleri" \
+            --notes "kod-diyalog: MBPP (Apache-2.0) + APPS (MIT) insan çözümleri (ek diyalog). kod-problem: testli problemler (kodla kendi kendine öğrenme). humaneval: YALNIZ SINAV (MIT), eğitime girmez." || true
+          gh release upload derlem-kodprob work/out/* --clobber

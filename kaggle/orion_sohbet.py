@@ -18,6 +18,8 @@ TOK_URL = "__TOK__"  # önceki eğitimin tokenizer'ı (devam ederken aynısı ş
 EXTRA_URL = "__EXTRA__"  # isteğe bağlı çeviri verisi (en son ceviri-* Release'indeki ceviri.jsonl.gz); boşsa yok
 CORPUS_URLS = "__CORPUS__"  # boşlukla ayrılmış derlem-* Release adresleri (Türkçe derlem + kod + çeviri metin); boşsa yok
 DMMATH_URL = "__DMMATH__"  # kodla üretilen matematik (derlem-dmmath); boşsa yok
+KOD_DIYALOG_URL = "__KODD__"  # MBPP + APPS insan çözümleri (derlem-kodprob); boşsa yok
+KOD_SINAV_URL = "__KODS__"  # HumanEval (yalnız sınav, dışa aktarmada); boşsa yok
 CORPUS_MAX_CHARS = "2400000000"
 OZ_URLS = "__OZ__"  # Orion'un önceki oturumlarda kendi çözüp doğrulanan cevapları (orion-ozogrenme Release); boşsa yok
 SELF_MIN = 35  # oturum sonunda kendi kendine öğrenmeye ayrılan dakika  # Vikipedi + derlem toplamı (pay sınırları derlem-kaynaklar.json)
@@ -209,6 +211,14 @@ if extra:
     prep += ["--extra-dialogs", extra]
 if DMMATH_URL.startswith("http"):
     prep += ["--extra-dialogs", DMMATH_URL]
+if KOD_DIYALOG_URL.startswith("http"):
+    prep += ["--extra-dialogs", KOD_DIYALOG_URL]
+if KOD_SINAV_URL.startswith("http"):
+    try:  # kodlama sınavı dosyası; inemezse sınav atlanır (eğitim etkilenmez)
+        urllib.request.urlretrieve(KOD_SINAV_URL, "/kaggle/tmp/humaneval.jsonl.gz")
+        os.environ["ORION_HUMANEVAL"] = "/kaggle/tmp/humaneval.jsonl.gz"
+    except Exception as e:
+        print(f"ORION: kodlama sınavı dosyası inemedi: {e!r}", flush=True)
 for u in OZ_URLS.split():
     if u.startswith("http"):
         prep += ["--extra-dialogs", u]

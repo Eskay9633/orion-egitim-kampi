@@ -173,10 +173,14 @@ jobs:
           echo "derlem:${CORPUS:- yok}"
           # Kodla üretilen matematik (DeepMind üreticisi, Türkçe şablon): ek diyalog
           DMMATH=""; gh release view derlem-dmmath --json assets -q '.assets[].name' 2>/dev/null | grep -qx dmmath.jsonl.gz && DMMATH="$R/derlem-dmmath/dmmath.jsonl.gz"
+          # Testli kod problemleri: insan çözümleri ek diyalog; HumanEval yalnız sınav (dışa aktarmada)
+          KODD=""; KODS=""
+          if gh release view derlem-kodprob --json assets -q '.assets[].name' 2>/dev/null | grep -qx kod-diyalog.jsonl.gz; then
+            KODD="$R/derlem-kodprob/kod-diyalog.jsonl.gz"; KODS="$R/derlem-kodprob/humaneval.jsonl.gz"; fi
           # Orion'un kendi doğrulanmış çözümleri (önceki oturumlar)
           OZ=""; for F in $(gh release view orion-ozogrenme --json assets -q '.assets[].name' 2>/dev/null | grep '\.jsonl\.gz$' | sort); do OZ="$OZ $R/orion-ozogrenme/$F"; done
           echo "kendi çözümleri:${OZ:- yok}"
-          sed -e "s#__TOK__#$TOK#" -e "s#__EXTRA__#$EXTRA#" -e "s#__CORPUS__#${CORPUS# }#" -e "s#__DMMATH__#$DMMATH#" -e "s#__OZ__#${OZ# }#" -e "s/__SIZE__/$SIZE/g" -e "s/__STEPS__/$STEPS/" -e "s/__BATCH__/$BATCH/" -e "s/__BUDGET__/$SURE/" kaggle/orion_sohbet.py > kpush/orion_sohbet.py
+          sed -e "s#__TOK__#$TOK#" -e "s#__EXTRA__#$EXTRA#" -e "s#__CORPUS__#${CORPUS# }#" -e "s#__DMMATH__#$DMMATH#" -e "s#__KODD__#$KODD#" -e "s#__KODS__#$KODS#" -e "s#__OZ__#${OZ# }#" -e "s/__SIZE__/$SIZE/g" -e "s/__STEPS__/$STEPS/" -e "s/__BATCH__/$BATCH/" -e "s/__BUDGET__/$SURE/" kaggle/orion_sohbet.py > kpush/orion_sohbet.py
           cat > kpush/kernel-metadata.json <<JSON
           {"id": "${{ steps.st.outputs.kid }}", "title": "$(basename ${{ steps.st.outputs.kid }})", "code_file": "orion_sohbet.py",
            "language": "python", "kernel_type": "script", "is_private": true,
