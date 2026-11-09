@@ -141,5 +141,77 @@ def main(argv=None) -> None:
     print(json.dumps(st, ensure_ascii=False))
 
 
+
+
+# --------------------------------------------------------------------------- kodla kendi kendine öğrenme
+
+def run_code(model, bpe, problems: list[dict], out: Path, k: int = 4, budget_min: float = 15, max_new: int = 220,
+             generate=None, prompt_for=None) -> dict:
+    """Testli kod problemleri (codeprob kod-problem: MBPP assert testleri ya da APPS girdi/çıktı). Orion k çözüm yazar;
+    testleri kum havuzunda (codeexec) GEÇEN ilk çözüm eğitim satırı olur (lisans orion-kendi)."""
+    from . import codeexec, codeprob
+    if generate is None or prompt_for is None:
+        from .chat import generate as _g, prompt_for as _p
+        generate, prompt_for = generate or _g, prompt_for or _p
+    t0, tried, kept = time.time(), 0, 0
+    out = Path(out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with gzip.open(out, "wt", encoding="utf-8") as f:
+        for i, pr in enumerate(problems):
+            if budget_min and time.time() - t0 > budget_min * 60:
+                break
+            q = codeprob.Q_PREFIX + pr["soru"].strip()
+            if len(q) > 1900:
+                continue
+            tried += 1
+            for s in range(k):
+                reply = generate(model, bpe, prompt_for(q), max_new=max_new, temperature=0.8, seed=i * 37 + s)
+                code = codeexec.extract_code(reply)
+                if "def " not in code and "print" not in code:
+                    continue
+                ok = (codeexec.passes_asserts(code, pr["testler"], pr.get("kurulum", "")) if pr.get("testler")
+                      else codeexec.passes_io(code, [tuple(c) for c in pr.get("io", [])]) if pr.get("io") else False)
+                if ok:
+                    kept += 1
+                    f.write(json.dumps({"id": f"orion-kod-{pr['id']}", "q": q, "a": "```python\n" + code.strip() + "\n```",
+                                        "license": LICENSE, "training_allowed": True, "model_uretimi": False,
+                                        "orion_kendi": True, "source": "Orion kendi kodu (testleri geçti)",
+                                        "problem_kaynak": pr.get("source", ""),
+                                        "attribution": "Orion'un kendi çözümü; problem: " + pr.get("source", "")},
+                                       ensure_ascii=False) + "\n")
+                    break
+    st = {"denenen": tried, "gecen": kept, "oran": round(kept / tried, 4) if tried else 0.0, "k": k,
+          "sure_sn": round(time.time() - t0)}
+    Path(str(out) + ".stats.json").write_text(json.dumps(st, ensure_ascii=False, indent=1), encoding="utf-8")
+    return st
+
+
+def main_code(argv=None) -> None:
+    import argparse
+    import torch
+    from .bpe import BPE
+    from .export import load_quantized
+    ap = argparse.ArgumentParser(prog="orion_core.selflearn kod")
+    ap.add_argument("--model", required=True)
+    ap.add_argument("--problems", required=True)
+    ap.add_argument("--out", required=True)
+    ap.add_argument("--k", type=int, default=4)
+    ap.add_argument("--budget-min", type=float, default=15)
+    a = ap.parse_args(argv)
+    m = load_quantized(Path(a.model) / "model.bin")
+    if torch.cuda.is_available():
+        m = m.to("cuda")
+    bpe = BPE.load(Path(a.model) / "tokenizer.json")
+    op = gzip.open if a.problems.endswith(".gz") else open
+    with op(a.problems, "rt", encoding="utf-8") as fp:
+        probs = [json.loads(x) for x in fp if x.strip()]
+    random.Random(3).shuffle(probs)
+    print(json.dumps(run_code(m, bpe, probs, Path(a.out), a.k, a.budget_min), ensure_ascii=False))
+
+
 if __name__ == "__main__":
-    main()
+    import sys as _sys
+    if len(_sys.argv) > 1 and _sys.argv[1] == "kod":
+        main_code(_sys.argv[2:])
+    else:
+        main()

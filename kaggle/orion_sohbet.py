@@ -20,9 +20,11 @@ CORPUS_URLS = "__CORPUS__"  # boşlukla ayrılmış derlem-* Release adresleri (
 DMMATH_URL = "__DMMATH__"  # kodla üretilen matematik (derlem-dmmath); boşsa yok
 KOD_DIYALOG_URL = "__KODD__"  # MBPP + APPS insan çözümleri (derlem-kodprob); boşsa yok
 KOD_SINAV_URL = "__KODS__"  # HumanEval (yalnız sınav, dışa aktarmada); boşsa yok
+KOD_PROBLEM_URL = "__KODP__"  # testli kod problemleri (kodla kendi kendine öğrenme); boşsa yok
+KOD_SELF_MIN = 15
 CORPUS_MAX_CHARS = "2400000000"
 OZ_URLS = "__OZ__"  # Orion'un önceki oturumlarda kendi çözüp doğrulanan cevapları (orion-ozogrenme Release); boşsa yok
-SELF_MIN = 35  # oturum sonunda kendi kendine öğrenmeye ayrılan dakika  # Vikipedi + derlem toplamı (pay sınırları derlem-kaynaklar.json)
+SELF_MIN = 20  # oturum sonunda kendi kendine öğrenmeye ayrılan dakika  # Vikipedi + derlem toplamı (pay sınırları derlem-kaynaklar.json)
 # İNCE AYAR (yalnız ek veri varsa): diyalog payı 0.75, taban lr 1.5e-4. lr_at kosinüs takvimi toplam hedef adıma
 # göre hesaplanır: 70000→90000 devamında etkin lr ~3e-5'ten ~1.5e-5'e iner (5e-4 tabanla ~1e-4'e SIÇRARDI).
 # Ek veri varken her 2000 adımda sınav (40 soru, açgözlü; ekran kartında tahmini <1 dk, doğrulanmadı) yapılır,
@@ -267,4 +269,12 @@ if probs:
         sh(*sl)
     except Exception as e:
         print(f"ORION: kendi kendine öğrenme atlandı: {e!r}", flush=True)
+# Kodla kendi kendine öğrenme: Orion testli problemlere kod yazar; testleri kum havuzunda geçen çözümler sonraki eğitime
+if KOD_PROBLEM_URL.startswith("http"):
+    try:
+        urllib.request.urlretrieve(KOD_PROBLEM_URL, "/kaggle/tmp/kod-problem.jsonl.gz")
+        sh(sys.executable, "-m", "orion_core.selflearn", "kod", "--model", f"{out}/chat-export", "--problems",
+           "/kaggle/tmp/kod-problem.jsonl.gz", "--out", f"{out}/ozogrenme-kod.jsonl.gz", "--budget-min", str(KOD_SELF_MIN))
+    except Exception as e:
+        print(f"ORION: kodla kendi kendine öğrenme atlandı: {e!r}", flush=True)
 print("bitti", flush=True)

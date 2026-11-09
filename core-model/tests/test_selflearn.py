@@ -32,3 +32,18 @@ def test_run_keeps_only_verified(tmp_path):
     assert st["denenen"] == 2 and st["cozulen"] == 1 and st["yazilan"] == 1
     assert out[0]["license"] == "orion-kendi" and out[0]["orion_kendi"] and out[0]["training_allowed"]
     assert "orion-kendi" in chat.EXTRA_LICENSES
+
+
+def test_run_code_keeps_only_passing(tmp_path):
+    probs = [{"id": "mbpp-1", "soru": "Write a function add(a, b) that returns the sum.", "testler": "assert add(2, 3) == 5",
+              "source": "google-research/mbpp"},
+             {"id": "apps-1", "soru": "Read two ints and print their product.", "io": [["2 3\n", "6\n"]], "source": "hendrycks/apps"}]
+
+    def gen(model, bpe, prompt, max_new, temperature, seed):
+        if "sum" in prompt:
+            return "```python\ndef add(a, b):\n    return a + b\n```"
+        return "```python\na, b = map(int, input().split())\nprint(a + b)\n```"  # yanlış
+    st = SL.run_code(None, None, probs, tmp_path / "k.jsonl.gz", k=2, generate=gen, prompt_for=chat.prompt_for)
+    rows = [json.loads(l) for l in gzip.open(tmp_path / "k.jsonl.gz", "rt")]
+    assert st["denenen"] == 2 and st["gecen"] == 1 and rows[0]["license"] == "orion-kendi"
+    assert rows[0]["a"].startswith("```python") and "return a + b" in rows[0]["a"]
