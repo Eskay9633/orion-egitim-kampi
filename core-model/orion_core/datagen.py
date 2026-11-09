@@ -1643,6 +1643,9 @@ IDENTITY_ASK = [
     "mutlu musun", "sen mutlu musun", "seni ne mutlu eder", "seni ne sevindirir",
     "hikayeni anlat", "senin hikayen ne",
 ]
+# "Orion nerede" öğretmen tarafından nota çevrilmişti (2026-11-09): yer/durum soruları da sorudur (ask, kimlik değil).
+STATUS_ASK = ["orion nerede", "neredesin", "sen neredesin", "orion ne yapıyor", "ne yapıyorsun", "şu an ne yapıyorsun",
+              "orion ne durumda", "orion şu an nerede", "emma nerede", "mike ne yapıyor"]
 IDENTITY_RECALL = ["beni tanıyor musun", "beni ne kadar tanıyorsun", "beni hatırlıyor musun"]
 
 
@@ -1650,7 +1653,7 @@ def identity_example(rng: random.Random) -> tuple[str, str, dict]:
     """(komut, cümle, argümanlar): kimlik sorusu → ask {question}; sahibini tanıma → memory.recall."""
     if rng.random() < 0.15:
         return "memory.recall", rng.choice(IDENTITY_RECALL), {}
-    q = rng.choice(IDENTITY_ASK)
+    q = rng.choice(IDENTITY_ASK) if rng.random() >= 0.2 else rng.choice(STATUS_ASK)
     return "ask", q + rng.choice(["", "?"]), {"question": q}
 
 

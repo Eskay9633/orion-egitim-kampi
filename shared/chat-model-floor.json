@@ -1,8 +1,9 @@
 {
  "_doc": "Sohbet beyninin uygulamaya girme tabanı. Altındaysa sohbet beyni APK'ya konmaz; Orion bilmediği soruda yapay zekalara danışır (kullanıcı izni, Tur 6). Eşik doğrulanmadı: ilk eğitim sonuçlarına göre gözden geçirilecek. qa_min: eğitimde hiç geçmeyen sınav sorularında (dialogs.QA_TESTS) doğru cevap oranı; ezber/yanlış cevap veren beyin girmez.",
  "_doc_hold": "hold: true iken sohbet beyni değerlendirilir ve raporlanır ama uygulamaya alınmaz; kullanıcı onayıyla false yapılır. Eşik değildir, hiçbir tabanı düşürmez.",
- "hold": true,
+ "hold": false,
  "val_ppl_max": 60,
  "persona_ok": true,
- "qa_min": 0.7
+ "qa_min": 0.6,
+ "_doc_owner": "2026-11-09: sahibin kararı — qa_min 0.70 → 0.60 ve hold false. 0.70'i Claude koymuştu (doğrulanmamış ilk tahmin), sahip 0.60'ı yeterli buldu."
 }

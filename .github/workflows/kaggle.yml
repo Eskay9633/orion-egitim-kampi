@@ -187,7 +187,10 @@ jobs:
           # Orion'un kendi doğrulanmış çözümleri (önceki oturumlar)
           OZ=""; for F in $(gh release view orion-ozogrenme --json assets -q '.assets[].name' 2>/dev/null | grep '\.jsonl\.gz$' | sort); do OZ="$OZ $R/orion-ozogrenme/$F"; done
           echo "kendi çözümleri:${OZ:- yok}"
-          sed -e "s#__TOK__#$TOK#" -e "s#__EXTRA__#$EXTRA#" -e "s#__CORPUS__#${CORPUS# }#" -e "s#__DMMATH__#$DMMATH#" -e "s#__KODD__#$KODD#" -e "s#__KODS__#$KODS#" -e "s#__KODP__#$KODP#" -e "s#__OZ__#${OZ# }#" -e "s/__SIZE__/$SIZE/g" -e "s/__STEPS__/$STEPS/" -e "s/__BATCH__/$BATCH/" -e "s/__BUDGET__/$SURE/" kaggle/orion_sohbet.py > kpush/orion_sohbet.py
+          # GitHub'da önceden belirteçlere ayrılmış dil modeli akışı (hazirlik.yml); uymazsa Kaggle eski yoldan hazırlar
+          HAZIR=""; gh release view hazir-veri --json assets -q '.assets[].name' 2>/dev/null | grep -qx lm-hazir.json && HAZIR="$R/hazir-veri/"
+          echo "hazır veri: ${HAZIR:-yok}"
+          sed -e "s#__HAZIR__#$HAZIR#" -e "s#__TOK__#$TOK#" -e "s#__EXTRA__#$EXTRA#" -e "s#__CORPUS__#${CORPUS# }#" -e "s#__DMMATH__#$DMMATH#" -e "s#__KODD__#$KODD#" -e "s#__KODS__#$KODS#" -e "s#__KODP__#$KODP#" -e "s#__OZ__#${OZ# }#" -e "s/__SIZE__/$SIZE/g" -e "s/__STEPS__/$STEPS/" -e "s/__BATCH__/$BATCH/" -e "s/__BUDGET__/$SURE/" kaggle/orion_sohbet.py > kpush/orion_sohbet.py
           cat > kpush/kernel-metadata.json <<JSON
           {"id": "${{ steps.st.outputs.kid }}", "title": "$(basename ${{ steps.st.outputs.kid }})", "code_file": "orion_sohbet.py",
            "language": "python", "kernel_type": "script", "is_private": true,

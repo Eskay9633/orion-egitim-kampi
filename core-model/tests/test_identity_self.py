@@ -50,7 +50,7 @@ def test_identity_utterances_only_in_training_stream():
     for _ in range(500):
         cmd, tr, args = datagen.identity_example(rng)
         if cmd == "ask":
-            assert args["question"] in datagen.IDENTITY_ASK and tr.rstrip("?") == args["question"]
+            assert args["question"] in datagen.IDENTITY_ASK + datagen.STATUS_ASK and tr.rstrip("?") == args["question"]
         else:
             assert cmd == "memory.recall" and args == {} and tr in datagen.IDENTITY_RECALL
     train = datagen.t2c_set(20000, "train", seed=17)

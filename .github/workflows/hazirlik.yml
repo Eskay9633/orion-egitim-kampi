@@ -1,0 +1,88 @@
+name: hazirlik
+
+# Kaggle oturumlarının başındaki veri hazırlığını (Vikipedi + derlem ~2,4 milyar karakter → belirteç) GitHub'ın
+# işlemcisinde önceden yapar; sonuç "hazir-veri" Release'ine konur (train.bin, val.bin, tokenizer.json, derlem.json,
+# lm-hazir.json). Kaggle oturumu tokenizer, derlem listesi ve karakter sınırı aynıysa bunu indirir, değilse eski yoldan
+# kendisi hazırlar (hiçbir şey bozulmaz). Tokenizer: büyük/dev beynin öğretmeninin tokenizer'ı (sha256 doğrulanır).
+# Tetikleme: kaggle/hazirlik-istek.txt'ye işlemek, elle, ya da her gün (yeni derlem Release'i eklendiyse yeniden).
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['kaggle/hazirlik-istek.txt']
+  schedule:
+    - cron: '17 1 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hazirlik
+  cancel-in-progress: false
+
+jobs:
+  hazirla:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TOK_TAG: sohbet-kaggle-orta-0086000
+      TOK_SHA: bbb70d528167b52b9b8d160b66e33ee017a5cdb6b70c77aa8aee82201cfd4c0f
+      MAXC: '2400000000'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Derlem listesi (kaggle.yml ile aynı kural) ve güncellik denetimi
+        id: ls
+        run: |
+          CORPUS=""
+          for T in $(gh release list --limit 200 --json tagName -q '.[].tagName' | grep '^derlem-' | grep -v -e '^derlem-kesif-' -e '^derlem-dmmath$' | sort); do
+            gh release view "$T" --json assets -q '.assets[].name' 2>/dev/null | grep -q '\.jsonl\.gz$' && CORPUS="$CORPUS https://github.com/$GITHUB_REPOSITORY/releases/tag/$T"
+          done
+          CORPUS="${CORPUS# }"; echo "derlem: $CORPUS"
+          echo "corpus=$CORPUS" >> "$GITHUB_OUTPUT"
+          # Zamanlanmış çalışmada: hazır veri aynı derlem listesiyle zaten varsa yeniden üretme
+          GO=true
+          if [ "${{ github.event_name }}" = "schedule" ] && gh release download hazir-veri -p lm-hazir.json -O /tmp/m.json 2>/dev/null; then
+            GO=$(python3 -c "import json,sys;m=json.load(open('/tmp/m.json'));print(str(sorted(m.get('corpus',[]))!=sorted(sys.argv[1].split())).lower())" "$CORPUS")
+          fi
+          echo "go=$GO" >> "$GITHUB_OUTPUT"; echo "yeniden üret: $GO"
+      - name: Disk aç (hazır araçlar silinir)
+        if: steps.ls.outputs.go == 'true'
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost || true
+          df -h /
+      - uses: actions/setup-python@v5
+        if: steps.ls.outputs.go == 'true'
+        with:
+          python-version: '3.12'
+      - name: Kurulum
+        if: steps.ls.outputs.go == 'true'
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -r core-model/requirements.txt
+      - name: Tokenizer (öğretmeninki, sha256 doğrulanır)
+        if: steps.ls.outputs.go == 'true'
+        run: |
+          gh release download "$TOK_TAG" -p tokenizer.json -O tok.json
+          echo "$TOK_SHA  tok.json" | sha256sum -c -
+      - name: Hazırla (paralel)
+        if: steps.ls.outputs.go == 'true'
+        working-directory: core-model
+        run: |
+          ARGS=""; for U in ${{ steps.ls.outputs.corpus }}; do ARGS="$ARGS --corpus $U"; done
+          python -m orion_core.chat prepare-lm --out ../hz --tokenizer ../tok.json --corpus-max-chars "$MAXC" $ARGS
+          rm -rf ../hz/raw.txt ../hz/corpus ../hz/hf
+          ls -la ../hz; df -h /
+      - name: Yayınla (hazir-veri)
+        if: steps.ls.outputs.go == 'true'
+        run: |
+          cd hz
+          if [ "$(stat -c %s train.bin)" -gt 1900000000 ]; then split -b 1900000000 -d -a 2 train.bin train.bin.part; rm train.bin; fi
+          gh release delete hazir-veri -y --cleanup-tag 2>/dev/null || true
+          N=$(python3 -c "import json;m=json.load(open('lm-hazir.json'));print(m['train_tokens'], 'belirteç,', m['docs'], 'belge,', m['sure_sn'], 'sn')")
+          for i in 1 2 3 4; do
+            gh release create hazir-veri --title "Hazır veri (Kaggle için)" \
+              --notes "GitHub'da önceden belirteçlere ayrılmış Vikipedi + derlem ($N). Kaggle oturumu tokenizer ve derlem listesi aynıysa kullanır. Kaynaklar ve lisanslar: derlem.json, lm-hazir.json." \
+              train.bin* val.bin tokenizer.json lm-hazir.json $( [ -f derlem.json ] && echo derlem.json ) && break
+            echo "yeniden deneniyor ($i)"; sleep $((i*20)); gh release delete hazir-veri -y --cleanup-tag 2>/dev/null || true
+          done

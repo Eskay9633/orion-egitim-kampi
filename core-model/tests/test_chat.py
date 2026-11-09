@@ -276,3 +276,29 @@ def test_clean_reply_strips_leaked_turn_prefixes():
     assert clean_reply("Kullanıcı: Merhaba\nOrion: Merhaba! Bugün ne yapalım?") == "Merhaba! Bugün ne yapalım?"
     assert clean_reply("Tamam.\nKullanıcı: başka\nOrion: x") == "Tamam."
     assert clean_reply("Kullanıcı: yalnızca soru") == ""
+
+
+def test_prepare_lm_then_prepare_reuses(tmp_path):
+    """GitHub'da önceden hazırlanan dil modeli akışı: aynı belirteçler (paralel kodlama tek işçiyle aynı toplam),
+    prepare() train/val'i yeniden üretmez, yalnız diyalog akışını hazırlar; farklı tokenizer reddedilir."""
+    import numpy as np
+    import pytest
+    texts = [f"Belge {i}: Türkçe metin, ğüşıöç harfleriyle. " * (3 + i % 5) for i in range(400)]
+    base = tmp_path / "base"
+    chat.prepare(base, 10**9, vocab=300, texts=texts, open_data=False)
+    tok = base / "tokenizer.json"
+    one = chat.prepare_lm(tmp_path / "w1", 10**9, tok, workers=1, texts=texts)
+    two = chat.prepare_lm(tmp_path / "w3", 10**9, tok, workers=3, texts=texts)
+    assert one["train_tokens"] + one["val_tokens"] == two["train_tokens"] + two["val_tokens"] > 1000
+    assert one["docs"] == 400 and one["val_tokens"] > 0
+    a = np.fromfile(tmp_path / "w1" / "val.bin", dtype=np.uint16)
+    b = np.fromfile(tmp_path / "w3" / "val.bin", dtype=np.uint16)
+    assert (a == b).all()  # doğrulama kümesi işçi sayısından bağımsız
+    before = (tmp_path / "w3" / "train.bin").stat().st_mtime_ns
+    st = chat.prepare(tmp_path / "w3", 10**9, vocab=300, texts=["KULLANILMAMALI"], open_data=False, tokenizer=tok)
+    assert (tmp_path / "w3" / "train.bin").stat().st_mtime_ns == before
+    assert st["train_tokens"] == two["train_tokens"] and st["dialog_tokens"] > 1000 and "hazir_veri" in st
+    other = tmp_path / "other.json"
+    other.write_text(tok.read_text().replace('"', '"', 1) + " ")
+    with pytest.raises(ValueError):
+        chat.prepare(tmp_path / "w3", 10**9, vocab=300, open_data=False, tokenizer=other)

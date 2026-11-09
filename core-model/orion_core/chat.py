@@ -156,6 +156,114 @@ def encode_to(path: Path, bpe: BPE, texts) -> int:
     return n
 
 
+# --------------------------------------------------------------------------- önceden hazırlanmış dil modeli akışı
+# Kaggle her oturumda 2,4 milyar karakteri belirteçlere ayırmak için ekran kartı süresinden ~20-40 dk harcıyordu. Bu iş
+# GitHub'da (hazirlik.yml, işlemci) önceden yapılır: train.bin + val.bin + derlem.json + tokenizer.json + lm-hazir.json
+# "hazir-veri" Release'ine konur. prepare() klasörde LM_MARK'ı bulursa bu akışı yeniden üretmez; diyalog akışı
+# (dialog.bin: kişilik, çeviri, kod, Orion'un kendi çözümleri — oturumdan oturuma değişir) her zaman yeniden hazırlanır.
+LM_MARK = "lm-hazir.json"
+
+
+def _sha256(p: Path) -> str:
+    import hashlib
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for b in iter(lambda: f.read(1 << 20), b""):
+            h.update(b)
+    return h.hexdigest()
+
+
+def _doc_spans(raw: Path, chunk: int = 1 << 26) -> np.ndarray:
+    """raw.txt'teki \x00 ile ayrılmış belgelerin (başlangıç, bitiş) bayt aralıkları; dosya belleğe alınmaz."""
+    ends, pos = [], 0
+    with open(raw, "rb") as f:
+        while True:
+            b = f.read(chunk)
+            if not b:
+                break
+            z = np.flatnonzero(np.frombuffer(b, dtype=np.uint8) == 0)
+            ends.append(z.astype(np.int64) + pos)
+            pos += len(b)
+    e = np.concatenate(ends) if ends else np.zeros(0, dtype=np.int64)
+    if pos and (len(e) == 0 or e[-1] != pos - 1):
+        e = np.append(e, pos)  # sonda \x00 yoksa son belge
+    s = np.concatenate([[0], e[:-1] + 1]) if len(e) else e
+    keep = (e - s) > 0
+    return np.stack([s[keep], e[keep]], axis=1)
+
+
+def _encode_spans(args) -> tuple[int, int]:
+    """İşçi: raw.txt'ten verilen aralıklardaki belgeleri belirteçlere ayırıp dosyaya yazar. (belirteç, karakter)."""
+    raw, tok, spans, dst = args
+    bpe = BPE.load(tok)
+    bpe._cache_limit = 2_000_000
+    chars = 0
+
+    def docs():
+        nonlocal chars
+        with open(raw, "rb") as f:
+            for a, b in spans:
+                f.seek(int(a))
+                t = f.read(int(b - a)).decode("utf-8", errors="replace")
+                if t.strip():
+                    chars += len(t)
+                    yield t
+    n = encode_to(Path(dst), bpe, docs())
+    return n, chars
+
+
+def prepare_lm(out: Path, max_chars: int, tokenizer: Path, corpus: list[str] | None = None,
+               corpus_max_chars: int = 2_000_000_000, workers: int = 0, texts=None) -> dict:
+    """Yalnız dil modeli akışı (Vikipedi + derlem → train.bin/val.bin) + derlem.json + tokenizer.json + LM_MARK.
+    Belgeler sabit tohumla karıştırılır, %0,5'i doğrulama; işçiler paralel kodlar (çıktı birleştirilir)."""
+    import multiprocessing as mp
+    import shutil
+    import time as _t
+    out.mkdir(parents=True, exist_ok=True)
+    raw = out / "raw.txt"
+    corpus_stats = None
+    if not raw.exists():
+        it = texts if texts is not None else wikipedia_texts(out / "hf", max_chars)
+        if corpus:
+            corpus_stats = _write_mixed(raw, it, corpus, out / "corpus", corpus_max_chars)
+        else:
+            with open(raw, "w", encoding="utf-8") as f:
+                for t in it:
+                    f.write(t.replace("\x00", " ") + "\x00")
+    if corpus_stats is None and (out / "derlem.json").exists():
+        corpus_stats = json.loads((out / "derlem.json").read_text(encoding="utf-8"))
+    if Path(tokenizer).resolve() != (out / "tokenizer.json").resolve():
+        shutil.copy(tokenizer, out / "tokenizer.json")
+    spans = _doc_spans(raw)
+    perm = np.random.default_rng(1).permutation(len(spans))
+    n_val = max(1, len(spans) // 200)
+    val_spans, train_spans = spans[perm[:n_val]], spans[perm[n_val:]]
+    workers = workers or max(1, (os.cpu_count() or 2))
+    parts = [train_spans[i::workers] for i in range(workers)]
+    jobs = [(str(raw), str(out / "tokenizer.json"), val_spans, str(out / "val.bin"))] + \
+           [(str(raw), str(out / "tokenizer.json"), p, str(out / f"train.part{i:02d}.bin")) for i, p in enumerate(parts)]
+    t0 = _t.time()
+    if workers > 1:
+        with mp.get_context("fork").Pool(workers) as pool:
+            res = pool.map(_encode_spans, jobs)
+    else:
+        res = [_encode_spans(j) for j in jobs]
+    with open(out / "train.bin", "wb") as w:
+        for i in range(len(parts)):
+            p = out / f"train.part{i:02d}.bin"
+            with open(p, "rb") as r:
+                shutil.copyfileobj(r, w, 1 << 24)
+            p.unlink()
+    st = {"docs": int(len(spans)), "chars": int(sum(c for _, c in res)), "train_tokens": int(sum(n for n, _ in res[1:])),
+          "val_tokens": int(res[0][0]), "tokenizer_sha256": _sha256(out / "tokenizer.json"),
+          "corpus": sorted(corpus or []), "corpus_max_chars": corpus_max_chars, "max_chars": max_chars,
+          "sure_sn": round(_t.time() - t0), "olusturma": _t.strftime("%Y-%m-%dT%H:%M:%SZ", _t.gmtime())}
+    if corpus_stats is not None:
+        st["derlem"] = corpus_stats
+    (out / LM_MARK).write_text(json.dumps(st, ensure_ascii=False, indent=1), encoding="utf-8")
+    return st
+
+
 def prepare(out: Path, max_chars: int, vocab: int, tok_sample_chars: int = 30_000_000, texts=None,
             tokenizer: Path | None = None, open_data: bool = True, extra_dialogs: str | list[str] | None = None,
             mkqa_src: str | None = None, corpus: list[str] | None = None,
@@ -172,7 +280,15 @@ def prepare(out: Path, max_chars: int, vocab: int, tok_sample_chars: int = 30_00
     out.mkdir(parents=True, exist_ok=True)
     raw = out / "raw.txt"
     corpus_stats = None
-    if not raw.exists():
+    # Önceden hazırlanmış dil modeli akışı (hazir-veri): tokenizer aynıysa train/val yeniden üretilmez.
+    lm = json.loads((out / LM_MARK).read_text(encoding="utf-8")) if (out / LM_MARK).exists() else None
+    if lm is not None:
+        if not ((out / "train.bin").exists() and (out / "val.bin").exists() and (out / "tokenizer.json").exists()):
+            raise ValueError("hazır veri eksik (train.bin/val.bin/tokenizer.json)")
+        if tokenizer is not None and Path(tokenizer).exists() and _sha256(Path(tokenizer)) != lm["tokenizer_sha256"]:
+            raise ValueError("hazır verinin tokenizer'ı istenenle aynı değil")
+        corpus_stats = lm.get("derlem")
+    elif not raw.exists():
         it = texts if texts is not None else wikipedia_texts(out / "hf", max_chars)
         if corpus:
             corpus_stats = _write_mixed(raw, it, corpus, out / "corpus", corpus_max_chars)
@@ -180,8 +296,7 @@ def prepare(out: Path, max_chars: int, vocab: int, tok_sample_chars: int = 30_00
             with open(raw, "w", encoding="utf-8") as f:
                 for t in it:
                     f.write(t.replace("\x00", " ") + "\x00")
-    docs = raw.read_text(encoding="utf-8").split("\x00")
-    docs = [d for d in docs if d.strip()]
+    docs = [] if lm is not None else [d for d in raw.read_text(encoding="utf-8").split("\x00") if d.strip()]
     persona_stats: dict = {}
     dialogs = persona_dialogues(60000, stats=persona_stats)
     open_texts, open_stats = open_dialogues(out / "hf-dialog") if open_data else ([], {})
@@ -221,13 +336,18 @@ def prepare(out: Path, max_chars: int, vocab: int, tok_sample_chars: int = 30_00
         bpe.save(out / "tokenizer.json")
     bpe = BPE.load(out / "tokenizer.json")
     bpe._cache_limit = 2_000_000
-    rng = random.Random(1)
-    rng.shuffle(docs)
-    n_val = max(1, len(docs) // 200)
+    if lm is None:
+        rng = random.Random(1)
+        rng.shuffle(docs)
+        n_val = max(1, len(docs) // 200)
+        lm_stats = {"docs": len(docs), "chars": sum(map(len, docs)),
+                    "train_tokens": encode_to(out / "train.bin", bpe, docs[n_val:]),
+                    "val_tokens": encode_to(out / "val.bin", bpe, docs[:n_val])}
+    else:
+        lm_stats = {k: lm[k] for k in ("docs", "chars", "train_tokens", "val_tokens")}
+        lm_stats["hazir_veri"] = {k: lm.get(k) for k in ("olusturma", "corpus", "tokenizer_sha256")}
     stats = {
-        "docs": len(docs), "chars": sum(map(len, docs)),
-        "train_tokens": encode_to(out / "train.bin", bpe, docs[n_val:]),
-        "val_tokens": encode_to(out / "val.bin", bpe, docs[:n_val]),
+        **lm_stats,
         "dialog_tokens": encode_to(out / "dialog.bin", bpe, dialogs + open_texts + open_texts + extra_texts + mkqa_texts),
         "persona_dialogs": len(dialogs), "open_dialogs": open_stats,
         "persona_mix": {k: round(v, 4) for k, v in _dialogs.mix_shares(persona_stats).items()},
@@ -707,6 +827,13 @@ def export_chat(run: Path, data: Path, out: Path, ckpt_name: str = "ckpt.pt", co
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
+    q = sub.add_parser("prepare-lm", help="yalnız dil modeli akışı (GitHub'da önceden; bkz. LM_MARK)")
+    q.add_argument("--out", required=True)
+    q.add_argument("--max-chars", type=int, default=600_000_000)
+    q.add_argument("--tokenizer", required=True)
+    q.add_argument("--corpus", action="append")
+    q.add_argument("--corpus-max-chars", type=int, default=2_000_000_000)
+    q.add_argument("--workers", type=int, default=0)
     p = sub.add_parser("prepare")
     p.add_argument("--out", required=True)
     p.add_argument("--max-chars", type=int, default=600_000_000)
@@ -748,7 +875,10 @@ def main(argv=None) -> None:
     e.add_argument("--out", required=True)
     e.add_argument("--ckpt", default="ckpt.pt", help="run klasöründeki checkpoint (best.pt: en iyi sınav)")
     a = ap.parse_args(argv)
-    if a.cmd == "prepare":
+    if a.cmd == "prepare-lm":
+        print(json.dumps(prepare_lm(Path(a.out), a.max_chars, Path(a.tokenizer), a.corpus, a.corpus_max_chars, a.workers),
+                         ensure_ascii=False, indent=1))
+    elif a.cmd == "prepare":
         print(json.dumps(prepare(Path(a.out), a.max_chars, a.vocab, tokenizer=Path(a.tokenizer) if a.tokenizer else None,
                                  open_data=not a.no_open_data, extra_dialogs=a.extra_dialogs,
                                  mkqa_src=None if a.no_mkqa else a.mkqa, corpus=a.corpus,

@@ -3,7 +3,9 @@
 # Oturum: kodu halka açık depodan alır → Vikipedi verisini hazırlar → önceki oturumun checkpoint'inden devam eder →
 # süre bütçesi kadar eğitir → telefona gidecek int8 modeli dışa aktarır. Çıktı /kaggle/working/out altında.
 import glob
+import json
 import os
+import shutil
 import subprocess
 import sys
 import urllib.request
@@ -23,6 +25,7 @@ KOD_SINAV_URL = "__KODS__"  # HumanEval (yalnız sınav, dışa aktarmada); boş
 KOD_PROBLEM_URL = "__KODP__"  # testli kod problemleri (kodla kendi kendine öğrenme); boşsa yok
 KOD_SELF_MIN = 15
 CORPUS_MAX_CHARS = "2400000000"
+HAZIR_URL = "__HAZIR__"  # GitHub'da önceden hazırlanmış dil modeli akışı (hazir-veri Release klasörü); boşsa yok
 OZ_URLS = "__OZ__"  # Orion'un önceki oturumlarda kendi çözüp doğrulanan cevapları (orion-ozogrenme Release); boşsa yok
 SELF_MIN = 20  # oturum sonunda kendi kendine öğrenmeye ayrılan dakika  # Vikipedi + derlem toplamı (pay sınırları derlem-kaynaklar.json)
 # İNCE AYAR (yalnız ek veri varsa): diyalog payı 0.75, taban lr 1.5e-4. lr_at kosinüs takvimi toplam hedef adıma
@@ -204,6 +207,61 @@ if EXTRA_URL.startswith("http"):
             time.sleep(10 * attempt)
     if not extra:
         raise SystemExit(f"ORION HATA: çeviri verisi istendi ama indirilemedi: {err!r}")
+corpus_urls = [u for u in CORPUS_URLS.split() if u.startswith("http")]
+
+
+def fetch_parts(url, dst):
+    """Tek dosya; yoksa 2GB Release sınırı yüzünden bölünmüş parçalar (dst.part00, part01, ...) birleştirilir."""
+    try:
+        urllib.request.urlretrieve(url, dst)
+        return
+    except Exception as e0:
+        k = 0
+        with open(dst, "wb") as w:
+            while True:
+                pth = f"{dst}.part{k:02d}"
+                try:
+                    urllib.request.urlretrieve(f"{url}.part{k:02d}", pth)
+                except Exception:
+                    break
+                with open(pth, "rb") as r:
+                    shutil.copyfileobj(r, w, 1 << 24)
+                os.remove(pth)
+                k += 1
+        if k == 0:
+            os.remove(dst)
+            raise e0
+
+
+def fetch_hazir():
+    """GitHub'da önceden belirteçlere ayrılmış Vikipedi + derlem (train.bin/val.bin). Tokenizer, derlem listesi ve
+    karakter sınırı bu oturumunkiyle aynıysa indirilir; değilse ya da inemezse eski yol (burada hazırlama)."""
+    if not (HAZIR_URL.startswith("http") and tok and corpus_urls):
+        return False
+    os.makedirs(data, exist_ok=True)
+    mark = f"{data}/lm-hazir.json"
+    try:
+        urllib.request.urlretrieve(HAZIR_URL + "lm-hazir.json", mark)
+        m = json.load(open(mark, encoding="utf-8"))
+        if m.get("tokenizer_sha256") != sha256(tok):
+            raise ValueError("tokenizer farklı")
+        if sorted(m.get("corpus", [])) != sorted(corpus_urls) or int(m.get("corpus_max_chars", 0)) != int(CORPUS_MAX_CHARS):
+            raise ValueError("derlem listesi ya da karakter sınırı farklı (hazır veri eski)")
+        fetch_parts(HAZIR_URL + "val.bin", f"{data}/val.bin")
+        fetch_parts(HAZIR_URL + "train.bin", f"{data}/train.bin")
+        shutil.copy(tok, f"{data}/tokenizer.json")
+        print(f"ORION: hazır veri kullanılıyor ({m.get('olusturma')}, {m.get('train_tokens')} belirteç); "
+              "Vikipedi + derlem burada yeniden hazırlanmayacak", flush=True)
+        return True
+    except Exception as e:
+        print(f"ORION: hazır veri kullanılamadı, burada hazırlanacak: {e!r}", flush=True)
+        for n in ("lm-hazir.json", "train.bin", "val.bin", "tokenizer.json"):
+            if os.path.exists(f"{data}/{n}"):
+                os.remove(f"{data}/{n}")
+        return False
+
+
+hazir = fetch_hazir()
 # MKQA Türkçe bilgi soruları (CC BY-SA 3.0) chat.prepare içinde sabit commit adresinden sha256 doğrulamasıyla iner;
 # inemezse ya da hash uymazsa prepare hata verir (sessiz atlama yok). Ek argüman gerekmez.
 prep = [sys.executable, "-m", "orion_core.chat", "prepare", "--out", data]
@@ -224,7 +282,6 @@ if KOD_SINAV_URL.startswith("http"):
 for u in OZ_URLS.split():
     if u.startswith("http"):
         prep += ["--extra-dialogs", u]
-corpus_urls = [u for u in CORPUS_URLS.split() if u.startswith("http")]
 for u in corpus_urls:
     prep += ["--corpus", u]
 if corpus_urls:
