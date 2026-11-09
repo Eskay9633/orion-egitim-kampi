@@ -54,6 +54,20 @@ def _release_assets(url: str) -> list[str]:
     return sorted(a["browser_download_url"] for a in rel.get("assets", []) if a["name"].endswith(".jsonl.gz"))
 
 
+def _download(u: str, dst: Path, tries: int = 5, wait: float = 5.0) -> None:
+    """GitHub Release indirmesi ara sıra 500/502 veriyor: birkaç kez artan beklemeyle yeniden denenir."""
+    import time
+    for i in range(tries):
+        try:
+            urllib.request.urlretrieve(u, str(dst))
+            return
+        except Exception as e:  # noqa: BLE001
+            if i == tries - 1:
+                raise
+            print(f"indirme hatası ({e!r}); {i + 1}. yeniden deneme", flush=True)
+            time.sleep(wait * (i + 1))
+
+
 def resolve(srcs: Iterable[str], cache: Path) -> list[Path]:
     """Yerel klasör/dosya ya da GitHub Release adresi → yerel *.jsonl.gz listesi."""
     out = []
@@ -65,7 +79,7 @@ def resolve(srcs: Iterable[str], cache: Path) -> list[Path]:
                 p.parent.mkdir(parents=True, exist_ok=True)
                 if not p.exists():
                     print(f"derlem indiriliyor: {u}", flush=True)
-                    urllib.request.urlretrieve(u, str(p) + ".part")
+                    _download(u, Path(str(p) + ".part"))
                     Path(str(p) + ".part").replace(p)
                 out.append(p)
         else:
