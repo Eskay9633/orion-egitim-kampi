@@ -76,6 +76,17 @@ def handwritten_eval(model_bin: Path, tok: Path, rows: list[dict] | None = None,
 EXT_SETS = ("massive_tr", "xsid_tr")
 
 
+def ood_eval(model_bin: Path, tok: Path, n: int = 400, batch: int = 64) -> float:
+    """Yalnız yeni cümle yapıları (test_ood, run_eval ile aynı tohum): içe aktarıcı iki modeli aynı kümede karşılaştırır."""
+    model = load_quantized(model_bin)
+    bpe = BPE.load(tok)
+    exs = datagen.t2c_set(n, "test_ood", 202)
+    prompts = [prompt_ids(bpe, "t2c", e["src"]) for e in exs]
+    outs = model.greedy_batch(prompts, EOS, PAD, max_new=96, batch=batch)
+    outs = [decode_output(bpe, p[2:-1], o) for p, o in zip(prompts, outs)]
+    return sum(normalize_cmd(o) == e["full"] for e, o in zip(exs, outs)) / len(exs)
+
+
 def run_eval(model_bin: Path, tok: Path, n_iid: int = 600, n_ood: int = 400, n_plan: int = 200,
              n_ans: int = 100, batch: int = 64, ext_dir: Path | None = None) -> dict:
     model = load_quantized(model_bin)

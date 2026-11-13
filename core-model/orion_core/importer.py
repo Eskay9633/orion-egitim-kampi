@@ -95,7 +95,7 @@ def same_handwritten_set(new: dict, cur: dict | None) -> bool:
 
 
 def komut_better(new: dict, cur: dict | None, local_hw: tuple[float, float] | None = None,
-                 local_hw_error: str | None = None) -> tuple[bool, str]:
+                 local_hw_error: str | None = None, local_ood: tuple[float, float] | None = None) -> tuple[bool, str]:
     """Yeni komut modeli alınır mı? Güvenlik tabanı ayrıca evaluate ile sınanır; burada gerileme denetimi.
 
     Elle yazılmış cümlelerde gerileme kuralı toleranssız katıdır ve yalnızca AYNI kümede ölçülmüş iki sayıyla uygulanır:
@@ -123,7 +123,13 @@ def komut_better(new: dict, cur: dict | None, local_hw: tuple[float, float] | No
             hw_note += f" (yerel ölçüm yapılamadı: {local_hw_error})"
     else:
         return False, f"elle yazılmış küme ölçülemedi: {local_hw_error or 'kümeler farklı ve bu depoda yeniden ölçülmedi'}"
-    if n.get("t2c_ood_exact", 0) + 0.02 < c.get("t2c_ood_exact", 0):
+    # Yeni cümle yapıları: iki model bu depodaki GÜNCEL kümede ölçüldüyse onlar karşılaştırılır (değerlendirme kümesi yeni
+    # komutlarla değişince manifest sayıları farklı kümelerden gelir; 2026-11-13). Tolerans aynı: 0.02.
+    if local_ood is not None:
+        if local_ood[0] + 0.02 < local_ood[1]:
+            return False, f"yeni cümle yapılarında geriledi (bu depoda aynı kümede: {local_ood[0]:.4f} < {local_ood[1]:.4f})"
+        hw_note += f"; yeni cümle yapıları bu depoda yeniden ölçüldü ({local_ood[0]:.4f} / mevcut {local_ood[1]:.4f})"
+    elif n.get("t2c_ood_exact", 0) + 0.02 < c.get("t2c_ood_exact", 0):
         return False, "yeni cümle yapılarında geriledi"
     return True, "daha iyi ya da eşit" + hw_note
 
@@ -163,10 +169,17 @@ def _local_handwritten(d: Path) -> float:
     return handwritten_eval(d / "model.bin", d / "tokenizer.json")["exact"]
 
 
-def run(token: str | None, evaluate_gate, measure_handwritten=None) -> dict:
+def _local_ood(d: Path) -> float:
+    """Bir komut modelini bu depodaki güncel test_ood kümesinde ölçer (torch gerektirir)."""
+    from .evaluate import ood_eval
+    return ood_eval(d / "model.bin", d / "tokenizer.json")
+
+
+def run(token: str | None, evaluate_gate, measure_handwritten=None, measure_ood=None) -> dict:
     report: dict = {"changed": False}
     core_dir, chat_dir = SHARED / "core-model", SHARED / "chat-model"
     measure = measure_handwritten or _local_handwritten
+    measure_o = measure_ood or _local_ood
     rel = latest("komut-", token)
     if rel:
         with tempfile.TemporaryDirectory() as td:
@@ -174,7 +187,7 @@ def run(token: str | None, evaluate_gate, measure_handwritten=None) -> dict:
             download(rel, KOMUT_FILES, t, token)
             new = json.loads((t / "manifest.json").read_text())
             cur = json.loads((core_dir / "manifest.json").read_text()) if (core_dir / "manifest.json").exists() else None
-            local_hw, local_err = None, None
+            local_hw, local_err, local_ood = None, None, None
             if cur and "eval" in cur and new.get("sha256") != cur.get("sha256"):
                 # İki model de burada, güncel elle yazılmış kümede ölçülür (kümeler aynı olsa da: ucuz ve kesin).
                 try:
@@ -182,10 +195,17 @@ def run(token: str | None, evaluate_gate, measure_handwritten=None) -> dict:
                         raise FileNotFoundError("mevcut model dosyası (model.bin) bu depoda yok")
                     local_hw = (measure(t), measure(core_dir))
                     report["elle_yerel"] = {"yeni": round(local_hw[0], 4), "mevcut": round(local_hw[1], 4)}
+                    # Yeni cümle yapıları da aynı kümede; ölçülemezse eski yol (manifest sayıları) geçerli kalır.
+                    try:
+                        local_ood = (measure_o(t), measure_o(core_dir))
+                        report["ood_yerel"] = {"yeni": round(local_ood[0], 4), "mevcut": round(local_ood[1], 4)}
+                    except Exception as e:  # noqa: BLE001
+                        local_ood = None
+                        report["ood_yerel"] = {"hata": str(e) or type(e).__name__}
                 except Exception as e:  # noqa: BLE001 — ölçülemezse: aynı kümede manifest, değilse model ALINMAZ
                     local_err = str(e) or type(e).__name__
                     report["elle_yerel"] = {"hata": local_err}
-            ok, why = komut_better(new, cur, local_hw, local_err)
+            ok, why = komut_better(new, cur, local_hw, local_err, local_ood)
             if ok and not evaluate_gate(t):
                 ok, why = False, "güvenlik tabanını bu depoda geçemedi"
             report["komut"] = {"tag": rel["tag_name"], "alındı": ok, "neden": why}

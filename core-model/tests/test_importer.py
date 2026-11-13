@@ -291,3 +291,13 @@ def test_manifest_records_handwritten_set_identity():
     meta_changed = [dict(r, date="2000-01-01") for r in rows]
     assert handwritten_set_sha(rows) == handwritten_set_sha(meta_changed)
     assert handwritten_set_sha(rows) != handwritten_set_sha(rows[:29])
+
+
+def test_ood_compared_on_same_set_when_measured_locally():
+    """Değerlendirme kümesi değişince (yeni komutlar) manifest OOD sayıları farklı kümelerdendir; yerel ölçüm varsa o kullanılır."""
+    cur = {"sha256": "a", "eval": {"handwritten_exact": 0.86, "t2c_ood_exact": 0.80}}
+    new = {"sha256": "b", "eval": {"handwritten_exact": 0.86, "t2c_ood_exact": 0.74}}
+    assert not komut_better(new, cur, local_hw=(0.86, 0.86))[0]                      # yalnız manifest: geriledi
+    ok, why = komut_better(new, cur, local_hw=(0.86, 0.86), local_ood=(0.74, 0.688))   # aynı kümede: daha iyi
+    assert ok and "yeniden ölçüldü" in why
+    assert not komut_better(new, cur, local_hw=(0.86, 0.86), local_ood=(0.70, 0.75))[0]  # aynı kümede gerçekten geriledi
