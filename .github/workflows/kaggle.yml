@@ -153,8 +153,16 @@ jobs:
           fi
           DONE=$(python -c "import json;print(json.load(open('$M'))['step'] >= ${{ steps.st.outputs.steps }})")
           if [ "$DONE" = "True" ]; then echo "Hedefe ulaşıldı."; echo "next=done" >> "$GITHUB_OUTPUT"; fi
+      # Sahibin kararı (2026-11-13): yeni veri hazır olana kadar kendiliğinden oturum başlatılmaz. kaggle/beklet.txt
+      # varsa zamanlanmış iş yalnız toplar (bitmiş oturumu yayınlar); yeni oturumu yalnız elle başlatma açar.
+      - name: Bekletme var mı
+        id: hold
+        run: |
+          if [ -f kaggle/beklet.txt ] && [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            echo "hold=true" >> "$GITHUB_OUTPUT"; echo "Bekletiliyor: $(head -1 kaggle/beklet.txt)"
+          else echo "hold=false" >> "$GITHUB_OUTPUT"; fi
       - name: Yeni oturum başlat
-        if: steps.st.outputs.go == 'start' || steps.col.outputs.next == 'start'
+        if: steps.hold.outputs.hold != 'true' && (steps.st.outputs.go == 'start' || steps.col.outputs.next == 'start')
         run: |
           SIZE=${{ steps.st.outputs.size }}; STEPS=${{ steps.st.outputs.steps }}
           SURE=${{ steps.st.outputs.sure }}; [ -n "$SURE" ] || SURE=540
