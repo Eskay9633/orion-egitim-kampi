@@ -131,28 +131,31 @@
 {"split": "test_iid", "src": "acaba kod çalışması becerisini uygula", "full": "{\"args\":{\"name\":\"kod çalışması\"},\"cmd\":\"skill.run\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "lütfen Maya Pil sağlığı için bir not kartı hazırla", "full": "{\"args\":{\"kind\":\"note\",\"refresh\":\"none\",\"size\":\"half\",\"source\":\"manual\",\"title\":\"Pil sağlığı\"},\"cmd\":\"card.propose\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "microsoft/vscode projesini incele", "full": "{\"args\":{\"repo\":\"microsoft/vscode\",\"scope\":\"summary\"},\"cmd\":\"repo.audit\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "Luna şunu İtalyanca yap: piknik malzemeleri lütfen", "full": "{\"args\":{\"text\":\"piknik malzemeleri\",\"to\":\"it\"},\"cmd\":\"text.translate\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "hey Orion Haftalık rapor için bir sayı kartı hazırla teşekkürler", "full": "{\"args\":{\"kind\":\"metric\",\"refresh\":\"none\",\"size\":\"half\",\"source\":\"manual\",\"title\":\"Haftalık rapor\"},\"cmd\":\"card.propose\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "benim sevdiklerim hakkında ne biliyorsun.", "full": "{\"args\":{\"query\":\"sevdiklerim\"},\"cmd\":\"memory.recall\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "Orion, bana anlat: en iyi kahve demleme yöntemi ne", "full": "{\"args\":{\"question\":\"en iyi kahve demleme yöntemi ne\"},\"cmd\":\"ask\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "bir yere yazabilir misin lütfen: doğum günü listesi", "full": "{\"args\":{\"text\":\"doğum günü listesi\"},\"cmd\":\"note.write\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "akıllı ev cihazları konusunda kısa bir araştırma yap rica etsem", "full": "{\"args\":{\"depth\":\"quick\",\"topic\":\"akıllı ev cihazları\"},\"cmd\":\"research.start\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "lütfen Maya 15 dakikalık sayaç başlatabilir misin lütfen", "full": "{\"args\":{\"minutes\":15},\"cmd\":\"timer.start\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "Sophia facebook/react reposunun son halini tara", "full": "{\"args\":{\"repo\":\"facebook/react\",\"scope\":\"summary\"},\"cmd\":\"repo.audit\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "Orion, Google'da yakındaki eczaneler aç", "full": "{\"args\":{\"name\":\"Google\",\"query\":\"yakındaki eczaneler\"},\"cmd\":\"app.open\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "hatırlatmalarım kaç tane rica etsem", "full": "{\"args\":{},\"cmd\":\"reminder.list\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "acaba misafir ile ilgili notum var mı", "full": "{\"args\":{\"limit\":10,\"query\":\"misafir\"},\"cmd\":\"note.search\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "Orion şunu İtalyanca yap: piknik malzemeleri", "full": "{\"args\":{\"text\":\"piknik malzemeleri\",\"to\":\"it\"},\"cmd\":\"text.translate\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "lütfen araçlarını göster", "full": "{\"args\":{},\"cmd\":\"skill.list\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "acaba tensorflow/tensorflow için güvenlik denetimi yap rica etsem", "full": "{\"args\":{\"repo\":\"tensorflow/tensorflow\",\"scope\":\"security\"},\"cmd\":\"repo.audit\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "kripto borsasında durum nasıl, euro olarak.", "full": "{\"args\":{\"currency\":\"eur\"},\"cmd\":\"market.crypto\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "Orion, hafızanda neler var rica etsem", "full": "{\"args\":{},\"cmd\":\"memory.recall\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "Orion, Kotlin/kotlinx.coroutines projesini denetle rica etsem", "full": "{\"args\":{\"repo\":\"Kotlin/kotlinx.coroutines\",\"scope\":\"summary\"},\"cmd\":\"repo.audit\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "beceri öğren: anahtarlı yapay zekalar için kullanılabilir bir çözüm bul", "full": "{\"args\":{\"goal\":\"anahtarlı yapay zekalar için kullanılabilir bir çözüm bul\"},\"cmd\":\"skill.learn\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "Perplexity'ye sorar mısın: Orion nasıl daha iyi olabilir lütfen", "full": "{\"args\":{\"provider\":\"perplexity\"},\"cmd\":\"self.advise\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "fotoğrafçılık temelleri hakkında araştırma yap teşekkürler", "full": "{\"args\":{\"depth\":\"normal\",\"topic\":\"fotoğrafçılık temelleri\"},\"cmd\":\"research.start\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "tercihimi kaydet: akşam 10'dan sonra rahatsız etme rica etsem", "full": "{\"args\":{\"kind\":\"preference\",\"text\":\"akşam 10'dan sonra rahatsız etme\"},\"cmd\":\"memory.save\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "hafta sonu planı becerisini kullan.", "full": "{\"args\":{\"name\":\"hafta sonu planı\"},\"cmd\":\"skill.run\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "15 dakika zamanlayıcı kurar mısın", "full": "{\"args\":{\"minutes\":15},\"cmd\":\"timer.start\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "lütfen sistem güncellemesine hazır mıyım", "full": "{\"args\":{\"purpose\":\"update\"},\"cmd\":\"health.check\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "acaba hangi uygulamalarım var", "full": "{\"args\":{},\"cmd\":\"app.list\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "lütfen doğum günü partisi perşembe akşam 8:05'te, planla lütfen", "full": "{\"args\":{\"minutes\":60,\"start\":\"thu@20:05\",\"title\":\"doğum günü partisi\"},\"cmd\":\"calendar.add\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "acaba bunu deftere yaz: laptop pili zayıfladı", "full": "{\"args\":{\"text\":\"laptop pili zayıfladı\"},\"cmd\":\"note.write\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "çocuklarım ile ilgili neler biliyorsun", "full": "{\"args\":{\"query\":\"çocuklarım\"},\"cmd\":\"memory.recall\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "Orion, notlarda abonelik geçenleri listele rica etsem", "full": "{\"args\":{\"limit\":10,\"query\":\"abonelik\"},\"cmd\":\"note.search\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "acaba açıkla: güneş paneli kimdir.", "full": "{\"args\":{\"question\":\"güneş paneli kimdir\"},\"cmd\":\"ask\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "acaba David, tensorflow/tensorflow için bir bak", "full": "{\"args\":{\"repo\":\"tensorflow/tensorflow\",\"scope\":\"summary\"},\"cmd\":\"repo.audit\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "şunu not et: yeni dil öğrenme planı", "full": "{\"args\":{\"text\":\"yeni dil öğrenme planı\"},\"cmd\":\"note.write\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "notlara ekle lütfen: laptop pili zayıfladı lütfen", "full": "{\"args\":{\"text\":\"laptop pili zayıfladı\"},\"cmd\":\"note.write\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "Orion, pazar günü kahvaltı diye not defterime eklesin", "full": "{\"args\":{\"text\":\"pazar günü kahvaltı\"},\"cmd\":\"note.write\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "ana ekrana büyük bir not kartı koy: Toplantı notları.", "full": "{\"args\":{\"kind\":\"note\",\"refresh\":\"none\",\"size\":\"full\",\"source\":\"manual\",\"title\":\"Toplantı notları\"},\"cmd\":\"card.propose\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "güneş paneli ne işe yarar teşekkürler", "full": "{\"args\":{\"question\":\"güneş paneli ne işe yarar\"},\"cmd\":\"ask\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "hey Orion Orion, tensorflow/tensorflow için bir bak.", "full": "{\"args\":{\"repo\":\"tensorflow/tensorflow\",\"scope\":\"summary\"},\"cmd\":\"repo.audit\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "hey Orion Orion, zamanlayıcı kursun, 7 dakika rica etsem", "full": "{\"args\":{\"minutes\":7},\"cmd\":\"timer.start\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "hey Orion kaydedebilir misin — haftaya misafir gelecek", "full": "{\"args\":{\"text\":\"haftaya misafir gelecek\"},\"cmd\":\"note.write\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "görseldeki metni çıkar rica etsem", "full": "{\"args\":{\"uri\":\"content://orion/ek\"},\"cmd\":\"image.analyze\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "görseldeki yazıyı oku teşekkürler", "full": "{\"args\":{\"uri\":\"content://orion/ek\"},\"cmd\":\"image.analyze\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "ücretsiz API ara teşekkürler", "full": "{\"args\":{},\"cmd\":\"provider.discover\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "lütfen facebook/react CI durumunu kontrol et teşekkürler", "full": "{\"args\":{\"repo\":\"facebook/react\",\"scope\":\"ci\"},\"cmd\":\"repo.audit\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "yeni beceri öğren: işe yarar ücretsiz araçlar bulup listele.", "full": "{\"args\":{\"goal\":\"işe yarar ücretsiz araçlar bulup listele\"},\"cmd\":\"skill.learn\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "hey Orion hafta sonu planı becerisini uygula: laptop pili zayıfladı.", "full": "{\"args\":{\"input\":\"laptop pili zayıfladı\",\"name\":\"hafta sonu planı\"},\"cmd\":\"skill.run\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
@@ -211,16 +214,17 @@
 {"split": "test_iid", "src": "lütfen güncellemeden önce telefonu kontrol et rica etsem", "full": "{\"args\":{\"purpose\":\"update\"},\"cmd\":\"health.check\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "1 aralık saat 14:40'ta aklıma getirebilir misin, çamaşırları asmak", "full": "{\"args\":{\"at\":\"12-01@14:40\",\"repeat\":\"none\",\"text\":\"çamaşırları asmak\"},\"cmd\":\"reminder.set\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "hey Orion ertesi gün programımda ne var", "full": "{\"args\":{\"day\":\"d+2\"},\"cmd\":\"calendar.list\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "Orion ali@ornek.com adresine e-posta gönder: konu: Randevu talebi; pazar günü kahvaltı", "full": "{\"args\":{\"body\":\"pazar günü kahvaltı\",\"subject\":\"Randevu talebi\",\"to\":\"ali@ornek.com\"},\"cmd\":\"mail.send\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "EkBot ali@ornek.com adresine e-posta gönder: konu: Randevu talebi; pazar günü kahvaltı", "full": "{\"args\":{\"body\":\"pazar günü kahvaltı\",\"subject\":\"Randevu talebi\",\"to\":\"ali@ornek.com\"},\"cmd\":\"mail.send\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "yardımcı ajan ekle: görsel fikir üreten tasarımcı", "full": "{\"args\":{\"helps\":\"sophia\",\"role\":\"görsel fikir üreten tasarımcı\"},\"cmd\":\"agent.hire\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "Chloe sui fiyatına bak", "full": "{\"args\":{\"coin\":\"sui\",\"currency\":\"try\"},\"cmd\":\"market.crypto\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "lütfen ayse.yilmaz@gmail.com adresine e-posta gönder: konu: Haftalık rapor; kamera lensi araştır", "full": "{\"args\":{\"body\":\"kamera lensi araştır\",\"subject\":\"Haftalık rapor\",\"to\":\"ayse.yilmaz@gmail.com\"},\"cmd\":\"mail.send\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "kitap okuma için 12 dakika süre tutar mısın teşekkürler", "full": "{\"args\":{\"label\":\"kitap okuma\",\"minutes\":12},\"cmd\":\"timer.start\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "toplantı için 90 dakika say rica etsem", "full": "{\"args\":{\"label\":\"toplantı\",\"minutes\":90},\"cmd\":\"timer.start\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "lütfen yarın saat 20'de bana sınav diye hatırlat", "full": "{\"args\":{\"at\":\"d+1@20:00\",\"repeat\":\"none\",\"text\":\"sınav\"},\"cmd\":\"reminder.set\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "resim oluştur: eski bir kütüphane", "full": "{\"args\":{\"prompt\":\"eski bir kütüphane\",\"size\":\"square\"},\"cmd\":\"image.generate\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "hey Orion Emma, ekmek mayası hakkında bilgi ver", "full": "{\"args\":{\"question\":\"ekmek mayası hakkında bilgi ver\"},\"cmd\":\"ask\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "acaba takvime ekle: maç, yarın 20:30'da", "full": "{\"args\":{\"minutes\":60,\"start\":\"d+1@20:30\",\"title\":\"maç\"},\"cmd\":\"calendar.add\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "Orion, sui fiyatına bak", "full": "{\"args\":{\"coin\":\"sui\",\"currency\":\"try\"},\"cmd\":\"market.crypto\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "maç diye 08:05'te hatırlatma kur lütfen", "full": "{\"args\":{\"at\":\"d+0@08:05\",\"repeat\":\"none\",\"text\":\"maç\"},\"cmd\":\"reminder.set\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "acaba benim sevdiklerim hakkında neler biliyorsun", "full": "{\"args\":{\"query\":\"sevdiklerim\"},\"cmd\":\"memory.recall\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "tensorflow/tensorflow güvenliğini özetle teşekkürler", "full": "{\"args\":{\"repo\":\"tensorflow/tensorflow\",\"scope\":\"security\"},\"cmd\":\"repo.audit\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "takvimime yarın saat 17'de staj görüşmesi koy", "full": "{\"args\":{\"minutes\":60,\"start\":\"d+1@17:00\",\"title\":\"staj görüşmesi\"},\"cmd\":\"calendar.add\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "resimde şunu bul: özet çıkar.", "full": "{\"args\":{\"question\":\"özet çıkar\",\"uri\":\"content://orion/ek\"},\"cmd\":\"image.analyze\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "Maya şunu yapmayı öğren: anahtarlı yapay zekalar için kullanılabilir bir çözüm bul lütfen", "full": "{\"args\":{\"goal\":\"anahtarlı yapay zekalar için kullanılabilir bir çözüm bul\"},\"cmd\":\"skill.learn\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "hey Orion Emma, bugün saat 22'de bana uyumayı unutturma teşekkürler", "full": "{\"args\":{\"at\":\"d+0@22:00\",\"repeat\":\"none\",\"text\":\"uyumak\"},\"cmd\":\"reminder.set\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "acaba 2 kere 25 artı 7 kaç", "full": "{\"args\":{\"expr\":\"2*25+7\"},\"cmd\":\"calc.eval\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "Orion, Grace Haritalarda android geliştirme ara", "full": "{\"args\":{\"name\":\"Haritalar\",\"query\":\"android geliştirme\"},\"cmd\":\"app.open\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "hey Orion süre tutar mısın, 40 dakika teşekkürler", "full": "{\"args\":{\"minutes\":40},\"cmd\":\"timer.start\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "David, güneş paneli nasıl çalışır Claude'a danış rica etsem", "full": "{\"args\":{\"provider\":\"claude\",\"question\":\"güneş paneli nasıl çalışır\"},\"cmd\":\"ask\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
@@ -263,7 +267,7 @@
 {"split": "test_iid", "src": "toncoin kaç lira", "full": "{\"args\":{\"coin\":\"toncoin\",\"currency\":\"try\"},\"cmd\":\"market.crypto\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "hey Orion ayse.yilmaz@gmail.com adresine mail at: konu: Haftalık rapor; yeni dil öğrenme planı", "full": "{\"args\":{\"body\":\"yeni dil öğrenme planı\",\"subject\":\"Haftalık rapor\",\"to\":\"ayse.yilmaz@gmail.com\"},\"cmd\":\"mail.send\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "maillerimi oku teşekkürler", "full": "{\"args\":{\"count\":5,\"unread\":true},\"cmd\":\"mail.check\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "Maya, deprem ne demek? teşekkürler", "full": "{\"args\":{\"question\":\"deprem ne demek\"},\"cmd\":\"ask\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "Orion, deprem ne demek? teşekkürler", "full": "{\"args\":{\"question\":\"deprem ne demek\"},\"cmd\":\"ask\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "hey Orion kod çalışması becerisini uygula", "full": "{\"args\":{\"name\":\"kod çalışması\"},\"cmd\":\"skill.run\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "kitap özetleme yöntemleri hakkında araştırma yap", "full": "{\"args\":{\"depth\":\"normal\",\"topic\":\"kitap özetleme yöntemleri\"},\"cmd\":\"research.start\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "sınav için 30 ağustos saat 10:20'de uyarsın teşekkürler", "full": "{\"args\":{\"at\":\"08-30@10:20\",\"repeat\":\"none\",\"text\":\"sınav\"},\"cmd\":\"reminder.set\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
@@ -544,7 +548,7 @@
 {"split": "test_iid", "src": "öbür gün saat 08:05'te mola vermeyi bana hatırlat", "full": "{\"args\":{\"at\":\"d+2@08:05\",\"repeat\":\"none\",\"text\":\"mola vermek\"},\"cmd\":\"reminder.set\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "görsel üret: sevimli bir baykuş lütfen", "full": "{\"args\":{\"prompt\":\"sevimli bir baykuş\",\"size\":\"square\"},\"cmd\":\"image.generate\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "Orion, başka ücretsiz model var mı araştır", "full": "{\"args\":{},\"cmd\":\"provider.discover\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "Orion, resmi incele: tarih ne zaman rica etsem", "full": "{\"args\":{\"question\":\"tarih ne zaman\",\"uri\":\"content://orion/ek\"},\"cmd\":\"image.analyze\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_iid", "src": "EkBot, resmi incele: tarih ne zaman rica etsem", "full": "{\"args\":{\"question\":\"tarih ne zaman\",\"uri\":\"content://orion/ek\"},\"cmd\":\"image.analyze\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "hey Orion Kotlin/kotlinx.coroutines projesinin durumunu kontrol et teşekkürler", "full": "{\"args\":{\"repo\":\"Kotlin/kotlinx.coroutines\",\"scope\":\"summary\"},\"cmd\":\"repo.audit\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "45 dakika sonra bana kursa gitmeyi hatırlatıver teşekkürler", "full": "{\"args\":{\"at\":\"+45m\",\"repeat\":\"none\",\"text\":\"kursa gitmek\"},\"cmd\":\"reminder.set\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "yarın programım ne", "full": "{\"args\":{\"day\":\"d+1\"},\"cmd\":\"calendar.list\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
@@ -594,10 +598,6 @@
 {"split": "test_iid", "src": "bunu bir kenara yazabilir misin: pazar günü kahvaltı lütfen", "full": "{\"args\":{\"text\":\"pazar günü kahvaltı\"},\"cmd\":\"note.write\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "hey Orion David, bunu not düşebilir misin: kamera lensi araştır", "full": "{\"args\":{\"text\":\"kamera lensi araştır\"},\"cmd\":\"note.write\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_iid", "src": "salı öğlen 12 buçukta kuaför için hatırlatıcı ekle", "full": "{\"args\":{\"at\":\"tue@12:30\",\"repeat\":\"none\",\"text\":\"kuaför\"},\"cmd\":\"reminder.set\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "bunu Rusçaya çevirir misin: kamera lensi araştır", "full": "{\"args\":{\"text\":\"kamera lensi araştır\",\"to\":\"ru\"},\"cmd\":\"text.translate\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "acaba microsoft/vscode güvenliğini kontrol et rica etsem", "full": "{\"args\":{\"repo\":\"microsoft/vscode\",\"scope\":\"security\"},\"cmd\":\"repo.audit\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "acaba bisiklet geçen notları bul", "full": "{\"args\":{\"limit\":10,\"query\":\"bisiklet\"},\"cmd\":\"note.search\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_iid", "src": "lütfen Orion'u nasıl geliştirebiliriz rica etsem", "full": "{\"args\":{},\"cmd\":\"self.advise\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "hey Orion okuma listesi becerisini başlat: kursun ödevi perşembeye.", "full": "{\"args\":{\"input\":\"kursun ödevi perşembeye\",\"name\":\"okuma listesi\"},\"cmd\":\"skill.run\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "son 20 maili göster rica etsem", "full": "{\"args\":{\"count\":20,\"unread\":true},\"cmd\":\"mail.check\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "Orion, pazartesi 18:50'de ajandaya ekle: doğum günü partisi", "full": "{\"args\":{\"minutes\":60,\"start\":\"mon@18:50\",\"title\":\"doğum günü partisi\"},\"cmd\":\"calendar.add\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
@@ -662,20 +662,21 @@
 {"split": "test_ood", "src": "şu konuyu ayrıntılı derle: bulut depolama fiyatları rica etsem", "full": "{\"args\":{\"depth\":\"deep\",\"topic\":\"bulut depolama fiyatları\"},\"cmd\":\"research.start\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "bunu bil: faturayı her ayın 5'inde öde teşekkürler", "full": "{\"args\":{\"kind\":\"note\",\"text\":\"faturayı her ayın 5'inde öde\"},\"cmd\":\"memory.save\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "Jack, hemen unutmamak için kaydet: bahçeye domates ekilecek lütfen", "full": "{\"args\":{\"text\":\"bahçeye domates ekilecek\"},\"cmd\":\"note.write\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "Sophia doğum günü hediyesi var, pazar sabah 8:15'te hatırlatma kur", "full": "{\"args\":{\"at\":\"sun@08:15\",\"repeat\":\"none\",\"text\":\"doğum günü hediyesi\"},\"cmd\":\"reminder.set\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "Orion, JetBrains/kotlin için gözden geçir lütfen", "full": "{\"args\":{\"repo\":\"JetBrains/kotlin\",\"scope\":\"summary\"},\"cmd\":\"repo.audit\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "acaba ethereum ne kadar oldu teşekkürler", "full": "{\"args\":{\"coin\":\"ethereum\",\"currency\":\"try\"},\"cmd\":\"market.crypto\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "acaba notlarıma eklesin: aylık abonelikleri gözden geçir rica etsem", "full": "{\"args\":{\"text\":\"aylık abonelikleri gözden geçir\"},\"cmd\":\"note.write\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "bana anlat: enflasyon nerede bulunur teşekkürler", "full": "{\"args\":{\"question\":\"enflasyon nerede bulunur\"},\"cmd\":\"ask\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "Orion, polkadot kaç para.", "full": "{\"args\":{\"coin\":\"polkadot\",\"currency\":\"try\"},\"cmd\":\"market.crypto\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "hey Orion güncelleme yapsam sorun olur mu rica etsem", "full": "{\"args\":{\"purpose\":\"update\"},\"cmd\":\"health.check\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "Orion, resimde ne yazdığını söyle rica etsem", "full": "{\"args\":{\"uri\":\"content://orion/ek\"},\"cmd\":\"image.analyze\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "Orion, programıma ekle: sinema, perşembe sabah onda lütfen", "full": "{\"args\":{\"minutes\":60,\"start\":\"thu@10:00\",\"title\":\"sinema\"},\"cmd\":\"calendar.add\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "lütfen faturayı ödemek var, bugün öğleden sonra birde bildir.", "full": "{\"args\":{\"at\":\"d+0@13:00\",\"repeat\":\"none\",\"text\":\"faturayı ödemek\"},\"cmd\":\"reminder.set\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "Orion, hesapla: 250 eksi 150", "full": "{\"args\":{\"expr\":\"250-150\"},\"cmd\":\"calc.eval\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "doğum günü listesi diye notlarıma ekle", "full": "{\"args\":{\"text\":\"doğum günü listesi\"},\"cmd\":\"note.write\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "Orion doğum günü hediyesi var, pazar sabah 8:15'te hatırlatma kur", "full": "{\"args\":{\"at\":\"sun@08:15\",\"repeat\":\"none\",\"text\":\"doğum günü hediyesi\"},\"cmd\":\"reminder.set\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "bunları beceri olarak kaydet: hafta sonu planı", "full": "{\"args\":{\"count\":3,\"name\":\"hafta sonu planı\"},\"cmd\":\"skill.record\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "telefondaki uygulamalar neler rica etsem", "full": "{\"args\":{},\"cmd\":\"app.list\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "fatura kontrolü becerisini uygula teşekkürler", "full": "{\"args\":{\"name\":\"fatura kontrolü\"},\"cmd\":\"skill.run\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "lütfen neleri hatırlıyorsun", "full": "{\"args\":{},\"cmd\":\"memory.recall\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "notlarımda lens geçiyor mu rica etsem", "full": "{\"args\":{\"limit\":10,\"query\":\"lens\"},\"cmd\":\"note.search\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "lütfen Arapça çevirisi: kitaplığa raf eklenecek", "full": "{\"args\":{\"text\":\"kitaplığa raf eklenecek\",\"to\":\"ar\"},\"cmd\":\"text.translate\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "kripto piyasasına göz at", "full": "{\"args\":{\"currency\":\"try\"},\"cmd\":\"market.crypto\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "hey Orion çöpü çıkarmayı unutmayayım, bugün 16:30'da unutturma teşekkürler", "full": "{\"args\":{\"at\":\"d+0@16:30\",\"repeat\":\"none\",\"text\":\"çöpü çıkarmak\"},\"cmd\":\"reminder.set\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "hey Orion Haftalık harcama için zamanlayıcı kartı tasarla teşekkürler", "full": "{\"args\":{\"kind\":\"timer\",\"refresh\":\"none\",\"size\":\"half\",\"source\":\"manual\",\"title\":\"Haftalık harcama\"},\"cmd\":\"card.propose\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "fotoğrafa bak: hangi ayarı değiştirmeliyim lütfen", "full": "{\"args\":{\"question\":\"hangi ayarı değiştirmeliyim\",\"uri\":\"content://orion/ek\"},\"cmd\":\"image.analyze\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "lütfen openai/gpt-oss derleme durumunu değerlendir teşekkürler", "full": "{\"args\":{\"repo\":\"openai/gpt-oss\",\"scope\":\"ci\"},\"cmd\":\"repo.audit\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "hey Orion toplantım var mı, bugün", "full": "{\"args\":{\"day\":\"d+0\"},\"cmd\":\"calendar.list\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "mehmet@okul.edu.tr adresine e-posta hazırla: konu: Proje güncellemesi; tatil için Kaş'a bakılacak", "full": "{\"args\":{\"body\":\"tatil için Kaş'a bakılacak\",\"subject\":\"Proje güncellemesi\",\"to\":\"mehmet@okul.edu.tr\"},\"cmd\":\"mail.send\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "bugün bir işim var mı", "full": "{\"args\":{\"day\":\"d+0\"},\"cmd\":\"calendar.list\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "toplantım var mı, öbür gün rica etsem", "full": "{\"args\":{\"day\":\"d+2\"},\"cmd\":\"calendar.list\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "proje durumu becerisini başlat: telefonun yedeği alınacak rica etsem", "full": "{\"args\":{\"input\":\"telefonun yedeği alınacak\",\"name\":\"proje durumu\"},\"cmd\":\"skill.run\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "acaba ne yapabilirsin", "full": "{\"args\":{},\"cmd\":\"help\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "acaba Maya kargo teslimi var, 14 şubatta sabah 10'da haber ver", "full": "{\"args\":{\"at\":\"02-14@10:00\",\"repeat\":\"none\",\"text\":\"kargo teslimi\"},\"cmd\":\"reminder.set\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
@@ -690,13 +691,14 @@
 {"split": "test_ood", "src": "eklediğim belgenin ayrıntılı özetini geç", "full": "{\"args\":{\"length\":\"long\",\"uri\":\"content://orion/ek\"},\"cmd\":\"file.summarize\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "David yeni mail var mı teşekkürler", "full": "{\"args\":{\"count\":5,\"unread\":true},\"cmd\":\"mail.check\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "hey Orion bir tercihim var: notları madde madde yaz rica etsem", "full": "{\"args\":{\"kind\":\"preference\",\"text\":\"notları madde madde yaz\"},\"cmd\":\"memory.save\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "hey Orion Jack'e yardımcı ajan al: kısa ve net özet çıkaran editör rica etsem", "full": "{\"args\":{\"helps\":\"jack\",\"role\":\"kısa ve net özet çıkaran editör\"},\"cmd\":\"agent.hire\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "lütfen notlarımda araba geçiyor mu", "full": "{\"args\":{\"limit\":10,\"query\":\"araba\"},\"cmd\":\"note.search\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "nasıl kullanılırsın", "full": "{\"args\":{},\"cmd\":\"help\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "becerileri listele", "full": "{\"args\":{},\"cmd\":\"skill.list\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "hey Orion 2 dakika sayabilir misin", "full": "{\"args\":{\"minutes\":2},\"cmd\":\"timer.start\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "dişçi, saat 7'de, planlar mısın.", "full": "{\"args\":{\"minutes\":60,\"start\":\"d+0@07:00\",\"title\":\"dişçi\"},\"cmd\":\"calendar.add\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "toplantı notlarını göndermek var, 15 ocak gece 10:05'te beni uyarsın.", "full": "{\"args\":{\"at\":\"01-15@22:05\",\"repeat\":\"none\",\"text\":\"toplantı notlarını göndermek\"},\"cmd\":\"reminder.set\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "hey Orion Jack, EkBot'a yardımcı ajan al: kısa ve net özet çıkaran editör", "full": "{\"args\":{\"helps\":\"ekbot\",\"role\":\"kısa ve net özet çıkaran editör\"},\"cmd\":\"agent.hire\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "Orion, Arapça çevirisi: laptop pili zayıfladı teşekkürler", "full": "{\"args\":{\"text\":\"laptop pili zayıfladı\",\"to\":\"ar\"},\"cmd\":\"text.translate\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "notlarda bütçe geçenleri bul", "full": "{\"args\":{\"limit\":10,\"query\":\"bütçe\"},\"cmd\":\"note.search\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "dişçi kontrolü altı ayda bir, not bırak", "full": "{\"args\":{\"text\":\"dişçi kontrolü altı ayda bir\"},\"cmd\":\"note.write\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "telefondaki uygulamalar neler teşekkürler", "full": "{\"args\":{},\"cmd\":\"app.list\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "Grace'e yardımcı ajan al: kaynakları doğrulayan titiz araştırmacı teşekkürler", "full": "{\"args\":{\"helps\":\"grace\",\"role\":\"kaynakları doğrulayan titiz araştırmacı\"},\"cmd\":\"agent.hire\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "lütfen deprem neden önemli?", "full": "{\"args\":{\"question\":\"deprem neden önemli\"},\"cmd\":\"ask\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "Play Store'da kotlin dersleri göster.", "full": "{\"args\":{\"name\":\"Play Store\",\"query\":\"kotlin dersleri\"},\"cmd\":\"app.open\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "ekteki pdf'in özetini geç", "full": "{\"args\":{\"length\":\"short\",\"uri\":\"content://orion/ek\"},\"cmd\":\"file.summarize\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "lütfen ekteki pdf'i kısaca özetler misin", "full": "{\"args\":{\"length\":\"short\",\"uri\":\"content://orion/ek\"},\"cmd\":\"file.summarize\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "açıkla: bağışıklık sistemi iyi mi kötü mü", "full": "{\"args\":{\"question\":\"bağışıklık sistemi iyi mi kötü mü\"},\"cmd\":\"ask\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
@@ -759,21 +761,22 @@
 {"split": "test_ood", "src": "lütfen şu görsele bir bak: hangi butona basmalıyım teşekkürler", "full": "{\"args\":{\"question\":\"hangi butona basmalıyım\",\"uri\":\"content://orion/ek\"},\"cmd\":\"image.analyze\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "Orion, Jack sayaç başlat: 10 dakika", "full": "{\"args\":{\"minutes\":10},\"cmd\":\"timer.start\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "yeni beceri: haftalık harcamalarımı notlardan derle", "full": "{\"args\":{\"goal\":\"haftalık harcamalarımı notlardan derle\"},\"cmd\":\"skill.learn\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "Mike sayaç kursun: 3 dakika.", "full": "{\"args\":{\"minutes\":3},\"cmd\":\"timer.start\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "unutmamak için kaydet — yeni dil öğrenme planı.", "full": "{\"args\":{\"text\":\"yeni dil öğrenme planı\"},\"cmd\":\"note.write\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "lütfen ne yapabildiğini göster", "full": "{\"args\":{},\"cmd\":\"help\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "torvalds/linux reposunun son halini gözden geçir.", "full": "{\"args\":{\"repo\":\"torvalds/linux\",\"scope\":\"summary\"},\"cmd\":\"repo.audit\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "notlarımdan harcama olanları listeleyebilir misin.", "full": "{\"args\":{\"limit\":10,\"query\":\"harcama\"},\"cmd\":\"note.search\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "eczaneye uğramayı salı saat 17'de aklıma getir teşekkürler", "full": "{\"args\":{\"at\":\"tue@17:00\",\"repeat\":\"none\",\"text\":\"eczaneye uğramak\"},\"cmd\":\"reminder.set\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "Chloe fütüristik bir telefon görseli üret", "full": "{\"args\":{\"prompt\":\"fütüristik bir telefon\",\"size\":\"square\"},\"cmd\":\"image.generate\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "Orion, yeni beceri: işe yarar ücretsiz araçlar bulup listele", "full": "{\"args\":{\"goal\":\"işe yarar ücretsiz araçlar bulup listele\"},\"cmd\":\"skill.learn\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "Orion, son 3 adımı beceri olarak kaydet: gün sonu raporu teşekkürler", "full": "{\"args\":{\"count\":3,\"name\":\"gün sonu raporu\"},\"cmd\":\"skill.record\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "lütfen ekli metni uzun uzun özetle", "full": "{\"args\":{\"length\":\"long\",\"uri\":\"content://orion/ek\"},\"cmd\":\"file.summarize\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "bunu bil: raporlar kısa olsun rica etsem", "full": "{\"args\":{\"kind\":\"note\",\"text\":\"raporlar kısa olsun\"},\"cmd\":\"memory.save\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "acaba şu görsele bir bak: bu hata nasıl düzelir", "full": "{\"args\":{\"question\":\"bu hata nasıl düzelir\",\"uri\":\"content://orion/ek\"},\"cmd\":\"image.analyze\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "'Rakip fiyatları' başlıklı bir araştırma kartı ekle.", "full": "{\"args\":{\"kind\":\"research\",\"refresh\":\"none\",\"size\":\"half\",\"source\":\"manual\",\"title\":\"Rakip fiyatları\"},\"cmd\":\"card.propose\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "hey Orion veli toplantısı için yarın saat 15:40'ta ajandama yaz lütfen", "full": "{\"args\":{\"minutes\":60,\"start\":\"d+1@15:40\",\"title\":\"veli toplantısı\"},\"cmd\":\"calendar.add\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "lütfen Emma, bugün saat 07:05'te etkinlik oluştur: maç rica etsem", "full": "{\"args\":{\"minutes\":60,\"start\":\"d+0@07:05\",\"title\":\"maç\"},\"cmd\":\"calendar.add\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "Orion sayaç kursun: 3 dakika", "full": "{\"args\":{\"minutes\":3},\"cmd\":\"timer.start\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "telefondaki uygulamalar neler rica etsem", "full": "{\"args\":{},\"cmd\":\"app.list\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "acaba 8 haziran saat 18 buçukta ders çalışmayı aklıma getir", "full": "{\"args\":{\"at\":\"06-08@18:30\",\"repeat\":\"none\",\"text\":\"ders çalışmak\"},\"cmd\":\"reminder.set\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "coin fiyatlarına bak rica etsem", "full": "{\"args\":{\"currency\":\"try\"},\"cmd\":\"market.crypto\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "hey Orion Spotify uygulamasını aç", "full": "{\"args\":{\"name\":\"Spotify\"},\"cmd\":\"app.open\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "pazartesi saat 14:05'te bana mola vermek için hatırlatıcı oluştur rica etsem", "full": "{\"args\":{\"at\":\"mon@14:05\",\"repeat\":\"none\",\"text\":\"mola vermek\"},\"cmd\":\"reminder.set\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "Emma'ya yardımcı ajan al: kod örneklerini inceleyen yazılımcı.", "full": "{\"args\":{\"helps\":\"emma\",\"role\":\"kod örneklerini inceleyen yazılımcı\"},\"cmd\":\"agent.hire\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "acaba yağmurlu bir Kadıköy sokağı görseli üret", "full": "{\"args\":{\"prompt\":\"yağmurlu bir Kadıköy sokağı\",\"size\":\"square\"},\"cmd\":\"image.generate\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "hey Orion haftalık harcama 1200 lira, notlara ekleyebilir misin teşekkürler", "full": "{\"args\":{\"text\":\"haftalık harcama 1200 lira\"},\"cmd\":\"note.write\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "postalarıma bak", "full": "{\"args\":{\"count\":5,\"unread\":true},\"cmd\":\"mail.check\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "notlarımda araba bir bak", "full": "{\"args\":{\"limit\":10,\"query\":\"araba\"},\"cmd\":\"note.search\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "kitap notlarını bir bak rica etsem", "full": "{\"args\":{\"limit\":10,\"query\":\"kitap\"},\"cmd\":\"note.search\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "hey Orion not bırak — bahçeye domates ekilecek", "full": "{\"args\":{\"text\":\"bahçeye domates ekilecek\"},\"cmd\":\"note.write\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "güncelleme var mı rica etsem", "full": "{\"args\":{},\"cmd\":\"self.status\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "acaba benim alışkanlıklarım hakkında ne biliyorsun teşekkürler", "full": "{\"args\":{\"query\":\"alışkanlıklarım\"},\"cmd\":\"memory.recall\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "lütfen şu görsele bir bak: fiyat ne kadar rica etsem", "full": "{\"args\":{\"question\":\"fiyat ne kadar\",\"uri\":\"content://orion/ek\"},\"cmd\":\"image.analyze\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "lütfen yeni proje fikri: telefonla çalışan ajan ekibi, notlarıma ekle teşekkürler", "full": "{\"args\":{\"text\":\"yeni proje fikri: telefonla çalışan ajan ekibi\"},\"cmd\":\"note.write\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "Google'da android geliştirme bul", "full": "{\"args\":{\"name\":\"Google\",\"query\":\"android geliştirme\"},\"cmd\":\"app.open\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "Haftalık harcama için liste kartı tasarla rica etsem", "full": "{\"args\":{\"kind\":\"list\",\"refresh\":\"none\",\"size\":\"half\",\"source\":\"manual\",\"title\":\"Haftalık harcama\"},\"cmd\":\"card.propose\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
@@ -847,12 +850,11 @@
 {"split": "test_ood", "src": "acaba yarın saat 18:20'de programıma ekle: kuaför", "full": "{\"args\":{\"minutes\":60,\"start\":\"d+1@18:20\",\"title\":\"kuaför\"},\"cmd\":\"calendar.add\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "becerilerin ne", "full": "{\"args\":{},\"cmd\":\"skill.list\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "Orion, bu gün toplantım var mı", "full": "{\"args\":{\"day\":\"d+0\"},\"cmd\":\"calendar.list\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "acaba Luna, bu belgenin orta uzunlukta özetini geç teşekkürler", "full": "{\"args\":{\"length\":\"medium\",\"uri\":\"content://orion/ek\"},\"cmd\":\"file.summarize\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "Orion, hakkımda bildiklerini göster teşekkürler", "full": "{\"args\":{},\"cmd\":\"memory.recall\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "şu görsele bir bak: bu kod neden çalışmıyor", "full": "{\"args\":{\"question\":\"bu kod neden çalışmıyor\",\"uri\":\"content://orion/ek\"},\"cmd\":\"image.analyze\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "beceri olarak kaydet: kodları Kotlin ile yaz.", "full": "{\"args\":{\"kind\":\"skill\",\"text\":\"kodları Kotlin ile yaz\"},\"cmd\":\"memory.save\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "Orion, alışkanlıklarım hakkında ne biliyorsun", "full": "{\"args\":{\"query\":\"alışkanlıklarım\"},\"cmd\":\"memory.recall\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "unutmamak için kaydedebilir misin: kahve çekirdeği bitti", "full": "{\"args\":{\"text\":\"kahve çekirdeği bitti\"},\"cmd\":\"note.write\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "Orion, Orion bu belgenin orta uzunlukta özetini geç.", "full": "{\"args\":{\"length\":\"medium\",\"uri\":\"content://orion/ek\"},\"cmd\":\"file.summarize\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "lütfen kuaför, 23 mayıs akşam yedi buçukta, takvime kaydedebilir misin.", "full": "{\"args\":{\"minutes\":60,\"start\":\"05-23@19:30\",\"title\":\"kuaför\"},\"cmd\":\"calendar.add\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "acaba fütüristik bir telefon görseli üret teşekkürler", "full": "{\"args\":{\"prompt\":\"fütüristik bir telefon\",\"size\":\"square\"},\"cmd\":\"image.generate\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "6 ile 7 toplamı kaç eder", "full": "{\"args\":{\"expr\":\"6+7\"},\"cmd\":\"calc.eval\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "son 10 maili göster", "full": "{\"args\":{\"count\":10,\"unread\":true},\"cmd\":\"mail.check\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "lütfen yeni mail var mı.", "full": "{\"args\":{\"count\":5,\"unread\":true},\"cmd\":\"mail.check\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "lütfen soru: fotosentez iyi mi kötü mü", "full": "{\"args\":{\"question\":\"fotosentez iyi mi kötü mü\"},\"cmd\":\"ask\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "acaba Proje ilerlemesi için geri sayım kartı tasarla", "full": "{\"args\":{\"kind\":\"timer\",\"refresh\":\"none\",\"size\":\"half\",\"source\":\"manual\",\"title\":\"Proje ilerlemesi\"},\"cmd\":\"card.propose\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
@@ -882,7 +884,7 @@
 {"split": "test_ood", "src": "deniz kenarında bir deniz feneri resmini çiz", "full": "{\"args\":{\"prompt\":\"deniz kenarında bir deniz feneri\",\"size\":\"square\"},\"cmd\":\"image.generate\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "lütfen güncelleme var mı teşekkürler", "full": "{\"args\":{},\"cmd\":\"self.status\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "acaba yeni beceri: yeni çıkan Android güncellemelerini takip et", "full": "{\"args\":{\"goal\":\"yeni çıkan Android güncellemelerini takip et\"},\"cmd\":\"skill.learn\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "Orion benim eşim hakkında neler hatırlıyorsun", "full": "{\"args\":{\"query\":\"eşim\"},\"cmd\":\"memory.recall\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "EkBot benim eşim hakkında neler hatırlıyorsun", "full": "{\"args\":{\"query\":\"eşim\"},\"cmd\":\"memory.recall\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "Rusça çevirisi: sunum slaytları hazır.", "full": "{\"args\":{\"text\":\"sunum slaytları hazır\",\"to\":\"ru\"},\"cmd\":\"text.translate\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "acaba 64 ile 150 bölümü kaç", "full": "{\"args\":{\"expr\":\"64/150\"},\"cmd\":\"calc.eval\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "yarın bir işim var mı", "full": "{\"args\":{\"day\":\"d+1\"},\"cmd\":\"calendar.list\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
@@ -931,7 +933,7 @@
 {"split": "test_ood", "src": "şu konuyu araştırma yap: kripto vergileri lütfen", "full": "{\"args\":{\"depth\":\"normal\",\"topic\":\"kripto vergileri\"},\"cmd\":\"research.start\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "Chloe, Haftalık harcama için araştırma kartı tasarla", "full": "{\"args\":{\"kind\":\"research\",\"refresh\":\"none\",\"size\":\"half\",\"source\":\"manual\",\"title\":\"Haftalık harcama\"},\"cmd\":\"card.propose\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "acaba Emma, yardımcı ajan al: kaynakları doğrulayan titiz araştırmacı", "full": "{\"args\":{\"helps\":\"sophia\",\"role\":\"kaynakları doğrulayan titiz araştırmacı\"},\"cmd\":\"agent.hire\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "Maya okuma listesi becerisini çalıştır: sunum slaytları hazır", "full": "{\"args\":{\"input\":\"sunum slaytları hazır\",\"name\":\"okuma listesi\"},\"cmd\":\"skill.run\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "Orion okuma listesi becerisini çalıştır: sunum slaytları hazır", "full": "{\"args\":{\"input\":\"sunum slaytları hazır\",\"name\":\"okuma listesi\"},\"cmd\":\"skill.run\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "fotoğraftaki hatayı çöz lütfen", "full": "{\"args\":{\"question\":\"hatayı çöz\",\"uri\":\"content://orion/ek\"},\"cmd\":\"image.analyze\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "bunu bil: akşam 10'dan sonra rahatsız etme", "full": "{\"args\":{\"kind\":\"note\",\"text\":\"akşam 10'dan sonra rahatsız etme\"},\"cmd\":\"memory.save\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "lütfen 'Su tüketimi' başlıklı bir grafik kartı ekle", "full": "{\"args\":{\"kind\":\"chart\",\"refresh\":\"none\",\"size\":\"half\",\"source\":\"manual\",\"title\":\"Su tüketimi\"},\"cmd\":\"card.propose\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
@@ -945,8 +947,8 @@
 {"split": "test_ood", "src": "bitcoin kaç para teşekkürler", "full": "{\"args\":{\"coin\":\"bitcoin\",\"currency\":\"try\"},\"cmd\":\"market.crypto\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "doğum günü listesi, bir kenara yaz", "full": "{\"args\":{\"text\":\"doğum günü listesi\"},\"cmd\":\"note.write\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "hey Orion Luna ne yapabildiğini göster lütfen", "full": "{\"args\":{},\"cmd\":\"help\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "Mike'a yardımcı ajan al: görsel fikir üreten tasarımcı rica etsem", "full": "{\"args\":{\"helps\":\"mike\",\"role\":\"görsel fikir üreten tasarımcı\"},\"cmd\":\"agent.hire\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "lütfen not bırak — toplantıda bütçe konuşulacak", "full": "{\"args\":{\"text\":\"toplantıda bütçe konuşulacak\"},\"cmd\":\"note.write\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "EkBot'a yardımcı ajan al: görsel fikir üreten tasarımcı", "full": "{\"args\":{\"helps\":\"ekbot\",\"role\":\"görsel fikir üreten tasarımcı\"},\"cmd\":\"agent.hire\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "lütfen bu gün bir işim var mı", "full": "{\"args\":{\"day\":\"d+0\"},\"cmd\":\"calendar.list\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "hey Orion sinema, cuma 11:20'de, etkinlik ekle", "full": "{\"args\":{\"minutes\":60,\"start\":\"fri@11:20\",\"title\":\"sinema\"},\"cmd\":\"calendar.add\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "gelişimini kontrol et.", "full": "{\"args\":{},\"cmd\":\"self.status\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "Orion, eczaneye uğramayı unutmayayım, 4 mayıs saat 14'te aklıma getir", "full": "{\"args\":{\"at\":\"05-04@14:00\",\"repeat\":\"none\",\"text\":\"eczaneye uğramak\"},\"cmd\":\"reminder.set\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
@@ -956,7 +958,7 @@
 {"split": "test_ood", "src": "yarın toplantım var mı", "full": "{\"args\":{\"day\":\"d+1\"},\"cmd\":\"calendar.list\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "onay kartı istiyorum: Su tüketimi", "full": "{\"args\":{\"kind\":\"approval\",\"refresh\":\"none\",\"size\":\"half\",\"source\":\"manual\",\"title\":\"Su tüketimi\"},\"cmd\":\"card.propose\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "hey Orion eczaneye uğramayı unutmayayım, 09:45'te unutturma", "full": "{\"args\":{\"at\":\"d+0@09:45\",\"repeat\":\"none\",\"text\":\"eczaneye uğramak\"},\"cmd\":\"reminder.set\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "Orion, bağışıklık sistemi iyi mi kötü mü? lütfen", "full": "{\"args\":{\"question\":\"bağışıklık sistemi iyi mi kötü mü\"},\"cmd\":\"ask\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "EkBot, bağışıklık sistemi iyi mi kötü mü? lütfen", "full": "{\"args\":{\"question\":\"bağışıklık sistemi iyi mi kötü mü\"},\"cmd\":\"ask\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "Orion, son 3 maili göster", "full": "{\"args\":{\"count\":3,\"unread\":true},\"cmd\":\"mail.check\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "1 dakikalık kitap okuma sayabilir misin lütfen", "full": "{\"args\":{\"label\":\"kitap okuma\",\"minutes\":1},\"cmd\":\"timer.start\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "kamp ekipmanı için kısaca araştırma hazırla rica etsem", "full": "{\"args\":{\"depth\":\"quick\",\"topic\":\"kamp ekipmanı\"},\"cmd\":\"research.start\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
@@ -986,7 +988,7 @@
 {"split": "test_ood", "src": "hatırlatıcılarım söyle rica etsem", "full": "{\"args\":{},\"cmd\":\"reminder.list\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "hey Orion Melis'dan mail geldi mi", "full": "{\"args\":{\"count\":5,\"query\":\"Melis\",\"unread\":true},\"cmd\":\"mail.check\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "İtalyanca çevirisi: kursun ödevi perşembeye rica etsem", "full": "{\"args\":{\"text\":\"kursun ödevi perşembeye\",\"to\":\"it\"},\"cmd\":\"text.translate\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "David'e yardımcı ajan al: Türkçe metinleri düzelten yazım uzmanı lütfen", "full": "{\"args\":{\"helps\":\"david\",\"role\":\"Türkçe metinleri düzelten yazım uzmanı\"},\"cmd\":\"agent.hire\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
+{"split": "test_ood", "src": "EkBot'a yardımcı ajan al: Türkçe metinleri düzelten yazım uzmanı lütfen", "full": "{\"args\":{\"helps\":\"ekbot\",\"role\":\"Türkçe metinleri düzelten yazım uzmanı\"},\"cmd\":\"agent.hire\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "kitap önerisi: Sapiens, notlara ekle", "full": "{\"args\":{\"text\":\"kitap önerisi: Sapiens\"},\"cmd\":\"note.write\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "hey Orion şu konuyu kısa bir araştır: Xiaomi Note 13 Pro güncellemeleri teşekkürler", "full": "{\"args\":{\"depth\":\"quick\",\"topic\":\"Xiaomi Note 13 Pro güncellemeleri\"},\"cmd\":\"research.start\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "hey Orion bunu bil: raporlar kısa olsun teşekkürler", "full": "{\"args\":{\"kind\":\"note\",\"text\":\"raporlar kısa olsun\"},\"cmd\":\"memory.save\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
@@ -996,5 +998,3 @@
 {"split": "test_ood", "src": "hediye notlarını bir baksın", "full": "{\"args\":{\"limit\":10,\"query\":\"hediye\"},\"cmd\":\"note.search\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "notlarımdan proje olanları göster.", "full": "{\"args\":{\"limit\":10,\"query\":\"proje\"},\"cmd\":\"note.search\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
 {"split": "test_ood", "src": "eczaneye uğramayı unutmayayım, 1 ocakta akşam 8 buçukta unutturma", "full": "{\"args\":{\"at\":\"01-01@20:30\",\"repeat\":\"none\",\"text\":\"eczaneye uğramak\"},\"cmd\":\"reminder.set\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "acaba dişçi kontrolü altı ayda bir, not defterime ekler misin teşekkürler", "full": "{\"args\":{\"text\":\"dişçi kontrolü altı ayda bir\"},\"cmd\":\"note.write\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}
-{"split": "test_ood", "src": "analiz et: google/guava", "full": "{\"args\":{\"repo\":\"google/guava\",\"scope\":\"summary\"},\"cmd\":\"repo.audit\",\"ctx\":{},\"id\":\"g\",\"v\":1}"}

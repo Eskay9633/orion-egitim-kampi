@@ -13,14 +13,15 @@ import pytest
 
 from orion_core import SHARED, datagen
 
-# Değerlendirme (evaluate.run_eval) ve kalibrasyon kümelerinin parmak izi: Tur 18 öncesiyle aynı.
+# Değerlendirme (evaluate.run_eval) ve kalibrasyon kümelerinin parmak izi. 2026-11-13: EkBot onuncu ajan olarak
+# eklendi (sahibin isteği); ajan adları cümlelere girdiği için kümeler yeniden üretildi. Eşikler değişmedi.
 SPLIT_SHA = {
-    ("test_iid", 600, 101): "28f218fa29e133bfbda790bb3b1e75a5781e43221f1f87aa0532579aa304578f",
-    ("test_ood", 400, 202): "a797388390c31b7f8e19ddb1e805730625c14c2f77d4dd8b3f9de6cb2213fd5b",
+    ("test_iid", 600, 101): "f3e5733b678ca42f9cb2f524aa5624dd13b060114bca6ae8b41c778cfc666c54",
+    ("test_ood", 400, 202): "dee58585be2331248ed8a75f70b47fcd56c411489c2abf8aad80caabe7af6e68",
     ("legacy_ood", 400, 202): "4f70a34c5817c5825744a6585a8166f11867c24fe124e1788d67c6c4c8886cc7",
-    ("test_iid", 1000, 707): "a7b5af4033433528633eee89a6964b6ea736ee713f29034181e19a15a8b84c47",
-    ("test_ood", 1000, 909): "d13fe0fa221e05a5c2988a3fd09e3fc102882e619ac2491dc088b19656f59cd3",
-    ("legacy_ood", 1000, 808): "4472a58fcb65c658a251786280d0ed6101a0a144f4c561e37edfc646691395c2",
+    ("test_iid", 1000, 707): "a5561c736a70542d77793387fd1f4b25500e4dc59478916afab7e494286a7f9b",
+    ("test_ood", 1000, 909): "a4447eb525479effa00bbd09f512c7b8c273e057189be7182771f4241c28454b",
+    ("legacy_ood", 1000, 808): "68af039f6d4094ede215705b726d24b121db8425489f36d900fffe84796401bb",
 }
 
 # Tur 14 karşıt grupları: ayrılmış fiil/yüklem parçalarını içermedikleri test_datagen_tur14'te denetlenir. Sözcük

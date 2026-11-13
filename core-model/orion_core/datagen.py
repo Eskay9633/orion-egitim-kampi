@@ -1351,7 +1351,8 @@ SKILL_GOALS = ["her sabah takvimimi ve kripto piyasasını özetle", "github'da 
 ROLES = ["kaynakları doğrulayan titiz araştırmacı", "kod örneklerini inceleyen yazılımcı", "kısa ve net özet çıkaran editör",
          "fiyat ve piyasa verisini yorumlayan analist", "Türkçe metinleri düzelten yazım uzmanı", "görsel fikir üreten tasarımcı"]
 AGENT_TR = [("Sophia", "sophia", "'ya"), ("Jack", "jack", "'e"), ("Emma", "emma", "'ya"), ("Chloe", "chloe", "'ye"),
-            ("Luna", "luna", "'ya"), ("Mike", "mike", "'a"), ("David", "david", "'e"), ("Maya", "maya", "'ya"), ("Grace", "grace", "'e")]
+            ("Luna", "luna", "'ya"), ("Mike", "mike", "'a"), ("David", "david", "'e"), ("Maya", "maya", "'ya"), ("Grace", "grace", "'e"),
+            ("EkBot", "ekbot", "'a")]
 
 
 def g_skill_run(rng, sp, hf, hv):
@@ -1496,7 +1497,7 @@ GRAMMAR = {
 GRAMMAR_FRAC = 0.75
 
 
-AGENT_NAMES = ["Mike", "Sophia", "Emma", "Luna", "David", "Jack", "Chloe", "Grace", "Maya", "Orion"]
+AGENT_NAMES = ["Mike", "Sophia", "Emma", "Luna", "David", "Jack", "Chloe", "Grace", "Maya", "EkBot", "Orion"]
 
 
 # --------------------------------------------------------------------------- karşıt çiftler (Tur 14)

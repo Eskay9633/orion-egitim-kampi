@@ -1,0 +1,98 @@
+name: komut-beyni-surekli
+
+# Komut beyni (Türkçe → makine dili) gün boyu eğitim (sahibin isteği 2026-11-13: "komut beyni sohbet beyninin gerisinde
+# kaldı; github'da gün boyu eğitiriz"). Her 6 saatte bir iş başlar, önceki işin checkpoint'inden (önbellek) devam eder
+# (~5 saat), sonra değerlendirir. Güvenlik tabanını (app-floor.json) geçerse "komut-s-..." Release'i yayınlanır; işlem
+# deposunun içe aktarıcısı yalnızca elle yazılmış sınavda mevcut modelden iyi ya da eşitse alır. Eşikler değişmez.
+# Veri üreticisi / protokol değişince önbellek anahtarı değişir ve eğitim sıfırdan başlar.
+on:
+  schedule:
+    - cron: '41 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      steps:
+        description: 'Toplam hedef adım (devam eden eğitimin hedefi)'
+        default: '80000'
+  push:
+    branches: [main]
+    paths:
+      - 'kaggle/komut-surekli-istek.txt'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: komut-beyni-surekli
+  cancel-in-progress: false
+
+env:
+  TOTAL_STEPS: ${{ inputs.steps || '80000' }}
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bağımlılıklar
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -r core-model/requirements.txt
+      - name: Testler
+        working-directory: core-model
+        run: python -m pytest -q tests
+      - name: Dış veri (MASSIVE + xSID)
+        working-directory: core-model
+        run: python -m orion_core.massive prepare --out work/ext --download
+      - name: Önceki checkpoint (önbellek)
+        id: restore
+        uses: actions/cache/restore@v4
+        with:
+          path: core-model/work/run
+          key: komut-surekli-${{ hashFiles('core-model/orion_core/datagen.py', 'core-model/orion_core/grammar.py', 'core-model/orion_core/copy.py', 'core-model/orion_core/massive.py', 'core-model/orion_core/train.py', 'core-model/orion_core/bpe.py', 'shared/protocol/**') }}-${{ github.run_id }}
+          restore-keys: |
+            komut-surekli-${{ hashFiles('core-model/orion_core/datagen.py', 'core-model/orion_core/grammar.py', 'core-model/orion_core/copy.py', 'core-model/orion_core/massive.py', 'core-model/orion_core/train.py', 'core-model/orion_core/bpe.py', 'shared/protocol/**') }}-
+      - name: Eğit (kaldığı yerden, ~5 saat)
+        working-directory: core-model
+        run: |
+          python -m orion_core.train --out work/run --steps "$TOTAL_STEPS" --time-budget-min 290 --ext-data work/ext --ext-frac 0.05
+          cat work/run/status.json
+      - name: Checkpoint'i sakla (sonraki iş devam etsin)
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: core-model/work/run
+          key: komut-surekli-${{ hashFiles('core-model/orion_core/datagen.py', 'core-model/orion_core/grammar.py', 'core-model/orion_core/copy.py', 'core-model/orion_core/massive.py', 'core-model/orion_core/train.py', 'core-model/orion_core/bpe.py', 'shared/protocol/**') }}-${{ github.run_id }}
+      - name: Dışa aktar + manifest
+        working-directory: core-model
+        run: |
+          python -m orion_core.export --run work/run --out work/export
+          python -m orion_core.manifest --dir work/export --run work/run --ext-data work/ext
+      # Eğitimin başında taban geçilmeyebilir: o zaman Release yok, iş yeşil kalır, sonraki iş devam eder.
+      - name: Güvenlik tabanı
+        id: gate
+        continue-on-error: true
+        working-directory: core-model
+        run: python -m orion_core.evaluate --model work/export --gate --ext-data work/ext
+      - name: Release olarak yayınla
+        if: steps.gate.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          STEP=$(python -c "import json;print(json.load(open('core-model/work/run/status.json'))['step'])")
+          TAG="komut-s-$(date -u +%Y%m%d-%H%M)-a${STEP}"
+          NOTES=$(python -c "import json;m=json.load(open('core-model/work/export/manifest.json'));print(json.dumps(m['eval'],ensure_ascii=False))")
+          cd core-model/work/export
+          cp ../../../shared/core-model/DIS-VERI.md .
+          gh release create "$TAG" model.bin tokenizer.json parity.json manifest.json eval.json DIS-VERI.md \
+            --target "$GITHUB_SHA" --title "Komut beyni (sürekli) $TAG" --notes "Adım $STEP / $TOTAL_STEPS · $NOTES"
+      - name: Özet
+        if: always()
+        run: |
+          echo "### Komut beyni sürekli eğitim" >> "$GITHUB_STEP_SUMMARY"
+          cat core-model/work/run/status.json >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Güvenlik tabanı: ${{ steps.gate.outcome }}" >> "$GITHUB_STEP_SUMMARY"

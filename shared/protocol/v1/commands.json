@@ -420,8 +420,8 @@
       }
     },
     "market.crypto": {
-      "agent": "chloe",
-      "doc": "Kripto para piyasası: genel durum (en büyük 10) ya da tek bir coinin fiyatı ve 24 saatlik değişimi. CoinGecko (anahtarsız; şartları doğrulanmadı).",
+      "agent": "ekbot",
+      "doc": "Kripto para piyasası: genel durum (hacmi en büyük 10) ya da tek bir coinin fiyatı ve 24 saatlik değişimi. Binance Global herkese açık verisi (anahtarsız; EK BOT ile aynı kaynak).",
       "needs_net": true,
       "effect": "read",
       "args": {
@@ -613,7 +613,8 @@
             "jack",
             "chloe",
             "grace",
-            "maya"
+            "maya",
+            "ekbot"
           ],
           "default": "sophia"
         }
@@ -664,7 +665,8 @@
     "jack",
     "chloe",
     "grace",
-    "maya"
+    "maya",
+    "ekbot"
   ],
   "statuses": [
     "ok",
