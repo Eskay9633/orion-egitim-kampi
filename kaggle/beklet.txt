@@ -1,1 +1,0 @@
-Sahibin kararı 2026-11-13: yeni veriler hazır olmadan Kaggle sohbet oturumu başlatılmaz. Kaldırınca (ya da elle başlatınca) devam eder.

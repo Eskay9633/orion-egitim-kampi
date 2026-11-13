@@ -206,11 +206,24 @@ jobs:
           JSON
           # dev (~361M): iki T4 kartı iste (tensör çekirdekli; P100'den hızlı, DataParallel ile 2 kart). Alan Kaggle
           # API'sinde tanınmazsa (doğrulanmadı) itme hatası verir: o zaman alan olmadan yeniden itilir.
+          # Kaggle aracı hata verse de çıkış kodu 0 dönüyor (2026-11-09..13: "Maximum weekly GPU quota" 4 gün yeşil
+          # göründü). Bu yüzden çıktı okunur: kota dolu → sarı uyarı; başka hata → kırmızı.
+          : > push.log
+          kpush() { kaggle kernels push -p kpush 2>&1 | tee -a push.log; }
           if [ "$SIZE" = "dev" ]; then
             python3 -c "import json;p='kpush/kernel-metadata.json';m=json.load(open(p));m['machine_shape']='NvidiaTeslaT4';json.dump(m,open(p,'w'))"
-            kaggle kernels push -p kpush || { python3 -c "import json;p='kpush/kernel-metadata.json';m=json.load(open(p));m.pop('machine_shape',None);json.dump(m,open(p,'w'))"; kaggle kernels push -p kpush; }
+            kpush
+            if grep -qi "error" push.log && ! grep -qi "quota" push.log; then
+              python3 -c "import json;p='kpush/kernel-metadata.json';m=json.load(open(p));m.pop('machine_shape',None);json.dump(m,open(p,'w'))"
+              : > push.log; kpush
+            fi
           else
-            kaggle kernels push -p kpush
+            kpush
+          fi
+          if grep -qi "quota" push.log; then
+            echo "::warning::Kaggle haftalık GPU kotası dolu; yeni oturum açılmadı. Kota genelde Cumartesi 00:00 UTC (TSİ 03:00) yenilenir (doğrulanmadı; kesin bilgi Kaggle → Settings)."
+          elif grep -qi "error" push.log; then
+            echo "::error::Kaggle oturumu başlatılamadı: $(grep -i error push.log | tail -1)"; exit 1
           fi
       - name: Hedefi depoya yaz (zamanlanmış toplama için)
         if: github.event_name == 'workflow_dispatch' && steps.k.outputs.ok == 'true'

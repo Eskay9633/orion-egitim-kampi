@@ -706,6 +706,7 @@ TEMPLATES: dict[str, list[Gen]] = {
     "code.run": [lambda rng, sp: g_code_run(rng, sp, False, False)] * 3,
     "code.repo": [lambda rng, sp: g_code_repo(rng, sp, False, False)] * 3,
     "work.check": [lambda rng, sp: g_work_check(rng, sp, False, False)] * 3,
+    "market.alert": [lambda rng, sp: g_alert(rng, sp, False, False)] * 3,
 }
 
 # Komut ağırlıkları (gerçek kullanım tahmini; çok değerli olanlar daha sık)
@@ -713,7 +714,7 @@ WEIGHTS = {
     "reminder.set": 6, "reminder.list": 1, "note.write": 4, "note.search": 3, "research.start": 3,
     "repo.audit": 2, "calendar.add": 4, "calendar.list": 2, "file.summarize": 1, "image.analyze": 2, "image.generate": 2, "card.propose": 3,
     "timer.start": 2, "provider.discover": 1, "health.check": 1, "memory.save": 2, "ask": 3, "calc.eval": 2, "text.translate": 2, "market.crypto": 2, "skill.run": 2, "skill.list": 1, "skill.learn": 2, "skill.record": 1, "agent.hire": 1, "mail.check": 2, "mail.send": 1, "self.status": 1, "app.open": 2, "app.list": 1, "memory.recall": 1, "self.advise": 1, "help": 1,
-    "code.run": 2, "code.repo": 1, "work.check": 1,
+    "code.run": 2, "code.repo": 1, "work.check": 1, "market.alert": 2,
 }
 
 
@@ -817,6 +818,7 @@ PLANS = {
     "code.run": ["net.check", "helper.write", "sandbox.run", "tests.run", "review.check", "card.render"],
     "code.repo": ["net.check", "github.read", "helper.write", "scope.check", "review.check", "proposal.create", "user.confirm"],
     "work.check": ["history.read", "net.check", "provider.ask", "provider.ask", "card.render"],
+    "market.alert": ["market.read", "alert.save", "card.render"],
     "help": ["commands.list"],
 }
 
@@ -1331,6 +1333,49 @@ CRYPTO_ONE = ["{C} kaç {P}", "{C} fiyatı ne", "{C} ne durumda", "{C} kaç para
 CUR_WORDS = [("lira", "try"), ("TL", "try"), ("dolar", "usd"), ("euro", "eur")]
 
 
+# EkBot fiyat alarmı (2026-11-13): "bitcoin 100 bin dolara çıkınca haber ver" → market.alert. Yön kelimesi varsa yazılır,
+# yoksa (ör. "... olunca haber ver") yürütücü anlık fiyata göre seçer. Para birimi yalnız lira denince yazılır (varsayılan usd).
+ALERT_UP = ["{C} {N} {P} çıkınca haber ver", "{C} {N} {P} çıkarsa bildir", "{C} {N} {A} geçerse uyar", "{C} {N} {P} çıktığında bana haber ver",
+            "{C} {N} {P} yükselirse bildirim at", "{C} {N} {A} aşarsa haber ver", "{C} {N} {P} ulaşırsa beni uyar"]
+ALERT_DOWN = ["{C} {N} {P} düşünce haber ver", "{C} {N} {P} düşerse bildir", "{C} {N} {P} inerse uyar", "{C} {N} {P} gerilerse haber ver",
+              "{C} {N} {P} düştüğünde bana haber ver", "{C} {N} {P} inince bildirim at", "{C} {N} {Q} altına inerse uyar"]
+ALERT_ANY = ["{C} {N} {R} olunca haber ver", "{C} için {N} {R} fiyat alarmı kur", "{C} fiyat alarmı: {N} {R}", "{C} {N} {R} olursa bildir",
+             "{C} {N} {R} seviyesine gelince uyar", "{C} fiyatı {N} {R} olunca bana bildir"]
+# para kelimesi: (yönelme "dolara", yalın "dolar", tamlayan "doların", belirtme "doları", para birimi)
+ALERT_CUR = [("dolara", "dolar", "doların", "doları", "usd"), ("dolara", "dolar", "doların", "doları", "usd"),
+             ("liraya", "lira", "liranın", "lirayı", "try"), ("TL'ye", "TL", "TL'nin", "TL'yi", "try")]
+
+
+def _alert_price(rng) -> tuple[int, str]:
+    """(değer, metin): düz rakam, "N bin" ya da noktalı binlik."""
+    base = rng.choice([1, 2, 3, 5, 8, 12, 25, 40, 60, 75, 90, 100, 120, 150, 250, 500, 750, 1000, 2500, 4000, 65000, 90000, 100000, 120000])
+    r = rng.random()
+    if r < 0.2 and base < 1000:
+        return base * 1000, f"{base} bin"
+    if r < 0.35 and base >= 1000:
+        return base, f"{base:,}".replace(",", ".")
+    return base, str(base)
+
+
+def g_alert(rng, sp, hf, hv):
+    coin = pick(rng, COINS, sp)
+    price, ptxt = _alert_price(rng)
+    to, bare, gen, acc, cur = rng.choice(ALERT_CUR)
+    r = rng.random()
+    if r < 0.42:
+        f, d = G.choose(rng, ALERT_UP, sp, hf or hv), "above"
+    elif r < 0.8:
+        f, d = G.choose(rng, ALERT_DOWN, sp, hf or hv), "below"
+    else:
+        f, d = G.choose(rng, ALERT_ANY, sp, hf or hv), None
+    args = {"coin": coin, "price": price}
+    if d:
+        args["direction"] = d
+    if cur != "usd":
+        args["currency"] = cur
+    return _fill(f, C=coin, N=ptxt, P=to, Q=gen, R=bare, A=acc), args
+
+
 def g_crypto(rng, sp, hf, hv):
     if rng.random() < 0.4:
         s = G.choose(rng, CRYPTO_ALL, sp, hf or hv)
@@ -1599,7 +1644,7 @@ GRAMMAR = {
     "skill.run": g_skill_run, "skill.list": g_skill_list, "skill.learn": g_skill_learn, "skill.record": g_skill_record,
     "agent.hire": g_agent_hire, "mail.check": g_mail_check, "mail.send": g_mail_send, "self.status": g_self_status, "app.open": g_app_open, "app.list": g_app_list,
     "memory.recall": g_memory_recall, "self.advise": g_self_advise,
-    "code.run": g_code_run, "code.repo": g_code_repo, "work.check": g_work_check,
+    "code.run": g_code_run, "code.repo": g_code_repo, "work.check": g_work_check, "market.alert": g_alert,
 }
 GRAMMAR_FRAC = 0.75
 

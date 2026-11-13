@@ -442,6 +442,42 @@
         }
       }
     },
+    "market.alert": {
+      "agent": "ekbot",
+      "doc": "Kripto fiyat alarmı: coin belirtilen fiyatın üstüne çıkınca (above) ya da altına inince (below) bildirim. Yön verilmezse kurulurken anlık fiyata göre seçilir. Fiyat arka planda Binance Global herkese açık verisinden yaklaşık 15 dakikada bir okunur; anlık değildir. Emir göndermez.",
+      "needs_net": false,
+      "effect": "write-timed",
+      "args": {
+        "coin": {
+          "type": "string",
+          "required": true,
+          "minLen": 2,
+          "maxLen": 40
+        },
+        "price": {
+          "type": "int",
+          "required": true,
+          "min": 1,
+          "max": 1000000000
+        },
+        "direction": {
+          "type": "enum",
+          "values": [
+            "above",
+            "below"
+          ],
+          "required": false
+        },
+        "currency": {
+          "type": "enum",
+          "values": [
+            "usd",
+            "try"
+          ],
+          "default": "usd"
+        }
+      }
+    },
     "mail.check": {
       "agent": "grace",
       "doc": "Orion'a verilen e-posta hesabındaki son iletileri okur (kimden, konu, kısa özet). Hesap telefondaki kasada.",

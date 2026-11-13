@@ -15,15 +15,16 @@ from orion_core import SHARED, datagen
 
 # Değerlendirme (evaluate.run_eval) ve kalibrasyon kümelerinin parmak izi. 2026-11-13: EkBot onuncu ajan olarak
 # eklendi (sahibin isteği); ajan adları cümlelere girdiği için kümeler yeniden üretildi. Eşikler değişmedi.
+# 2026-11-13 (3): EkBot fiyat alarmı (market.alert) eklendi.
 # 2026-11-13 (2): Leo, Nora, Iris ve code.run / code.repo / work.check komutları eklendi (sahibin isteği: kod yazan
 # ve işi denetleyen ajanlar); kümeler yeniden üretildi. Eşikler değişmedi.
 SPLIT_SHA = {
-    ("test_iid", 600, 101): "a1044377771d15af52218d2a0da2a1411d66c525b440d070a53d614b86e2b9dc",
-    ("test_ood", 400, 202): "d95f78e3b631c98bf2adf2dbe36856f3f42b4c9b204b57f8b02d01ee3a019255",
-    ("legacy_ood", 400, 202): "111d38ec52f70bfdf50425587a76766f56a115a3e8729788179f196387d5b630",
-    ("test_iid", 1000, 707): "4ac5b2d0da6a811ccda481820423f9bac404b7cb58879250d8082c6ac147d639",
-    ("test_ood", 1000, 909): "9e6b933687b4271ca3597668cd208b078dcd02716c9eeebfaa34926128fb2164",
-    ("legacy_ood", 1000, 808): "9e3a9ab44571937a415fc93448b86904ef8587f2390a4253cda2b6caf423699d",
+    ("test_iid", 600, 101): "e1e4f28c0e5dcca9a2501de87f85aeddb2ee3ebf66d4fae4c58200ebb062c1d5",
+    ("test_ood", 400, 202): "591038230db8f3eedd88f179abb6ba6fa285779a5f2c1ef7bfa5a3fd79cedfa0",
+    ("legacy_ood", 400, 202): "fae2bd6310a4fbfb6894d21a19793d60ddc82706538d03e5e7702ab5b86eb4d5",
+    ("test_iid", 1000, 707): "bd436198fe7399503fc6be1739d9d43b1314cbb81157130d6606b97dacc23bd2",
+    ("test_ood", 1000, 909): "721b7d37e5a02ff0affae5c19d073661f3ac6cbc2139488099b616ee1d812907",
+    ("legacy_ood", 1000, 808): "31bad7cf221d14824f41e31e8c7c79a0d7a67f9456423732a25f7b0022935d28",
 }
 
 # Tur 14 karşıt grupları: ayrılmış fiil/yüklem parçalarını içermedikleri test_datagen_tur14'te denetlenir. Sözcük

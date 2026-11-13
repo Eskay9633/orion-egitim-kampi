@@ -344,6 +344,23 @@
    "input": "{\"v\":1,\"id\":\"k7\",\"cmd\":\"work.check\",\"args\":{\"kod\":\"rm -rf\"}}",
    "ok": false,
    "err_code": "E_ARG_UNKNOWN"
+  },
+  {
+   "name": "fiyat alarmı geçerli",
+   "input": "{\"v\":1,\"id\":\"p1\",\"cmd\":\"market.alert\",\"args\":{\"coin\":\"bitcoin\",\"price\":100000,\"direction\":\"above\"}}",
+   "ok": true
+  },
+  {
+   "name": "fiyat alarmı yön geçersiz",
+   "input": "{\"v\":1,\"id\":\"p2\",\"cmd\":\"market.alert\",\"args\":{\"coin\":\"bitcoin\",\"price\":100000,\"direction\":\"yukari\"}}",
+   "ok": false,
+   "err_code": "E_ARG_RANGE"
+  },
+  {
+   "name": "fiyat alarmı fiyat yok",
+   "input": "{\"v\":1,\"id\":\"p3\",\"cmd\":\"market.alert\",\"args\":{\"coin\":\"bitcoin\"}}",
+   "ok": false,
+   "err_code": "E_ARG_MISSING"
   }
  ],
  "responses": [

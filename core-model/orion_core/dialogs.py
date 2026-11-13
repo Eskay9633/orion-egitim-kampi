@@ -290,6 +290,13 @@ CAPS = [
     ("telefonunun sağlığını kontrol etmek", ["telefonumun durumuna bakar mısın", "pil durumumu kontrol eder misin"],
      "telefonun sağlığını kontrol et"),
     ("seni tanımak", ["beni tanıyor musun", "hakkımda bir şey biliyor musun"], "hakkımda ne biliyorsun"),
+    # 2026-11-14: yeni yetenekler (EkBot fiyat alarmı, Leo kod ekibi, Nora/Iris denetimi)
+    ("kripto fiyat alarmı kurmak", ["fiyat alarmı kurabilir misin", "bitcoin yükselince bana haber verir misin",
+                                    "coin belli fiyata gelince uyarır mısın"], "bitcoin 100 bin dolara çıkınca haber ver"),
+    ("kod yazıp çalıştırmak", ["kod yazabilir misin", "benim için program yazar mısın", "python kodu yazar mısın"],
+     "kod yaz: 1'den 100'e kadar asal sayıları bul"),
+    ("yapılan işi denetçilere kontrol ettirmek", ["cevabını kontrol ettirebilir misin", "bir metni doğrulatabilir misin"],
+     "bunu kontrol et"),
 ]
 CAP_A = [
     "Evet, {cap} işini yapabilirim. Şöyle söylemen yeterli: \"{ex}\".",
@@ -646,9 +653,14 @@ def persona_dialogues(n: int, seed: int = 7, stats: dict | None = None) -> list[
             q, a = rng.choice(qs), rng.choice(ans)
         elif r < 0.78:
             q, a = rng.choice(THANKS[0]), rng.choice(THANKS[1])
-        elif r < 0.93:
+        elif r < 0.88:
             qs, ans = rng.choice(MOOD)
             q, a = rng.choice(qs), rng.choice(ans)
+        elif r < 0.93:
+            # 2026-11-14: ekip diyalogları (team.py; 13 ajan, alt ajanlar, kim hangi işe bakar, denetim)
+            from . import team
+            _, turns = team.team_turns(rng)
+            q, a = turns[0]
         elif r < 0.97:
             qs, ans = UNKNOWN if rng.random() < 0.6 else CLARIFY
             q, a = rng.choice(qs), rng.choice(ans)
