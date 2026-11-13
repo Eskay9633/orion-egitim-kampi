@@ -614,7 +614,10 @@
             "chloe",
             "grace",
             "maya",
-            "ekbot"
+            "ekbot",
+            "leo",
+            "nora",
+            "iris"
           ],
           "default": "sophia"
         }
@@ -648,6 +651,76 @@
         }
       }
     },
+    "code.run": {
+      "agent": "leo",
+      "doc": "Leo kod yazar ve çalıştırır; Nora testlerle, Iris incelemeyle denetler (ikisi onaylamadan sonuç verilmez, en çok 3 tur). Kodu yardımcı yapay zekalar yazar. Ortam: phone = telefon kutusu (JavaScript; Java'ya, dosyaya, Vault'a, kişisel veriye erişim yok; internet yalnız net=true ise ve yalnız https GET kapısından), github = GitHub atölyesi (Python, telefondan ayrı depo), auto = işe göre.",
+      "needs_net": true,
+      "effect": "read",
+      "args": {
+        "task": {
+          "type": "string",
+          "required": true,
+          "minLen": 3,
+          "maxLen": 600
+        },
+        "env": {
+          "type": "enum",
+          "values": [
+            "auto",
+            "phone",
+            "github"
+          ],
+          "default": "auto"
+        },
+        "net": {
+          "type": "bool",
+          "default": false
+        },
+        "input": {
+          "type": "string",
+          "required": false,
+          "maxLen": 20000
+        }
+      }
+    },
+    "code.repo": {
+      "agent": "leo",
+      "doc": "Leo bir GitHub deposundaki tek dosyada değişiklik hazırlar; Nora kapsam/gizli bilgi denetler, Iris inceler; sahibin onay kartı olmadan hiçbir şey yazılmaz (yalnız main dalı).",
+      "needs_net": true,
+      "effect": "proposal",
+      "args": {
+        "repo": {
+          "type": "repo",
+          "required": true
+        },
+        "task": {
+          "type": "string",
+          "required": true,
+          "minLen": 5,
+          "maxLen": 400
+        },
+        "path": {
+          "type": "string",
+          "required": false,
+          "minLen": 1,
+          "maxLen": 200
+        }
+      }
+    },
+    "work.check": {
+      "agent": "iris",
+      "doc": "Yapılan işi (verilen metin; yoksa son cevap) iki denetçi bağımsız kontrol eder: Nora doğruluğu, Iris istekle uyumu ve riskleri. Farklı yardımcılar kullanılır.",
+      "needs_net": true,
+      "effect": "read",
+      "args": {
+        "text": {
+          "type": "string",
+          "required": false,
+          "minLen": 2,
+          "maxLen": 8000
+        }
+      }
+    },
     "help": {
       "agent": "mike",
       "doc": "Yapılabilecek işleri listeler.",
@@ -666,7 +739,10 @@
     "chloe",
     "grace",
     "maya",
-    "ekbot"
+    "ekbot",
+    "leo",
+    "nora",
+    "iris"
   ],
   "statuses": [
     "ok",

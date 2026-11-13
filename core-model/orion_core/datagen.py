@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import random
+import re
 from dataclasses import dataclass
 from typing import Callable
 
@@ -702,6 +703,9 @@ TEMPLATES: dict[str, list[Gen]] = {
     "app.list": [lambda rng, sp: g_app_list(rng, sp, False, False)] * 3,
     "memory.recall": [lambda rng, sp: g_memory_recall(rng, sp, False, False)] * 3,
     "self.advise": self_advise_templates(),
+    "code.run": [lambda rng, sp: g_code_run(rng, sp, False, False)] * 3,
+    "code.repo": [lambda rng, sp: g_code_repo(rng, sp, False, False)] * 3,
+    "work.check": [lambda rng, sp: g_work_check(rng, sp, False, False)] * 3,
 }
 
 # Komut ağırlıkları (gerçek kullanım tahmini; çok değerli olanlar daha sık)
@@ -709,6 +713,7 @@ WEIGHTS = {
     "reminder.set": 6, "reminder.list": 1, "note.write": 4, "note.search": 3, "research.start": 3,
     "repo.audit": 2, "calendar.add": 4, "calendar.list": 2, "file.summarize": 1, "image.analyze": 2, "image.generate": 2, "card.propose": 3,
     "timer.start": 2, "provider.discover": 1, "health.check": 1, "memory.save": 2, "ask": 3, "calc.eval": 2, "text.translate": 2, "market.crypto": 2, "skill.run": 2, "skill.list": 1, "skill.learn": 2, "skill.record": 1, "agent.hire": 1, "mail.check": 2, "mail.send": 1, "self.status": 1, "app.open": 2, "app.list": 1, "memory.recall": 1, "self.advise": 1, "help": 1,
+    "code.run": 2, "code.repo": 1, "work.check": 1,
 }
 
 
@@ -809,6 +814,9 @@ PLANS = {
     "app.list": ["apps.query", "card.render"],
     "memory.recall": ["persona.read", "facts.recall", "card.render"],
     "self.advise": ["self.describe", "net.check", "provider.ask", "provider.ask", "advice.merge", "card.render"],
+    "code.run": ["net.check", "helper.write", "sandbox.run", "tests.run", "review.check", "card.render"],
+    "code.repo": ["net.check", "github.read", "helper.write", "scope.check", "review.check", "proposal.create", "user.confirm"],
+    "work.check": ["history.read", "net.check", "provider.ask", "provider.ask", "card.render"],
     "help": ["commands.list"],
 }
 
@@ -1352,7 +1360,7 @@ ROLES = ["kaynakları doğrulayan titiz araştırmacı", "kod örneklerini incel
          "fiyat ve piyasa verisini yorumlayan analist", "Türkçe metinleri düzelten yazım uzmanı", "görsel fikir üreten tasarımcı"]
 AGENT_TR = [("Sophia", "sophia", "'ya"), ("Jack", "jack", "'e"), ("Emma", "emma", "'ya"), ("Chloe", "chloe", "'ye"),
             ("Luna", "luna", "'ya"), ("Mike", "mike", "'a"), ("David", "david", "'e"), ("Maya", "maya", "'ya"), ("Grace", "grace", "'e"),
-            ("EkBot", "ekbot", "'a")]
+            ("EkBot", "ekbot", "'a"), ("Leo", "leo", "'ya"), ("Nora", "nora", "'ya"), ("Iris", "iris", "'e")]
 
 
 def g_skill_run(rng, sp, hf, hv):
@@ -1484,6 +1492,104 @@ def g_self_status(rng, sp, hf, hv):
                     sp, hf or hv), {}
 
 
+# --------------------------------------------------------------------------- kod ekibi (Leo, Nora, Iris; 2026-11-13)
+# Görev (task) cümlenin kendisidir: Kotlin kural çevirici de tüm cümleyi verir (hitap ve kibarlık atılır).
+# Ortam/internet etiketleri RuleTranslator.codeRun kurallarıyla aynıdır; görev ifadeleri bu tetikleri İÇERMEZ.
+
+CODE_TASKS = ["1'den 100'e kadar asal sayıları bul", "bu listedeki sayıların ortalamasını hesapla", "metindeki kelimeleri say",
+              "250 ile 17'nin ekokunu hesapla", "verilen tarihler arasındaki gün farkını hesapla", "harcamaları kategoriye göre topla",
+              "isim listesini alfabetik sırala", "metindeki e-posta adreslerini ayıkla", "fibonacci dizisinin ilk 20 terimini listele",
+              "kredi taksitlerini hesapla", "Celsius değerlerini Fahrenheit'a çevir", "tekrar eden satırları temizle",
+              "notlarımdaki tarihleri bul", "en sık geçen beş kelimeyi listele", "iki listeyi birleştir", "çarpım tablosunu üret",
+              "metni cümlelere ayır", "sayıların medyanını hesapla", "rastgele güçlü bir parola üret", "faiz getirisini hesapla"]
+CODE_NET_TASKS = ["dolar kurunu çek", "bitcoin fiyatını çek", "Vikipedi özetini çek", "hava tahminini çek",
+                  "son depremleri çek", "euro kurunu çek", "altın fiyatını çek", "haber başlıklarını çek"]
+CODE_VERBS_END = ["bul", "hesapla", "say", "listele", "sırala", "ayıkla", "üret", "topla", "çevir", "temizle"]
+_CODE_BAD = re.compile(r"python|javascript|\bjs\b|github|atolye|telefonda|kutuda|internet|web|site|\bapi\b|cevrimici|online|canli veri|guncel|http|"
+                       r"nasil|nedir|ne demek|neden|niye|ogren|ogret|kod|program|betik|script|fonksiyon|algoritma")
+
+
+def _code_task(rng, sp):
+    def rand(r):
+        return random_phrase(r, 1, 4) + " " + r.choice(CODE_VERBS_END)
+    for _ in range(30):
+        t = pick(rng, CODE_TASKS, sp, rand, 0.5)
+        if not _CODE_BAD.search(_fold(t)):
+            return t
+    return rng.choice(_split(CODE_TASKS, sp))
+
+
+def _fold(s: str) -> str:
+    from .dialogs import fold
+    return fold(s)
+
+
+CODE_MAKE_FRAMES = ["kod yaz: {T}", "{T} için kod yaz", "bir program yaz: {T}", "{T}, bunun için bir betik yaz", "kodla {T}",
+                    "kod yazarak {T}", "bir fonksiyon yaz: {T}", "{T} için küçük bir program oluştur", "{T} diye bir kod hazırla",
+                    "betikle {T}", "{T} için bir script yaz", "{T}, kodunu yaz"]
+
+
+def g_code_run(rng, sp, hf, hv):
+    r = rng.random()
+    if r < 0.18:
+        t = rng.choice(_split(CODE_NET_TASKS, sp))
+        f = G.choose(rng, ["internetten {T}en bir kod yaz", "internete çıkıp {T}en bir program yaz", "kodla internetten {T}",
+                           "internetten {T}, bunun için kod yaz"], sp, hf or hv)
+        tr = _fill(f, T=t)  # "{T}en": "dolar kurunu çek" → "dolar kurunu çeken"
+        return tr, {"task": tr, "net": True}
+    t = _code_task(rng, sp)
+    if r < 0.33:
+        f = G.choose(rng, ["python ile {T}", "pythonla {T}", "GitHub'da python ile {T}", "python ile {T}, kodunu yaz"], sp, hf or hv)
+        tr = _fill(f, T=t)
+        return tr, {"task": tr, "env": "github"}
+    if r < 0.45:
+        f = G.choose(rng, ["javascript ile {T}", "telefonda kodla {T}", "js ile {T}", "telefonda {T} için kod yaz"], sp, hf or hv)
+        tr = _fill(f, T=t)
+        return tr, {"task": tr, "env": "phone"}
+    tr = _fill(G.choose(rng, CODE_MAKE_FRAMES, sp, hf or hv), T=t)
+    return tr, {"task": tr}
+
+
+REPO_FIX_THINGS = ["kurulum adımını", "yazım hatalarını", "eski sürüm numarasını", "bozuk bağlantıyı", "lisans satırını",
+                   "açıklama paragrafını", "örnek komutu", "başlığı", "Türkçe karakter hatalarını", "eksik virgülleri",
+                   "eski ekran görüntüsü bağlantısını", "çalıştırma komutunu"]
+REPO_FIX_PATHS = ["README.md", "docs/KURULUM.md", "main.py", "src/index.js", "config.json", "CHANGELOG.md", "app/build.gradle.kts",
+                  ".github/workflows/ci.yml", "docs/PROTOCOL.md", "requirements.txt"]
+REPO_FIX_VERBS = ["düzelt", "güncelle", "değiştir", "düzenle"]
+
+
+def g_code_repo(rng, sp, hf, hv):
+    rep = pick(rng, REPOS, sp, random_repo, 0.85)
+    x = pick(rng, REPO_FIX_THINGS, sp)
+    v = G.choose(rng, REPO_FIX_VERBS, sp, hv)
+    if rng.random() < 0.7:
+        pth = pick(rng, REPO_FIX_PATHS, sp)
+        f = G.choose(rng, ["{R} deposunda {P} dosyasındaki {X} {V}", "{R} reposunda {P} içinde {X} {V}", "{R} {P} {X} {V}",
+                           "{R} deposundaki {P} dosyasında {X} {V}", "{R} için {P} dosyasındaki {X} {V}"], sp, hf)
+        tr = _fill(f, R=rep, P=pth, X=x, V=v)
+        return tr, {"repo": rep, "task": tr, "path": pth}
+    f = G.choose(rng, ["{R} deposunda {X} {V}", "{R} reposunda {X} {V}", "{R} projesinde {X} {V}"], sp, hf)
+    tr = _fill(f, R=rep, X=x, V=v)
+    return tr, {"repo": rep, "task": tr}
+
+
+WORK_CHECK_PHRASES = ["bunu kontrol et", "şunu doğrula", "son cevabı kontrol et", "cevabını doğrula", "bu sonucu denetle",
+                      "yaptığın işi gözden geçir", "bunu bir daha kontrol et", "denetçilere kontrol ettir", "doğru mu kontrol et",
+                      "bu cevabı teyit et", "son cevabını doğrula", "sonucu kontrol et", "bu işi denetle", "söylediğini doğrula",
+                      "bunu iki kez kontrol et"]
+WORK_CHECK_TEXTS = ["İstanbul'un nüfusu 16 milyondur", "Ay Dünya'dan 384 bin kilometre uzaktadır", "250'nin yüzde 18'i 45 eder",
+                    "Ankara 1923'te başkent oldu", "suyun kaynama noktası 100 derecedir", "bir yılda 52 hafta vardır",
+                    "Everest 8848 metredir", "ışık hızı saniyede 300 bin kilometredir"]
+
+
+def g_work_check(rng, sp, hf, hv):
+    if rng.random() < 0.3:
+        x = pick(rng, WORK_CHECK_TEXTS, sp, lambda r: random_phrase(r, 3, 8), 0.5)
+        v = G.choose(rng, ["şunu doğrula", "bunu kontrol et", "şunu kontrol et", "doğrula", "teyit et", "şunu denetle"], sp, hf or hv)
+        return f"{v}: {x}", {"text": x}
+    return G.choose(rng, WORK_CHECK_PHRASES, sp, hf or hv), {}
+
+
 GRAMMAR = {
     "reminder.set": g_reminder, "reminder.list": g_reminder_list, "note.write": g_note, "note.search": g_note_search,
     "research.start": g_research, "repo.audit": g_repo, "calendar.add": g_calendar_add, "calendar.list": g_calendar_list,
@@ -1493,11 +1599,12 @@ GRAMMAR = {
     "skill.run": g_skill_run, "skill.list": g_skill_list, "skill.learn": g_skill_learn, "skill.record": g_skill_record,
     "agent.hire": g_agent_hire, "mail.check": g_mail_check, "mail.send": g_mail_send, "self.status": g_self_status, "app.open": g_app_open, "app.list": g_app_list,
     "memory.recall": g_memory_recall, "self.advise": g_self_advise,
+    "code.run": g_code_run, "code.repo": g_code_repo, "work.check": g_work_check,
 }
 GRAMMAR_FRAC = 0.75
 
 
-AGENT_NAMES = ["Mike", "Sophia", "Emma", "Luna", "David", "Jack", "Chloe", "Grace", "Maya", "EkBot", "Orion"]
+AGENT_NAMES = ["Mike", "Sophia", "Emma", "Luna", "David", "Jack", "Chloe", "Grace", "Maya", "EkBot", "Leo", "Nora", "Iris", "Orion"]
 
 
 # --------------------------------------------------------------------------- karşıt çiftler (Tur 14)

@@ -305,6 +305,45 @@
    "input": "{\"v\":1,\"id\":\"g4\",\"cmd\":\"self.advise\",\"args\":{\"provider\":\"g\"}}",
    "ok": false,
    "err_code": "E_ARG_RANGE"
+  },
+  {
+   "name": "kod çalıştır geçerli",
+   "input": "{\"v\":1,\"id\":\"k1\",\"cmd\":\"code.run\",\"args\":{\"task\":\"1'den 10'a kadar asal sayıları bul\"}}",
+   "ok": true
+  },
+  {
+   "name": "kod çalıştır ortam tanımsız",
+   "input": "{\"v\":1,\"id\":\"k2\",\"cmd\":\"code.run\",\"args\":{\"task\":\"asal sayılar\",\"env\":\"sunucu\"}}",
+   "ok": false,
+   "err_code": "E_ARG_RANGE"
+  },
+  {
+   "name": "kod çalıştır görev yok",
+   "input": "{\"v\":1,\"id\":\"k3\",\"cmd\":\"code.run\",\"args\":{\"env\":\"phone\"}}",
+   "ok": false,
+   "err_code": "E_ARG_MISSING"
+  },
+  {
+   "name": "depo değişikliği geçerli",
+   "input": "{\"v\":1,\"id\":\"k4\",\"cmd\":\"code.repo\",\"args\":{\"repo\":\"Eskay9633/signal-bot\",\"task\":\"README kurulum adımını düzelt\",\"path\":\"README.md\"}}",
+   "ok": true
+  },
+  {
+   "name": "depo değişikliği depo bozuk",
+   "input": "{\"v\":1,\"id\":\"k5\",\"cmd\":\"code.repo\",\"args\":{\"repo\":\"signal bot\",\"task\":\"README düzelt\"}}",
+   "ok": false,
+   "err_code": "E_ARG_TYPE"
+  },
+  {
+   "name": "iş denetimi geçerli",
+   "input": "{\"v\":1,\"id\":\"k6\",\"cmd\":\"work.check\",\"args\":{}}",
+   "ok": true
+  },
+  {
+   "name": "iş denetimi tanımsız argüman",
+   "input": "{\"v\":1,\"id\":\"k7\",\"cmd\":\"work.check\",\"args\":{\"kod\":\"rm -rf\"}}",
+   "ok": false,
+   "err_code": "E_ARG_UNKNOWN"
   }
  ],
  "responses": [
