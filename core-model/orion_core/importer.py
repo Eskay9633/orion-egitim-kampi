@@ -94,6 +94,10 @@ def same_handwritten_set(new: dict, cur: dict | None) -> bool:
     return bool(a) and a == b
 
 
+# Yeni cümle yapılarında izin verilen gerileme (sahibin kararı 2026-11-13: 0.02 → 0.04; elle yazılmış küme toleranssız kalır).
+OOD_TOLERANCE = 0.04
+
+
 def komut_better(new: dict, cur: dict | None, local_hw: tuple[float, float] | None = None,
                  local_hw_error: str | None = None, local_ood: tuple[float, float] | None = None) -> tuple[bool, str]:
     """Yeni komut modeli alınır mı? Güvenlik tabanı ayrıca evaluate ile sınanır; burada gerileme denetimi.
@@ -124,12 +128,12 @@ def komut_better(new: dict, cur: dict | None, local_hw: tuple[float, float] | No
     else:
         return False, f"elle yazılmış küme ölçülemedi: {local_hw_error or 'kümeler farklı ve bu depoda yeniden ölçülmedi'}"
     # Yeni cümle yapıları: iki model bu depodaki GÜNCEL kümede ölçüldüyse onlar karşılaştırılır (değerlendirme kümesi yeni
-    # komutlarla değişince manifest sayıları farklı kümelerden gelir; 2026-11-13). Tolerans aynı: 0.02.
+    # komutlarla değişince manifest sayıları farklı kümelerden gelir; 2026-11-13). Tolerans: 0.04 (sahibin kararı 2026-11-13; önce 0.02).
     if local_ood is not None:
-        if local_ood[0] + 0.02 < local_ood[1]:
+        if local_ood[0] + OOD_TOLERANCE < local_ood[1]:
             return False, f"yeni cümle yapılarında geriledi (bu depoda aynı kümede: {local_ood[0]:.4f} < {local_ood[1]:.4f})"
         hw_note += f"; yeni cümle yapıları bu depoda yeniden ölçüldü ({local_ood[0]:.4f} / mevcut {local_ood[1]:.4f})"
-    elif n.get("t2c_ood_exact", 0) + 0.02 < c.get("t2c_ood_exact", 0):
+    elif n.get("t2c_ood_exact", 0) + OOD_TOLERANCE < c.get("t2c_ood_exact", 0):
         return False, "yeni cümle yapılarında geriledi"
     return True, "daha iyi ya da eşit" + hw_note
 

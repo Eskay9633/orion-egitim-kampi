@@ -1,7 +1,8 @@
 {
-  "t2c_iid_exact": 0.85,
-  "t2c_ood_exact": 0.5,
+  "t2c_iid_exact": 0.8,
+  "t2c_ood_exact": 0.45,
   "t2c_iid_valid": 0.95,
-  "plan_exact": 0.95,
-  "ans_exact": 0.9
+  "plan_exact": 0.9,
+  "ans_exact": 0.9,
+  "_doc_owner": "2026-11-13: sahibin kararı ('çok sert tutuyoruz') — olgunluk kapısı gevşetildi: t2c_iid_exact 0.85→0.80, t2c_ood_exact 0.50→0.45, plan_exact 0.95→0.90. Yanlış iş sınırları (app-floor.json) değişmedi."
 }

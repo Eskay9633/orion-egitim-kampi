@@ -28,7 +28,7 @@ def test_chat_exam_floor():
     import json
     from orion_core import SHARED
     real = json.loads((SHARED / "chat-model-floor.json").read_text(encoding="utf-8"))
-    assert real["qa_min"] >= 0.6  # sahibin kararı 2026-11-09 (0.70 → 0.60); daha aşağısı sahibin onayıyla
+    assert real["qa_min"] >= 0.5  # sahibin kararları: 2026-11-09 0.70 → 0.60, 2026-11-13 0.60 → 0.50; daha aşağısı sahibin onayıyla
     floor = dict(FLOOR, qa_min=0.7)
     assert not chat_ok({"val_ppl_int8": 14, "persona_ok": True, "qa_score": 0.3, "sha256": "x"}, floor, None)[0]
     assert not chat_ok({"val_ppl_int8": 14, "persona_ok": True, "sha256": "x"}, floor, None)[0]
