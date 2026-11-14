@@ -15,7 +15,7 @@
   },
   "commands": {
     "reminder.set": {
-      "agent": "grace",
+      "agent": "emma",
       "doc": "Hatırlatıcı kurar.",
       "needs_net": false,
       "effect": "write-timed",
@@ -42,14 +42,14 @@
       }
     },
     "reminder.list": {
-      "agent": "grace",
+      "agent": "emma",
       "doc": "Bekleyen hatırlatıcıları listeler.",
       "needs_net": false,
       "effect": "read",
       "args": {}
     },
     "note.write": {
-      "agent": "chloe",
+      "agent": "emma",
       "doc": "Not yazar. Gizli bilgi içeren not reddedilir (E_SECRET).",
       "needs_net": false,
       "effect": "write-easy",
@@ -68,7 +68,7 @@
       }
     },
     "note.search": {
-      "agent": "chloe",
+      "agent": "emma",
       "doc": "Notlarda arar.",
       "needs_net": false,
       "effect": "read",
@@ -132,7 +132,7 @@
       }
     },
     "calendar.add": {
-      "agent": "grace",
+      "agent": "emma",
       "doc": "Takvime etkinlik ekler.",
       "needs_net": false,
       "effect": "write-timed",
@@ -160,7 +160,7 @@
       }
     },
     "calendar.list": {
-      "agent": "grace",
+      "agent": "emma",
       "doc": "Bir günün etkinliklerini listeler.",
       "needs_net": false,
       "effect": "read",
@@ -290,7 +290,7 @@
       }
     },
     "timer.start": {
-      "agent": "grace",
+      "agent": "emma",
       "doc": "Geri sayım başlatır.",
       "needs_net": false,
       "effect": "write-timed",
@@ -320,7 +320,7 @@
       }
     },
     "health.check": {
-      "agent": "maya",
+      "agent": "emma",
       "doc": "Telefon sağlığı ön kontrolü (pil, boş alan, son yedek).",
       "needs_net": false,
       "effect": "read",
@@ -336,7 +336,7 @@
       }
     },
     "memory.save": {
-      "agent": "mike",
+      "agent": "emma",
       "doc": "Kalıcı hafızaya kayıt ÖNERİR; kullanıcı onayı olmadan kaydedilmez.",
       "needs_net": false,
       "effect": "proposal",
@@ -479,7 +479,7 @@
       }
     },
     "mail.check": {
-      "agent": "grace",
+      "agent": "emma",
       "doc": "Orion'a verilen e-posta hesabındaki son iletileri okur (kimden, konu, kısa özet). Hesap telefondaki kasada.",
       "needs_net": true,
       "effect": "read",
@@ -505,7 +505,7 @@
       }
     },
     "mail.send": {
-      "agent": "grace",
+      "agent": "emma",
       "doc": "E-posta taslağı hazırlar; kullanıcı onaylamadan ASLA gönderilmez.",
       "needs_net": true,
       "effect": "proposal",
@@ -538,7 +538,7 @@
       "args": {}
     },
     "app.open": {
-      "agent": "jack",
+      "agent": "emma",
       "doc": "Telefondaki bir uygulamayı açar; bilinen uygulamalarda (YouTube, Spotify, Haritalar, Google, Play Store, GitHub, Vikipedi) içinde arama yapar. Gönderme/arama gibi son adımı kullanıcı yapar.",
       "needs_net": false,
       "effect": "read",
@@ -558,7 +558,7 @@
       }
     },
     "app.list": {
-      "agent": "jack",
+      "agent": "emma",
       "doc": "Telefonda kurulu uygulamaları listeler (Orion'un kullanabileceği araçlar).",
       "needs_net": false,
       "effect": "read",
@@ -660,7 +660,7 @@
       }
     },
     "memory.recall": {
-      "agent": "mike",
+      "agent": "emma",
       "doc": "Katmanlı hafızayı gösterir: Orion'un kullanıcı hakkında bildikleri (kişilik özeti, onaylı bilgiler, alışkanlıklar). query verilirse yalnızca ilgili bilgiler.",
       "needs_net": false,
       "effect": "read",
@@ -674,7 +674,7 @@
       }
     },
     "self.advise": {
-      "agent": "emma",
+      "agent": "david",
       "doc": "Orion'u nasıl geliştirebiliriz: Orion kendini tanıtır (sürüm, beyin ölçümleri, yardımcılar, zayıf yanlar, ilkeler), yardımcı yapay zekalardan (en çok 2) neden ve nasıl içeren gelişim önerisi alır, birleştirip kaynaklarıyla açıklar. provider: kullanıcının adını verdiği yardımcı (önce o denenir). İnternet yoksa kendi bildiği zayıf yanlardan ve planlanan işlerden cevaplar.",
       "needs_net": false,
       "effect": "read",
