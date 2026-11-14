@@ -47,3 +47,13 @@ def test_rows_pass_extra_dialogues_loader(tmp_path):
             g.write(json.dumps(r, ensure_ascii=False) + "\n")
     texts, st = chat.extra_dialogues(str(f), tmp_path / "c")
     assert len(texts) == len(rows) and not st["atilan"], st
+
+
+def test_xcopa_dialogs():
+    from orion_core import bilgi
+    rows = [{"premise": "Adam musluğu açtı.", "choice1": "Tuvalet su ile dolu.", "choice2": "Musluktan su aktı.",
+             "question": "effect", "label": 1},
+            {"premise": "Bozuk", "choice1": "a", "choice2": "b", "question": "x", "label": 0}]
+    out = bilgi.xcopa_dialogs(rows)
+    assert len(out) == 1 and out[0]["a"] == "Daha olası sonucu: Musluktan su aktı."
+    assert "sonucu hangisi" in out[0]["q"] and out[0]["license"] in __import__("orion_core.chat", fromlist=["x"]).EXTRA_LICENSES

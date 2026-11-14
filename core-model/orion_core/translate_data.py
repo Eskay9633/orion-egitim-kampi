@@ -90,6 +90,15 @@ SOURCES: dict[str, dict] = {
                   license_url="https://raw.githubusercontent.com/arkilpatel/SVAMP/main/LICENSE",
                   attribution="arkilpatel/SVAMP (Patel ve ark. 2021, MIT); insan yazımı problemler, çözüm adımı "
                               "veri setindeki denklemden kodla yazıldı, Türkçe makine çevirisi"),
+    # İnsan yazımı akıl yürütme / genel bilgi soruları (2026-11-14, sahibin isteği: beyin için akıl yürütme verisi).
+    # Yalnız TRAIN; seçenekler soruya yazılır, cevap doğru seçeneğin metnidir. default=False: adıyla istenir.
+    "csqa": dict(repo="tau/commonsense_qa", license="mit", pattern=r"^data/train-.*\.parquet$", parser="mcq",
+                 default=False, attribution="tau/commonsense_qa (CommonsenseQA train, Talmor ve ark. 2019, MIT); "
+                                            "kitle kaynaklı insan yazımı sağduyu soruları, Türkçe makine çevirisi"),
+    "arc": dict(repo="allenai/ai2_arc", license="cc-by-sa-4.0", pattern=r"^ARC-(Challenge|Easy)/train-.*\.parquet$",
+                parser="mcq", default=False,
+                attribution="allenai/ai2_arc (ARC Easy + Challenge train, Clark ve ark. 2018, CC BY-SA 4.0); insan yazımı "
+                            "fen soruları; Türkçe çevirisi türev eserdir ve CC BY-SA 4.0 ile paylaşılır"),
     # MATH: lisans MIT (doğrulanmadı) ama HF kopyası AoPS telif bildirimiyle kaldırıldı (doğrulanmadı) → sahip kararı.
     "math": dict(repo="hendrycks/math", license="mit", host="github", parser="math", math=True, format="tar-json",
                  default=False, url="https://people.eecs.berkeley.edu/~hendrycks/MATH.tar", sha256=None,
@@ -527,7 +536,24 @@ def parse_math(rows: Iterable[dict]) -> list[list[tuple[str, str]]]:
     return out
 
 
-PARSERS = {"oasst2": parse_oasst2, "dolly": parse_dolly, "hh": parse_hh, "helpsteer2": parse_helpsteer2,
+def parse_mcq(rows: Iterable[dict]) -> list[list[tuple[str, str]]]:
+    """Çoktan seçmeli (CommonsenseQA, ARC): soru + "Options: a, b, c." → "The answer is: <doğru seçenek>."
+    choices = {"label": [...], "text": [...]}; answerKey sayı ya da harf olabilir. Bozuk/eksik satır atılır."""
+    out = []
+    for r in rows:
+        ch = r.get("choices") or {}
+        labels, texts = list(ch.get("label") or []), [str(t).strip() for t in ch.get("text") or []]
+        key = str(r.get("answerKey") or "").strip()
+        q = (r.get("question") or "").strip()
+        if not q or len(labels) != len(texts) or key not in labels or not all(texts):
+            continue
+        ans = texts[labels.index(key)].rstrip(".")
+        opts = ", ".join(t.rstrip(".") for t in texts)
+        out.append([(f"{q} Options: {opts}.", f"The answer is: {ans}.")])
+    return out
+
+
+PARSERS = {"mcq": parse_mcq, "oasst2": parse_oasst2, "dolly": parse_dolly, "hh": parse_hh, "helpsteer2": parse_helpsteer2,
            "gsm8k": parse_gsm8k, "aqua": parse_aqua, "svamp": parse_svamp, "math": parse_math}
 
 

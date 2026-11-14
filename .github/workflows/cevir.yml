@@ -4,7 +4,7 @@ name: ceviri
 # sohbet beyni için ek veri olarak Release'e koyar (etiket ceviri-YYYYMMDD-HHMM, ön sürüm). Veri depoya İŞLENMEZ.
 # Kaggle (kaggle.yml) en yeni ceviri-* Release'indeki ceviri.jsonl.gz'yi kendiliğinden kullanır.
 # Başlatma: Actions → ceviri → Run workflow YA DA ceviri/hedef.txt dosyasına "ÇİFT PARÇA [KAYNAKLAR] [ÖNCEKİ]"
-# (ör. "100000 3" ya da "8000 2 gsm8k") yazıp main'e işlemek. KAYNAKLAR virgüllü (oasst2,dolly,hh-rlhf,helpsteer2,aqua-rat,svamp,math,
+# (ör. "100000 3" ya da "8000 2 gsm8k") yazıp main'e işlemek. KAYNAKLAR virgüllü (oasst2,dolly,hh-rlhf,helpsteer2,aqua-rat,svamp,math,csqa,arc,
 # gsm8k; boş/"hepsi" = hepsi). ÖNCEKİ: "koru" (varsayılan) = bir önceki ceviri-* Release'inin satırları yeni
 # Release'e aynen taşınır (eski + yeni tek dosyada; Kaggle yine tek dosya okur); "yeni" = yalnız bu çalışmanınkiler. Lisans kapısı: her veri setinin ve çevirmen modelin lisansı Hugging Face
 # API'sinden okunur; izin listesinde ya da beklenenle aynı değilse iş durur.

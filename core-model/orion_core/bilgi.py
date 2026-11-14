@@ -202,6 +202,39 @@ def belebele_dialogs(items: list[dict]) -> list[dict]:
     return out
 
 
+XCOPA_RAW = "https://raw.githubusercontent.com/cambridgeltl/xcopa/master/data/tr/"
+
+
+def _mi(w: str) -> str:
+    """Soru eki ünlü uyumuyla: dolu → mu, aktı → mı."""
+    return {"a": "mı", "ı": "mı", "e": "mi", "i": "mi", "o": "mu", "u": "mu", "ö": "mü", "ü": "mü"}[_last_vowel(w)]
+
+
+def xcopa_dialogs(items: list[dict]) -> list[dict]:
+    """XCOPA tr (insan çevirisi sağduyu/neden-sonuç; CC BY 4.0, veri kartına göre, doğrulanmadı): öncül + iki seçenek
+    → daha olası neden/sonuç. Cevap seçeneğin kendisidir (sayı/ad uydurulmaz)."""
+    out = []
+    for r in items:
+        p, c1, c2 = (str(r.get(k) or "").strip() for k in ("premise", "choice1", "choice2"))
+        kind = {"cause": "nedeni", "effect": "sonucu"}.get(r.get("question"))
+        if not (p and c1 and c2 and kind) or r.get("label") not in (0, 1):
+            continue
+        right = (c1, c2)[r["label"]]
+        a1, a2 = c1.rstrip("."), c2.rstrip(".")
+        q = f"{p} Bunun daha olası {kind} hangisi: \"{a1}\" {_mi(a1)}, \"{a2}\" {_mi(a2)}?"
+        if _ok(q):
+            out.append(_row(q, f"Daha olası {kind}: {right.rstrip('.')}.", "xcopa-tr", "cc-by-4.0"))
+    return out
+
+
+def _xcopa() -> list[dict]:
+    rows = []
+    for f in ("val.tr.jsonl", "test.tr.jsonl"):
+        raw = urllib.request.urlopen(urllib.request.Request(XCOPA_RAW + f, headers={"User-Agent": UA["User-Agent"]}), timeout=60).read()
+        rows += [json.loads(l) for l in raw.decode("utf-8").splitlines() if l.strip()]
+    return xcopa_dialogs(rows)
+
+
 # ------------------------------------------------------------------ Hugging Face dosyaları
 def _hf_get(repo: str, needle: str) -> bytes | None:
     """Veri kümesindeki adında needle geçen ilk dosya (parquet/json/jsonl)."""
@@ -244,6 +277,7 @@ def build(out: Path, seed: int = 7) -> dict:
     for name, fn in [("ulkeler", lambda: country_dialogs(sparql(Q_COUNTRY), rng)), ("iller", lambda: province_dialogs(sparql(Q_PROVINCE))),
                      ("elementler", lambda: element_dialogs(sparql(Q_ELEMENT))),
                      ("xquad", lambda: xquad_dialogs(_records(_hf_get("google/xquad", "xquad.tr") or b"x.json\n[]"))),
+                     ("xcopa", _xcopa),
                      ("belebele", lambda: belebele_dialogs(_records(_hf_get("facebook/belebele", "tur_Latn") or b"x.json\n[]")))]:
         try:
             got = fn()

@@ -41,7 +41,7 @@ jobs:
         run: |
           N=$(python3 -c "import json;print(json.load(open('bilgi-out/bilgi.json'))['toplam'])")
           if [ "$N" -lt 500 ]; then echo "::error::çok az diyalog ($N); yayınlanmadı"; cat bilgi-out/bilgi.json; exit 1; fi
-          NOTES="Bilgi ve okuduğunu anlama diyalogları: $(tr -d '\n ' < bilgi-out/bilgi.json). Kaynaklar: Wikidata (CC0), XQuAD tr ve Belebele tr (CC BY-SA 4.0, veri kartına göre; doğrulanmadı)."
+          NOTES="Bilgi ve okuduğunu anlama diyalogları: $(tr -d '\n ' < bilgi-out/bilgi.json). Kaynaklar: Wikidata (CC0), XQuAD tr ve Belebele tr (CC BY-SA 4.0), XCOPA tr (CC BY 4.0); lisanslar veri kartına göre, doğrulanmadı."
           gh release view diyalog-bilgi >/dev/null 2>&1 || gh release create diyalog-bilgi --prerelease --title "Diyalog: bilgi ve anlama" --notes "$NOTES"
           gh release edit diyalog-bilgi --notes "$NOTES"
           gh release upload diyalog-bilgi bilgi-out/bilgi.jsonl.gz bilgi-out/bilgi.json --clobber

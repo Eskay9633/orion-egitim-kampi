@@ -357,3 +357,22 @@ def test_numbers_kept():
     assert td.numbers_kept("1,000 and 0.2", "1.000 ve 0,2")
     assert not td.numbers_kept("48+24 = 72", "48+24 = 27")
     assert td.final_tr("2.5") == "2,5"
+
+
+def test_mcq_parser_and_sources_train_only():
+    rows = [{"question": "Where do you keep milk cold?", "answerKey": "B",
+             "choices": {"label": ["A", "B", "C"], "text": ["oven", "refrigerator", "drawer"]}},
+            {"question": "Which is a planet?", "answerKey": "2", "choices": {"label": ["1", "2"], "text": ["Moon", "Mars"]}},
+            {"question": "Bozuk", "answerKey": "Z", "choices": {"label": ["A"], "text": ["x"]}}]
+    assert td.parse_mcq(rows) == [
+        [("Where do you keep milk cold? Options: oven, refrigerator, drawer.", "The answer is: refrigerator.")],
+        [("Which is a planet? Options: Moon, Mars.", "The answer is: Mars.")]]
+    import re
+    for name in ("csqa", "arc"):
+        spec = td.SOURCES[name]
+        assert spec["license"] in td.LICENSE_ALLOW and spec.get("default") is False
+        pat = re.compile(spec["pattern"])  # doğrulama/test bölümü asla seçilmez
+        assert not any(pat.search(p) for p in ("data/validation-00000-of-00001.parquet", "data/test-00000-of-00001.parquet",
+                                               "ARC-Easy/test-00000-of-00001.parquet", "ARC-Challenge/validation-00000-of-00001.parquet"))
+    assert re.search(td.SOURCES["arc"]["pattern"], "ARC-Challenge/train-00000-of-00001.parquet")
+    assert re.search(td.SOURCES["csqa"]["pattern"], "data/train-00000-of-00001.parquet")
