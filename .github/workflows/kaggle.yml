@@ -82,7 +82,11 @@ jobs:
               # (aynı hata 2 saatte bir tekrar edip kotayı yemesin). Elle "Run workflow" yine başlatır.
               mkdir -p kerr && kaggle kernels output "$KID" -p kerr >/dev/null 2>&1 || true
               python kaggle/gunluk.py kerr || true
-              if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then echo "go=start" >> "$GITHUB_OUTPUT"
+              # Oturum 12 saat sınırında kesildiyse (eğitim ve dışa aktarma bitmiş, sonraki adımda kesilmiş) model yine
+              # çıktıdadır: topla ve yayınla (2026-11-14'te böyle bir oturum boşa gidecekti)
+              if find kerr -path '*chat-export/manifest.json' | grep -q . && [ -n "$(find kerr -name ckpt.pt -o -name 'ckpt.pt.part*' | head -1)" ]; then
+                echo "Oturum kesildi ama model çıktıda: toplanıyor."; echo "go=collect" >> "$GITHUB_OUTPUT"
+              elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then echo "go=start" >> "$GITHUB_OUTPUT"
               else echo "go=false" >> "$GITHUB_OUTPUT"; echo "::warning::Kaggle oturumu hata verdi; günlük yukarıda. Yeniden başlatmak için elle çalıştır."; fi ;;
             *) echo "go=start" >> "$GITHUB_OUTPUT" ;;
           esac

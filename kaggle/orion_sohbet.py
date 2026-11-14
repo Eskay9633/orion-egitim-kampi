@@ -27,7 +27,17 @@ KOD_SELF_MIN = 15
 CORPUS_MAX_CHARS = "2400000000"
 HAZIR_URL = "__HAZIR__"  # GitHub'da önceden hazırlanmış dil modeli akışı (hazir-veri Release klasörü); boşsa yok
 OZ_URLS = "__OZ__"  # Orion'un önceki oturumlarda kendi çözüp doğrulanan cevapları (orion-ozogrenme Release); boşsa yok
-SELF_MIN = 20  # oturum sonunda kendi kendine öğrenmeye ayrılan dakika  # Vikipedi + derlem toplamı (pay sınırları derlem-kaynaklar.json)
+SELF_MIN = 20  # oturum sonunda kendi kendine öğrenmeye ayrılan dakika
+# Kaggle bir oturumu 12 saatte (720 dk) keser; kesilen oturumun çıktısı kaydedilmeyebilir (2026-11-14: eğitim + iki dışa
+# aktarma + kendi kendine öğrenme 12 saati aştı, oturum "hata" ile bitti). Her adım kalan süreye göre kısaltılır.
+import time as _time
+SESSION_START = _time.time()
+SESSION_LIMIT_MIN = 720
+SAFETY_MIN = 30  # dışa aktarma ve çıktı yazımı için pay
+
+
+def minutes_left() -> float:
+    return SESSION_LIMIT_MIN - (_time.time() - SESSION_START) / 60  # Vikipedi + derlem toplamı (pay sınırları derlem-kaynaklar.json)
 # İNCE AYAR (yalnız ek veri varsa): diyalog payı 0.75, taban lr 1.5e-4. lr_at kosinüs takvimi toplam hedef adıma
 # göre hesaplanır: 70000→90000 devamında etkin lr ~3e-5'ten ~1.5e-5'e iner (5e-4 tabanla ~1e-4'e SIÇRARDI).
 # Ek veri varken her 2000 adımda sınav (40 soru, açgözlü; ekran kartında tahmini <1 dk, doğrulanmadı) yapılır,
@@ -288,6 +298,11 @@ if corpus_urls:
     prep += ["--corpus-max-chars", CORPUS_MAX_CHARS]
     print(f"ORION: derlem {len(corpus_urls)} Release:", " ".join(corpus_urls), flush=True)
 sh(*prep)
+# Eğitim bütçesi: kalan süreden dışa aktarma (~25 dk), kendi kendine öğrenme ve güvenlik payı düşülür
+_train_cap = int(minutes_left() - 25 - SELF_MIN - KOD_SELF_MIN - SAFETY_MIN)
+if _train_cap < int(BUDGET_MIN):
+    print(f"ORION: eğitim bütçesi {BUDGET_MIN} → {max(_train_cap, 30)} dk (12 saat sınırı; kalan {minutes_left():.0f} dk)", flush=True)
+    BUDGET_MIN = str(max(_train_cap, 30))
 # Büyük beyin her zaman ince ayar ayarlarıyla (büyütülmüş, eğitilmiş başlangıç) ve sınavla eğitilir
 ft = bool(extra or teacher)
 lr, dfrac = (FT_LR, FT_DIALOG_FRAC) if ft else ("5e-4", "0.25")
@@ -317,7 +332,10 @@ for f in glob.glob(f"{out}/chat-run/*.tmp"):
 # Kendi kendine öğrenme: denetlenebilir problemleri (çeviri "final" + kodla üretilen matematik) kendisi çözer; yalnız son
 # cevabı doğru olan adımlı çözümler sonraki oturumun ek verisi olur. Hata olursa eğitim sonucu yine yayınlanır.
 probs = sorted(glob.glob(f"{data}/extra*/extra-dialogs.jsonl*")) + ([extra] if extra and os.path.exists(extra) else [])
-if probs:
+SELF_MIN = int(min(SELF_MIN, minutes_left() - SAFETY_MIN))
+if SELF_MIN < 5:
+    print(f"ORION: kendi kendine öğrenme atlandı: süre az (kalan {minutes_left():.0f} dk)", flush=True)
+if probs and SELF_MIN >= 5:
     try:
         sl = [sys.executable, "-m", "orion_core.selflearn", "--model", f"{out}/chat-export", "--out", f"{out}/ozogrenme.jsonl.gz",
               "--limit", "20000", "--k", "4", "--budget-min", str(SELF_MIN)]
@@ -327,7 +345,8 @@ if probs:
     except Exception as e:
         print(f"ORION: kendi kendine öğrenme atlandı: {e!r}", flush=True)
 # Kodla kendi kendine öğrenme: Orion testli problemlere kod yazar; testleri kum havuzunda geçen çözümler sonraki eğitime
-if KOD_PROBLEM_URL.startswith("http"):
+KOD_SELF_MIN = int(min(KOD_SELF_MIN, minutes_left() - SAFETY_MIN))
+if KOD_PROBLEM_URL.startswith("http") and KOD_SELF_MIN >= 5:
     try:
         urllib.request.urlretrieve(KOD_PROBLEM_URL, "/kaggle/tmp/kod-problem.jsonl.gz")
         sh(sys.executable, "-m", "orion_core.selflearn", "kod", "--model", f"{out}/chat-export", "--problems",
