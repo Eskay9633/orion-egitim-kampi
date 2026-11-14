@@ -32,7 +32,9 @@ SELF_MIN = 20  # oturum sonunda kendi kendine öğrenmeye ayrılan dakika
 # aktarma + kendi kendine öğrenme 12 saati aştı, oturum "hata" ile bitti). Her adım kalan süreye göre kısaltılır.
 import time as _time
 SESSION_START = _time.time()
-SESSION_LIMIT_MIN = 720
+# Sahibin kararı (2026-11-14): oturum ~9,5 saat; haftalık 30 saatlik kotaya 3 tam oturum sığar (Kaggle'ın kendi
+# sınırı 12 saat). Eğitim süresi kalan zamandan kendiliğinden hesaplanır.
+SESSION_LIMIT_MIN = 570
 SAFETY_MIN = 30  # dışa aktarma ve çıktı yazımı için pay
 
 
