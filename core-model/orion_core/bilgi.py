@@ -37,9 +37,19 @@ Q_ELEMENT = """SELECT ?eL ?sym ?num WHERE { ?e wdt:P31 wd:Q11344 ; wdt:P246 ?sym
 
 
 def sparql(q: str) -> list[dict]:
+    import time
+    import urllib.error
     url = SPARQL + "?" + urllib.parse.urlencode({"query": q, "format": "json"})
     req = urllib.request.Request(url, headers=UA)
-    data = json.loads(urllib.request.urlopen(req, timeout=120).read())
+    # Wikidata sorgu hizmeti zaman zaman dakikada bir isteğe iner (HTTP 429): bekleyip yeniden dene (en çok 4 kez)
+    for attempt in range(4):
+        try:
+            data = json.loads(urllib.request.urlopen(req, timeout=120).read())
+            break
+        except urllib.error.HTTPError as e:
+            if e.code != 429 or attempt == 3:
+                raise
+            time.sleep(75)
     return [{k: v["value"] for k, v in b.items()} for b in data["results"]["bindings"]]
 
 
