@@ -26,6 +26,7 @@ KOD_PROBLEM_URL = "__KODP__"  # testli kod problemleri (kodla kendi kendine öğ
 KOD_SELF_MIN = 15
 CORPUS_MAX_CHARS = "2400000000"
 HAZIR_URL = "__HAZIR__"  # GitHub'da önceden hazırlanmış dil modeli akışı (hazir-veri Release klasörü); boşsa yok
+DIY_URLS = "__DIY__"  # diyalog-* Release'leri (bilgi.yml: Wikidata gerçekleri + okuduğunu anlama); boşsa yok
 OZ_URLS = "__OZ__"  # Orion'un önceki oturumlarda kendi çözüp doğrulanan cevapları (orion-ozogrenme Release); boşsa yok
 SELF_MIN = 20  # oturum sonunda kendi kendine öğrenmeye ayrılan dakika
 # Kaggle bir oturumu 12 saatte (720 dk) keser; kesilen oturumun çıktısı kaydedilmeyebilir (2026-11-14: eğitim + iki dışa
@@ -292,6 +293,9 @@ if KOD_SINAV_URL.startswith("http"):
     except Exception as e:
         print(f"ORION: kodlama sınavı dosyası inemedi: {e!r}", flush=True)
 for u in OZ_URLS.split():
+    if u.startswith("http"):
+        prep += ["--extra-dialogs", u]
+for u in DIY_URLS.split():
     if u.startswith("http"):
         prep += ["--extra-dialogs", u]
 for u in corpus_urls:

@@ -1,0 +1,47 @@
+name: bilgi-verisi
+
+# Sohbet beyni için bilgi ve okuduğunu anlama verisini GitHub'ın makinesinde üretir (core-model/orion_core/bilgi.py):
+# Wikidata gerçekleri (CC0) → Türkçe soru-cevap; XQuAD tr ve Belebele tr (CC BY-SA 4.0, veri kartına göre; doğrulanmadı).
+# Sonuç "diyalog-bilgi" Release'ine konur; Kaggle oturumu "diyalog-*" Release'lerini ek diyalog olarak indirir.
+# Tetikleme: kaggle/bilgi-istek.txt'ye işlemek, elle, ya da haftada bir.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['kaggle/bilgi-istek.txt', 'core-model/orion_core/bilgi.py']
+  schedule:
+    - cron: '41 2 * * 5'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bilgi
+  cancel-in-progress: false
+
+jobs:
+  uret:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Kurulum
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -r core-model/requirements.txt pyarrow
+      - name: Üret
+        working-directory: core-model
+        run: python -m orion_core.bilgi ../bilgi-out
+      - name: Yayınla (diyalog-bilgi)
+        run: |
+          N=$(python3 -c "import json;print(json.load(open('bilgi-out/bilgi.json'))['toplam'])")
+          if [ "$N" -lt 500 ]; then echo "::error::çok az diyalog ($N); yayınlanmadı"; cat bilgi-out/bilgi.json; exit 1; fi
+          NOTES="Bilgi ve okuduğunu anlama diyalogları: $(tr -d '\n ' < bilgi-out/bilgi.json). Kaynaklar: Wikidata (CC0), XQuAD tr ve Belebele tr (CC BY-SA 4.0, veri kartına göre; doğrulanmadı)."
+          gh release view diyalog-bilgi >/dev/null 2>&1 || gh release create diyalog-bilgi --prerelease --title "Diyalog: bilgi ve anlama" --notes "$NOTES"
+          gh release edit diyalog-bilgi --notes "$NOTES"
+          gh release upload diyalog-bilgi bilgi-out/bilgi.jsonl.gz bilgi-out/bilgi.json --clobber
