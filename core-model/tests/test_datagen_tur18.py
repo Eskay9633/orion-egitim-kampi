@@ -19,12 +19,12 @@ from orion_core import SHARED, datagen
 # 2026-11-13 (2): Leo, Nora, Iris ve code.run / code.repo / work.check komutları eklendi (sahibin isteği: kod yazan
 # ve işi denetleyen ajanlar); kümeler yeniden üretildi. Eşikler değişmedi.
 SPLIT_SHA = {
-    ("test_iid", 600, 101): "e1e4f28c0e5dcca9a2501de87f85aeddb2ee3ebf66d4fae4c58200ebb062c1d5",
-    ("test_ood", 400, 202): "591038230db8f3eedd88f179abb6ba6fa285779a5f2c1ef7bfa5a3fd79cedfa0",
-    ("legacy_ood", 400, 202): "fae2bd6310a4fbfb6894d21a19793d60ddc82706538d03e5e7702ab5b86eb4d5",
-    ("test_iid", 1000, 707): "bd436198fe7399503fc6be1739d9d43b1314cbb81157130d6606b97dacc23bd2",
-    ("test_ood", 1000, 909): "721b7d37e5a02ff0affae5c19d073661f3ac6cbc2139488099b616ee1d812907",
-    ("legacy_ood", 1000, 808): "31bad7cf221d14824f41e31e8c7c79a0d7a67f9456423732a25f7b0022935d28",
+    ("test_iid", 600, 101): "98c63d7824b0b41da61ed563f6e86b4c70efd865b69ce9a9d4ff5e1d6afc1711",
+    ("test_ood", 400, 202): "4623a5683fde6505774fc88aacf84d6c4f8052645dcea1a9ac0c2ea3ecd0a4a1",
+    ("legacy_ood", 400, 202): "9e81d35a8812e0fd6c62feece7eac3d9503581267daa89743d6bf6690a7cf856",
+    ("test_iid", 1000, 707): "198b31fb383133f4c91de456ba2b92d06e1cad637fbc6432db8a5161433679fd",
+    ("test_ood", 1000, 909): "ee0d75f55f2540579a7d7750cab24a4b958541a40fdb43bb039a770f928cdd3f",
+    ("legacy_ood", 1000, 808): "2bc079831f17695c437c86192a90f8826f58cdd5381dc0a2b698e6064b2cdf78",
 }
 
 # Tur 14 karşıt grupları: ayrılmış fiil/yüklem parçalarını içermedikleri test_datagen_tur14'te denetlenir. Sözcük

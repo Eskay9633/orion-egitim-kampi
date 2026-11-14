@@ -314,7 +314,7 @@
    "no_key": false,
    "vision": true,
    "image_api": "pollinations",
-   "notes": "2026 itibarıyla eski anahtarsız adres (text.pollinations.ai) yerine gen.pollinations.ai kullanılıyor ve üretim için anahtar (enter.pollinations.ai, ücretsiz kayıt) gerekiyor; anonim erişim yalnızca önbellekli cevaplarla sınırlı. Metin ve resim üretir. İstemler herkese açık akışta görünebilir: gizli veri gönderilmez. Model adı ve resim girdisi (vision) desteği doğrulanmadı.",
+   "notes": "2026 itibarıyla eski anahtarsız adres (text.pollinations.ai) yerine gen.pollinations.ai kullanılıyor ve üretim için anahtar (enter.pollinations.ai, ücretsiz kayıt) gerekiyor; anonim erişim yalnızca önbellekli cevaplarla sınırlı. Metin ve resim üretir. İstemler herkese açık akışta görünebilir: gizli veri gönderilmez. Model adı ve resim girdisi (vision) desteği doğrulanmadı. Anahtar yoksa resim için eski anahtarsız adres (image.pollinations.ai) yedek olarak denenir: ~15 sn'de 1 istek, filigran olabilir (doğrulanmadı); kişisel veri içeren istem gönderilmez.",
    "license_note": "Arkadaki model sağlayıcıya göre değişir; varsayılan training_allowed=false."
   },
   {

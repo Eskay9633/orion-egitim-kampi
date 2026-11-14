@@ -361,6 +361,39 @@
    "input": "{\"v\":1,\"id\":\"p3\",\"cmd\":\"market.alert\",\"args\":{\"coin\":\"bitcoin\"}}",
    "ok": false,
    "err_code": "E_ARG_MISSING"
+  },
+  {
+   "name": "seo denetimi geçerli",
+   "input": "{\"v\": 1, \"id\": \"s1\", \"cmd\": \"seo.audit\", \"args\": {\"url\": \"https://ornek.com\", \"keyword\": \"kahve\"}}",
+   "ok": true
+  },
+  {
+   "name": "seo denetimi adres yok",
+   "input": "{\"v\": 1, \"id\": \"s2\", \"cmd\": \"seo.audit\", \"args\": {\"keyword\": \"kahve\"}}",
+   "ok": false,
+   "err_code": "E_ARG_MISSING"
+  },
+  {
+   "name": "reklam denetimi geçerli",
+   "input": "{\"v\": 1, \"id\": \"s3\", \"cmd\": \"ad.check\", \"args\": {\"text\": \"Taze kahve kapında\", \"platform\": \"meta\"}}",
+   "ok": true
+  },
+  {
+   "name": "reklam denetimi platform geçersiz",
+   "input": "{\"v\": 1, \"id\": \"s4\", \"cmd\": \"ad.check\", \"args\": {\"text\": \"x y\", \"platform\": \"tiktok\"}}",
+   "ok": false,
+   "err_code": "E_ARG_RANGE"
+  },
+  {
+   "name": "reklam bütçesi geçerli",
+   "input": "{\"v\": 1, \"id\": \"s5\", \"cmd\": \"ad.budget\", \"args\": {\"budget\": 5000, \"cpc\": \"3,5\", \"conv\": \"2\", \"price\": 400}}",
+   "ok": true
+  },
+  {
+   "name": "reklam bütçesi tür yanlış",
+   "input": "{\"v\": 1, \"id\": \"s6\", \"cmd\": \"ad.budget\", \"args\": {\"budget\": \"beş bin\", \"cpc\": \"3\"}}",
+   "ok": false,
+   "err_code": "E_ARG_TYPE"
   }
  ],
  "responses": [

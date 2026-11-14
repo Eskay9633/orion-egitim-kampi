@@ -757,6 +757,78 @@
         }
       }
     },
+    "seo.audit": {
+      "agent": "grace",
+      "doc": "Grace bir web sayfasını (yalnız https) anahtarsız indirir ve sayfa içi SEO denetimi yapar: başlık ve açıklama uzunluğu, H1, görsel alt metni, kelime sayısı, anahtar kelimenin başlık/açıklama/H1/metinde geçişi ve yoğunluğu, dil, mobil görünüm (viewport), kanonik adres, bağlantı sayıları. Puan ve düzeltme listesi verir. Arama hacmi ve sıralama ölçülmez. Hesap telefonda yapılır, yardımcı yapay zekâ gerekmez.",
+      "needs_net": true,
+      "effect": "read",
+      "args": {
+        "url": {
+          "type": "uri",
+          "required": true
+        },
+        "keyword": {
+          "type": "string",
+          "required": false,
+          "minLen": 2,
+          "maxLen": 60
+        }
+      }
+    },
+    "ad.check": {
+      "agent": "maya",
+      "doc": "Maya reklam metnini platformun karakter sınırlarına göre denetler (Google: başlık 30, açıklama 90; Meta: başlık 40, ana metin önerilen 125 — sınırlar doğrulanmadı) ve okunurluk sorunlarını (tamamı büyük harf, ünlem fazlası, eylem çağrısı yok) listeler. Her satır ayrı başlık/açıklama sayılır. İnternetsiz.",
+      "needs_net": false,
+      "effect": "read",
+      "args": {
+        "text": {
+          "type": "string",
+          "required": true,
+          "minLen": 2,
+          "maxLen": 1500
+        },
+        "platform": {
+          "type": "enum",
+          "values": [
+            "google",
+            "meta"
+          ],
+          "default": "google"
+        }
+      }
+    },
+    "ad.budget": {
+      "agent": "maya",
+      "doc": "Maya reklam bütçesi hesabı: bütçe (TL) ve tıklama başı maliyetten (TL, ondalık olabilir: \"3,5\") tıklama sayısı; dönüşüm oranı (%) verilirse dönüşüm ve dönüşüm başı maliyet; ürün fiyatı (TL) verilirse ciro ve reklam getirisi (ROAS). İnternetsiz; sonuçlar varsayımlara dayanır.",
+      "needs_net": false,
+      "effect": "read",
+      "args": {
+        "budget": {
+          "type": "int",
+          "required": true,
+          "min": 1,
+          "max": 100000000
+        },
+        "cpc": {
+          "type": "string",
+          "required": true,
+          "minLen": 1,
+          "maxLen": 12
+        },
+        "conv": {
+          "type": "string",
+          "required": false,
+          "minLen": 1,
+          "maxLen": 8
+        },
+        "price": {
+          "type": "int",
+          "required": false,
+          "min": 1,
+          "max": 100000000
+        }
+      }
+    },
     "help": {
       "agent": "mike",
       "doc": "Yapılabilecek işleri listeler.",

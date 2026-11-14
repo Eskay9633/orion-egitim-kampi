@@ -707,6 +707,9 @@ TEMPLATES: dict[str, list[Gen]] = {
     "code.repo": [lambda rng, sp: g_code_repo(rng, sp, False, False)] * 3,
     "work.check": [lambda rng, sp: g_work_check(rng, sp, False, False)] * 3,
     "market.alert": [lambda rng, sp: g_alert(rng, sp, False, False)] * 3,
+    "seo.audit": [lambda rng, sp: g_seo(rng, sp, False, False)] * 3,
+    "ad.check": [lambda rng, sp: g_ad_check(rng, sp, False, False)] * 3,
+    "ad.budget": [lambda rng, sp: g_ad_budget(rng, sp, False, False)] * 3,
 }
 
 # Komut ağırlıkları (gerçek kullanım tahmini; çok değerli olanlar daha sık)
@@ -715,6 +718,7 @@ WEIGHTS = {
     "repo.audit": 2, "calendar.add": 4, "calendar.list": 2, "file.summarize": 1, "image.analyze": 2, "image.generate": 2, "card.propose": 3,
     "timer.start": 2, "provider.discover": 1, "health.check": 1, "memory.save": 2, "ask": 3, "calc.eval": 2, "text.translate": 2, "market.crypto": 2, "skill.run": 2, "skill.list": 1, "skill.learn": 2, "skill.record": 1, "agent.hire": 1, "mail.check": 2, "mail.send": 1, "self.status": 1, "app.open": 2, "app.list": 1, "memory.recall": 1, "self.advise": 1, "help": 1,
     "code.run": 2, "code.repo": 1, "work.check": 1, "market.alert": 2,
+    "seo.audit": 1, "ad.check": 1, "ad.budget": 1,
 }
 
 
@@ -819,6 +823,9 @@ PLANS = {
     "code.repo": ["net.check", "github.read", "helper.write", "scope.check", "review.check", "proposal.create", "user.confirm"],
     "work.check": ["history.read", "net.check", "provider.ask", "provider.ask", "card.render"],
     "market.alert": ["market.read", "alert.save", "card.render"],
+    "seo.audit": ["net.check", "page.fetch", "seo.measure", "card.render"],
+    "ad.check": ["limits.read", "ad.measure", "card.render"],
+    "ad.budget": ["budget.compute", "card.render"],
     "help": ["commands.list"],
 }
 
@@ -1635,6 +1642,68 @@ def g_work_check(rng, sp, hf, hv):
     return G.choose(rng, WORK_CHECK_PHRASES, sp, hf or hv), {}
 
 
+# --------------------------------------------------------------------------- Grace / Maya araçları (2026-11-14)
+SEO_SITES = ["ornekkahve.com", "benimdukkanim.com.tr", "yogastudyo.net", "kitapkosesi.com", "evdekiusta.com.tr", "tatlicitulin.com",
+             "kodokulu.org", "bisikletci.shop", "minikmama.com", "anadolutur.com.tr", "sanatatolye.net", "tamirci34.com"]
+SEO_PATHS = ["", "", "", "/blog", "/urunler", "/hakkimizda", "/blog/kahve-demleme", "/iletisim", "/menu"]
+SEO_KWS = ["kahve", "yoga dersi", "ikinci el kitap", "kombi tamiri", "doğum günü pastası", "python kursu", "bisiklet bakımı",
+           "organik mama", "kapadokya turu", "seramik atölyesi", "telefon tamiri", "ev temizliği"]
+SEO_FRAMES = ["{U} sitesinin SEO denetimini yap", "{U} için SEO kontrolü yap", "{U} sayfasının SEO'suna bak", "seo denetimi: {U}",
+              "{U} adresini SEO açısından incele", "Grace, {U} sitemin SEO'sunu kontrol et", "{U} arama motoruna uygun mu, SEO'suna bak",
+              "{U} sayfamın site içi SEO eksiklerini çıkar"]
+SEO_KW_FRAMES = ["{U} sitesinin SEO denetimini yap, anahtar kelime: {K}", "{U} için SEO kontrolü, anahtar kelime {K}",
+                 "{U} sayfası '{K}' anahtar kelimesiyle SEO açısından nasıl", "seo denetimi: {U} anahtar kelime: {K}",
+                 "Grace, {U} sitemin SEO'sunu {K} anahtar kelimesine göre incele", "{U} SEO'su nasıl, anahtar kelimem {K}"]
+
+
+def g_seo(rng, sp, hf, hv):
+    url = "https://" + rng.choice(["", "www."]) + pick(rng, SEO_SITES, sp) + rng.choice(SEO_PATHS)
+    if rng.random() < 0.5:
+        kw = pick(rng, SEO_KWS, sp, lambda r: random_phrase(r, 1, 2), 0.5)
+        return _fill(G.choose(rng, SEO_KW_FRAMES, sp, hf or hv), U=url, K=kw), {"url": url, "keyword": kw}
+    return _fill(G.choose(rng, SEO_FRAMES, sp, hf or hv), U=url), {"url": url}
+
+
+AD_TEXTS = ["Taze kahve kapında | Hemen sipariş ver", "Yaz indirimi başladı! Tüm ürünlerde %30", "Ücretsiz deneme dersi için hemen kaydol",
+            "El yapımı seramik kupalar | Sınırlı sayıda", "Kombi bakımında kış fırsatı, randevunu al", "Yeni sezon bisikletleri incele",
+            "Organik mama ile mutlu dostlar | Ücretsiz kargo", "Kapadokya balon turu erken rezervasyon fırsatı"]
+AD_FRAMES = ["reklam metnimi kontrol et: {T}", "bu reklam metni sınırlara uyuyor mu: {T}", "Maya, reklam başlığımı denetle: {T}",
+             "reklam metni karakter kontrolü: {T}", "şu reklam metnini incele: {T}", "reklam yazım uygun mu, kontrol et: {T}"]
+AD_META_FRAMES = ["instagram reklam metnimi kontrol et: {T}", "facebook reklamım için metni denetle: {T}", "meta reklam metni uygun mu: {T}",
+                  "insta reklamı için şu metni kontrol et: {T}"]
+
+
+def g_ad_check(rng, sp, hf, hv):
+    t = pick(rng, AD_TEXTS, sp, lambda r: random_phrase(r, 3, 9), 0.5)
+    if rng.random() < 0.4:
+        return _fill(G.choose(rng, AD_META_FRAMES, sp, hf or hv), T=t), {"text": t, "platform": "meta"}
+    return _fill(G.choose(rng, AD_FRAMES, sp, hf or hv), T=t), {"text": t}
+
+
+AD_BUDGET_FRAMES = ["{B} TL bütçeyle tıklama başı {C} TL ise kaç tıklama alırım", "reklam bütçem {B} TL, tıklama başına {C} TL, kaç tıklama eder",
+                    "{B} liralık bütçe ve {C} TL tıklama başı maliyetle kaç kişi gelir", "Maya, {B} TL bütçe tıklama başı {C} TL hesapla",
+                    "bütçe {B} TL, cpc {C}: kaç tıklama", "{B} TL reklam bütçesiyle tıklama başı {C} lira olursa ne olur"]
+AD_CONV_TAIL = [", dönüşüm oranı %{V}", ", dönüşüm %{V} olursa kaç satış olur", " ve dönüşüm yüzde {V}"]
+AD_PRICE_TAIL = [", ürün fiyatı {P} TL", ", ürün {P} TL", " ve sepet tutarı {P} TL"]
+
+
+def g_ad_budget(rng, sp, hf, hv):
+    b = rng.choice([500, 1000, 1500, 2000, 2500, 3000, 5000, 7500, 10000, 15000, 20000, 50000])
+    btxt = f"{b:,}".replace(",", ".") if b >= 10000 and rng.random() < 0.6 else str(b)
+    c = rng.choice(["1", "2", "2,5", "3", "3,5", "4", "0,8", "1,2", "5", "7,5", "10"])
+    text = _fill(G.choose(rng, AD_BUDGET_FRAMES, sp, hf or hv), B=btxt, C=c)
+    args = {"budget": b, "cpc": c}
+    if rng.random() < 0.5:
+        v = rng.choice(["1", "2", "2,5", "3", "4", "5", "0,5"])
+        text += rng.choice(AD_CONV_TAIL).replace("{V}", v)
+        args["conv"] = v
+        if rng.random() < 0.5:
+            p = rng.choice([150, 250, 400, 600, 900, 1200])
+            text += rng.choice(AD_PRICE_TAIL).replace("{P}", str(p))
+            args["price"] = p
+    return text, args
+
+
 GRAMMAR = {
     "reminder.set": g_reminder, "reminder.list": g_reminder_list, "note.write": g_note, "note.search": g_note_search,
     "research.start": g_research, "repo.audit": g_repo, "calendar.add": g_calendar_add, "calendar.list": g_calendar_list,
@@ -1645,6 +1714,7 @@ GRAMMAR = {
     "agent.hire": g_agent_hire, "mail.check": g_mail_check, "mail.send": g_mail_send, "self.status": g_self_status, "app.open": g_app_open, "app.list": g_app_list,
     "memory.recall": g_memory_recall, "self.advise": g_self_advise,
     "code.run": g_code_run, "code.repo": g_code_repo, "work.check": g_work_check, "market.alert": g_alert,
+    "seo.audit": g_seo, "ad.check": g_ad_check, "ad.budget": g_ad_budget,
 }
 GRAMMAR_FRAC = 0.75
 
