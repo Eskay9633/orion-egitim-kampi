@@ -394,6 +394,34 @@
    "input": "{\"v\": 1, \"id\": \"s6\", \"cmd\": \"ad.budget\", \"args\": {\"budget\": \"beş bin\", \"cpc\": \"3\"}}",
    "ok": false,
    "err_code": "E_ARG_TYPE"
+  },
+  {
+   "name": "renk geçerli",
+   "input": "{\"v\": 1, \"id\": \"w1\", \"cmd\": \"design.colors\", \"args\": {\"colors\": [\"#1E88E5\", \"beyaz\"]}}",
+   "ok": true
+  },
+  {
+   "name": "renk çok fazla",
+   "input": "{\"v\": 1, \"id\": \"w2\", \"cmd\": \"design.colors\", \"args\": {\"colors\": [\"a\", \"b\", \"c\"]}}",
+   "ok": false,
+   "err_code": "E_ARG_RANGE"
+  },
+  {
+   "name": "konu nöbeti geçerli",
+   "input": "{\"v\": 1, \"id\": \"w3\", \"cmd\": \"research.watch\", \"args\": {\"topic\": \"yapay zeka\"}}",
+   "ok": true
+  },
+  {
+   "name": "depo nöbeti eylem geçersiz",
+   "input": "{\"v\": 1, \"id\": \"w4\", \"cmd\": \"repo.watch\", \"args\": {\"repo\": \"a/b\", \"action\": \"izle\"}}",
+   "ok": false,
+   "err_code": "E_ARG_RANGE"
+  },
+  {
+   "name": "akşam özeti saat sınır dışı",
+   "input": "{\"v\": 1, \"id\": \"w5\", \"cmd\": \"work.digest\", \"args\": {\"hour\": 25}}",
+   "ok": false,
+   "err_code": "E_ARG_RANGE"
   }
  ],
  "responses": [

@@ -710,6 +710,10 @@ TEMPLATES: dict[str, list[Gen]] = {
     "seo.audit": [lambda rng, sp: g_seo(rng, sp, False, False)] * 3,
     "ad.check": [lambda rng, sp: g_ad_check(rng, sp, False, False)] * 3,
     "ad.budget": [lambda rng, sp: g_ad_budget(rng, sp, False, False)] * 3,
+    "design.colors": [lambda rng, sp: g_colors(rng, sp, False, False)] * 3,
+    "research.watch": [lambda rng, sp: g_research_watch(rng, sp, False, False)] * 3,
+    "repo.watch": [lambda rng, sp: g_repo_watch(rng, sp, False, False)] * 3,
+    "work.digest": [lambda rng, sp: g_work_digest(rng, sp, False, False)] * 3,
 }
 
 # Komut ağırlıkları (gerçek kullanım tahmini; çok değerli olanlar daha sık)
@@ -718,7 +722,7 @@ WEIGHTS = {
     "repo.audit": 2, "calendar.add": 4, "calendar.list": 2, "file.summarize": 1, "image.analyze": 2, "image.generate": 2, "card.propose": 3,
     "timer.start": 2, "provider.discover": 1, "health.check": 1, "memory.save": 2, "ask": 3, "calc.eval": 2, "text.translate": 2, "market.crypto": 2, "skill.run": 2, "skill.list": 1, "skill.learn": 2, "skill.record": 1, "agent.hire": 1, "mail.check": 2, "mail.send": 1, "self.status": 1, "app.open": 2, "app.list": 1, "memory.recall": 1, "self.advise": 1, "help": 1,
     "code.run": 2, "code.repo": 1, "work.check": 1, "market.alert": 2,
-    "seo.audit": 1, "ad.check": 1, "ad.budget": 1,
+    "seo.audit": 1, "ad.check": 1, "ad.budget": 1, "design.colors": 1, "research.watch": 1, "repo.watch": 1, "work.digest": 1,
 }
 
 
@@ -826,6 +830,10 @@ PLANS = {
     "seo.audit": ["net.check", "page.fetch", "seo.measure", "card.render"],
     "ad.check": ["limits.read", "ad.measure", "card.render"],
     "ad.budget": ["budget.compute", "card.render"],
+    "design.colors": ["color.parse", "contrast.compute", "card.render"],
+    "research.watch": ["duty.save", "card.render"],
+    "repo.watch": ["duty.save", "card.render"],
+    "work.digest": ["duty.save", "card.render"],
     "help": ["commands.list"],
 }
 
@@ -1656,8 +1664,14 @@ SEO_KW_FRAMES = ["{U} sitesinin SEO denetimini yap, anahtar kelime: {K}", "{U} i
                  "Grace, {U} sitemin SEO'sunu {K} anahtar kelimesine göre incele", "{U} SEO'su nasıl, anahtar kelimem {K}"]
 
 
+SEO_WATCH_FRAMES = ["{U} sitesinin SEO denetimini her hafta yap", "{U} SEO'sunu haftada bir kontrol et", "{U} sitemi SEO için takip et",
+                    "Grace, {U} sayfasının SEO'sunu izle", "{U} için haftalık SEO denetimi kur"]
+
+
 def g_seo(rng, sp, hf, hv):
     url = "https://" + rng.choice(["", "www."]) + pick(rng, SEO_SITES, sp) + rng.choice(SEO_PATHS)
+    if rng.random() < 0.2:
+        return _fill(G.choose(rng, SEO_WATCH_FRAMES, sp, hf or hv), U=url), {"url": url, "watch": True}
     if rng.random() < 0.5:
         kw = pick(rng, SEO_KWS, sp, lambda r: random_phrase(r, 1, 2), 0.5)
         return _fill(G.choose(rng, SEO_KW_FRAMES, sp, hf or hv), U=url, K=kw), {"url": url, "keyword": kw}
@@ -1704,6 +1718,72 @@ def g_ad_budget(rng, sp, hf, hv):
     return text, args
 
 
+# --------------------------------------------------------------------------- Luna / Sophia / Jack / Mike araçları (2026-11-14)
+COLOR_NAMES = ["mavi", "lacivert", "kırmızı", "yeşil", "sarı", "turuncu", "mor", "pembe", "siyah", "beyaz", "gri", "turkuaz", "bordo", "mint", "krem"]
+COLOR_HEX = ["#1E88E5", "#E53935", "#2E7D32", "#FDD835", "#3EB489", "#212121", "#F5F5F5", "#8E24AA", "#00ACC1", "#FF7043", "#263238", "#FFC107"]
+PALETTE_FRAMES = ["{A} için renk paleti çıkar", "{A} rengine uygun palet öner", "Luna, {A} ana rengiyle palet hazırla", "{A} rengiyle uyumlu renkler bul",
+                  "{A} için palet oluştur", "ana rengim {A}, paleti çıkar"]
+CONTRAST_FRAMES = ["{A} yazı {B} zeminde okunur mu", "{A} metin {B} arka plan kontrastı ne", "{A} ile {B} kontrastını ölç",
+                   "Luna, {A} yazıyı {B} zemin üstünde okunurluk açısından kontrol et", "{B} zemine {A} yazı okunabilir mi", "kontrast: {A} ve {B}"]
+
+
+def g_colors(rng, sp, hf, hv):
+    def col():
+        return rng.choice(COLOR_HEX) if rng.random() < 0.5 else rng.choice(COLOR_NAMES)
+    if rng.random() < 0.45:
+        a = col()
+        return _fill(G.choose(rng, PALETTE_FRAMES, sp, hf or hv), A=a), {"colors": [a]}
+    a, b = col(), col()
+    while b == a:
+        b = col()
+    f = G.choose(rng, CONTRAST_FRAMES, sp, hf or hv)
+    # Komut sırası: yazı (A), zemin (B); cümlede zemin önce gelse de
+    return _fill(f, A=a, B=b), {"colors": [a, b]}
+
+
+WATCH_TOPICS = ["yapay zeka", "iklim değişikliği", "mars keşfi", "kuantum bilgisayar", "elektrikli otomobil", "türk sineması",
+                "dünya kupası", "deprem", "uzay teleskobu", "yenilenebilir enerji", "blokzincir", "osmanlı tarihi"]
+TOPIC_WATCH_FRAMES = ["{T} konusunu takip et", "{T} konusunu izle, değişince haber ver", "Sophia, {T} konusunu takipte tut",
+                      "{T} konusundaki gelişmeleri takip et", "{T} maddesini izle", "{T} hakkındaki gelişmeleri izle"]
+TOPIC_UNWATCH_FRAMES = ["{T} konusunu takip etmeyi bırak", "{T} konusunu izlemeyi bırak", "{T} konusunun takibini kaldır"]
+REPOS = ["eskay/orion", "torvalds/linux", "kotlin/kotlinx.coroutines", "openai/whisper", "square/okhttp", "pallets/flask",
+         "facebook/react", "google/guava", "psf/requests", "vuejs/core"]
+REPO_WATCH_FRAMES = ["{R} deposunu izle, CI kırılınca haber ver", "{R} deposunu nöbete al", "Jack, {R} reposunu takip et",
+                     "{R} deposunu izle", "{R} derlemesi kırılırsa haber ver, takip et", "{R} reposuna göz kulak ol"]
+REPO_UNWATCH_FRAMES = ["{R} deposunu izlemeyi bırak", "{R} deposunun takibini kaldır", "{R} reposunu takip etmeyi bırak"]
+DIGEST_FRAMES = ["her akşam günün özetini gönder", "her akşam saat {H}'de günün özetini gönder", "akşam özeti istiyorum",
+                 "Mike, her gün ekibin özetini at", "günlük özet bildirimini aç", "gün sonu özeti saat {H}'de gelsin"]
+DIGEST_OFF_FRAMES = ["akşam özetini kapat", "günlük özet istemiyorum", "gün sonu özetini durdur"]
+DUTY_LIST = ["nöbetleri göster", "neleri izliyorsun", "takip ettiklerini listele", "ajan nöbetlerini göster", "kurulu nöbetler neler"]
+
+
+def g_research_watch(rng, sp, hf, hv):
+    r = rng.random()
+    if r < 0.15:
+        return G.choose(rng, DUTY_LIST, sp, hf or hv), {"action": "list"}
+    t = pick(rng, WATCH_TOPICS, sp, lambda q: random_phrase(q, 1, 3), 0.5)
+    if r < 0.3:
+        return _fill(G.choose(rng, TOPIC_UNWATCH_FRAMES, sp, hf or hv), T=t), {"topic": t, "action": "remove"}
+    return _fill(G.choose(rng, TOPIC_WATCH_FRAMES, sp, hf or hv), T=t), {"topic": t}
+
+
+def g_repo_watch(rng, sp, hf, hv):
+    repo = pick(rng, REPOS, sp)
+    if rng.random() < 0.2:
+        return _fill(G.choose(rng, REPO_UNWATCH_FRAMES, sp, hf or hv), R=repo), {"repo": repo, "action": "remove"}
+    return _fill(G.choose(rng, REPO_WATCH_FRAMES, sp, hf or hv), R=repo), {"repo": repo}
+
+
+def g_work_digest(rng, sp, hf, hv):
+    if rng.random() < 0.2:
+        return G.choose(rng, DIGEST_OFF_FRAMES, sp, hf or hv), {"action": "off"}
+    f = G.choose(rng, DIGEST_FRAMES, sp, hf or hv)
+    if "{H}" in f:
+        h = rng.choice([19, 20, 21, 22, 23])
+        return f.replace("{H}", str(h)), {"hour": h}
+    return f, {}
+
+
 GRAMMAR = {
     "reminder.set": g_reminder, "reminder.list": g_reminder_list, "note.write": g_note, "note.search": g_note_search,
     "research.start": g_research, "repo.audit": g_repo, "calendar.add": g_calendar_add, "calendar.list": g_calendar_list,
@@ -1715,6 +1795,7 @@ GRAMMAR = {
     "memory.recall": g_memory_recall, "self.advise": g_self_advise,
     "code.run": g_code_run, "code.repo": g_code_repo, "work.check": g_work_check, "market.alert": g_alert,
     "seo.audit": g_seo, "ad.check": g_ad_check, "ad.budget": g_ad_budget,
+    "design.colors": g_colors, "research.watch": g_research_watch, "repo.watch": g_repo_watch, "work.digest": g_work_digest,
 }
 GRAMMAR_FRAC = 0.75
 

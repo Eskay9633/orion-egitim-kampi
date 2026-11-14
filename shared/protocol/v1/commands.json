@@ -759,7 +759,7 @@
     },
     "seo.audit": {
       "agent": "grace",
-      "doc": "Grace bir web sayfasını (yalnız https) anahtarsız indirir ve sayfa içi SEO denetimi yapar: başlık ve açıklama uzunluğu, H1, görsel alt metni, kelime sayısı, anahtar kelimenin başlık/açıklama/H1/metinde geçişi ve yoğunluğu, dil, mobil görünüm (viewport), kanonik adres, bağlantı sayıları. Puan ve düzeltme listesi verir. Arama hacmi ve sıralama ölçülmez. Hesap telefonda yapılır, yardımcı yapay zekâ gerekmez.",
+      "doc": "Grace bir web sayfasını (yalnız https) anahtarsız indirir ve sayfa içi SEO denetimi yapar: başlık ve açıklama uzunluğu, H1, görsel alt metni, kelime sayısı, anahtar kelimenin başlık/açıklama/H1/metinde geçişi ve yoğunluğu, dil, mobil görünüm (viewport), kanonik adres, bağlantı sayıları. Puan ve düzeltme listesi verir. Arama hacmi ve sıralama ölçülmez. Hesap telefonda yapılır, yardımcı yapay zekâ gerekmez. watch=true: Grace siteyi haftada bir yeniden denetler, puan değişince haber verir (nöbet).",
       "needs_net": true,
       "effect": "read",
       "args": {
@@ -772,6 +772,10 @@
           "required": false,
           "minLen": 2,
           "maxLen": 60
+        },
+        "watch": {
+          "type": "bool",
+          "required": false
         }
       }
     },
@@ -826,6 +830,87 @@
           "required": false,
           "min": 1,
           "max": 100000000
+        }
+      }
+    },
+    "design.colors": {
+      "agent": "luna",
+      "doc": "Luna renk aracı, internetsiz: tek renk (#1E88E5 ya da Türkçe renk adı) verilirse açık/koyu/tamamlayıcı/komşu tonlarla palet ve her rengin üstünde okunur metin rengi; iki renk verilirse (yazı, zemin) WCAG kontrast oranı ve AA/AAA kararı.",
+      "needs_net": false,
+      "effect": "read",
+      "args": {
+        "colors": {
+          "type": "strlist",
+          "required": true,
+          "maxItems": 2,
+          "itemMaxLen": 24
+        }
+      }
+    },
+    "research.watch": {
+      "agent": "sophia",
+      "doc": "Sophia nöbeti: bir konunun Vikipedi maddesini günde bir anahtarsız izler, değişince haber verir ve nota yazar. action: add (varsayılan), remove, list (bütün ajan nöbetleri).",
+      "needs_net": false,
+      "effect": "write-easy",
+      "args": {
+        "topic": {
+          "type": "string",
+          "required": false,
+          "minLen": 2,
+          "maxLen": 80
+        },
+        "action": {
+          "type": "enum",
+          "values": [
+            "add",
+            "remove",
+            "list"
+          ],
+          "default": "add"
+        }
+      }
+    },
+    "repo.watch": {
+      "agent": "jack",
+      "doc": "Jack nöbeti: GitHub deposunun son CI sonucunu 6 saatte bir salt-okunur izler; kırılınca ya da düzelince haber verir. action: add (varsayılan), remove, list.",
+      "needs_net": false,
+      "effect": "write-easy",
+      "args": {
+        "repo": {
+          "type": "repo",
+          "required": false
+        },
+        "action": {
+          "type": "enum",
+          "values": [
+            "add",
+            "remove",
+            "list"
+          ],
+          "default": "add"
+        }
+      }
+    },
+    "work.digest": {
+      "agent": "mike",
+      "doc": "Mike nöbeti: her gün belirtilen saatte (varsayılan 21) ekip özeti bildirimi: bugün kim kaç iş yaptı, yarın hangi hatırlatıcı/etkinlikler var. action: on (varsayılan), off, list.",
+      "needs_net": false,
+      "effect": "write-easy",
+      "args": {
+        "action": {
+          "type": "enum",
+          "values": [
+            "on",
+            "off",
+            "list"
+          ],
+          "default": "on"
+        },
+        "hour": {
+          "type": "int",
+          "required": false,
+          "min": 0,
+          "max": 23
         }
       }
     },
