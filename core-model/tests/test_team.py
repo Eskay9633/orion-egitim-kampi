@@ -6,7 +6,7 @@ from orion_core import dialogs, team
 
 def test_every_agent_and_count_from_shared_file():
     names = [a["name"] for a in team.agents()]
-    assert len(names) == 13 and "Leo" in names and "EkBot" in names
+    assert len(names) == 14 and "Leo" in names and "EkBot" in names
     seen = set()
     rng = random.Random(3)
     for _ in range(3000):

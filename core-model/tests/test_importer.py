@@ -301,3 +301,40 @@ def test_ood_compared_on_same_set_when_measured_locally():
     ok, why = komut_better(new, cur, local_hw=(0.86, 0.86), local_ood=(0.74, 0.688))   # aynı kümede: daha iyi
     assert ok and "yeniden ölçüldü" in why
     assert not komut_better(new, cur, local_hw=(0.86, 0.86), local_ood=(0.70, 0.75))[0]  # aynı kümede gerçekten geriledi
+
+
+def test_komut_picks_best_of_recent_not_newest(monkeypatch, tmp_path):
+    """Sahibin kararı (2026-11-15): en yeni değil, mevcut modeli geçen adaylardan en iyisi alınır."""
+    import json
+    from orion_core import importer
+    shared = tmp_path / "shared"
+    core = shared / "core-model"
+    core.mkdir(parents=True)
+    (shared / "chat-model-floor.json").write_text(json.dumps({"val_ppl_max": 60, "persona_ok": True}), encoding="utf-8")
+    (core / "manifest.json").write_text(json.dumps(_m("a", 0.88)), encoding="utf-8")
+    (core / "model.bin").write_text("eski", encoding="utf-8")
+    monkeypatch.setattr(importer, "SHARED", shared)
+    rels = [{"tag_name": "komut-yeni-zayif", "assets": []}, {"tag_name": "komut-s-iyi", "assets": []}, {"tag_name": "komut-orta", "assets": []}]
+    monkeypatch.setattr(importer, "recent", lambda prefix, token, n=8: rels if prefix == "komut-" else [])
+    score = {"komut-yeni-zayif": 0.85, "komut-s-iyi": 0.915, "komut-orta": 0.89, "eski": 0.88}
+
+    def fake_download(rel, names, dest, token):
+        for n in names:
+            (dest / n).write_text(json.dumps(_m(rel["tag_name"], 0.9)) if n == "manifest.json" else rel["tag_name"], encoding="utf-8")
+
+    monkeypatch.setattr(importer, "download", fake_download)
+    m = lambda d: score[(d / "model.bin").read_text()]  # noqa: E731
+    rep = importer.run(None, lambda d: True, measure_handwritten=m, measure_ood=lambda d: 0.72)
+    assert rep["komut"]["tag"] == "komut-s-iyi" and rep["komut"]["alındı"], rep
+    assert (core / "model.bin").read_text() == "komut-s-iyi"
+    assert [r["alındı"] for r in rep["komut_adaylar"]] == [False, True, False]
+
+
+def test_komut_rejects_more_wrong_actions_on_real_sentences():
+    from orion_core import importer
+    cur = {"sha256": "a", "eval": {"handwritten_exact": 0.88, "t2c_ood_exact": 0.7, "xsid_tr_wrong_actions": 0.06, "massive_tr_wrong_actions": 0.02}}
+    bad = {"sha256": "b", "eval": {"handwritten_exact": 0.9, "t2c_ood_exact": 0.74, "xsid_tr_wrong_actions": 0.117, "massive_tr_wrong_actions": 0.03}}
+    ok, why = importer.komut_better(bad, cur, (0.9, 0.8), None, (0.74, 0.67))
+    assert not ok and "xSID" in why
+    good = dict(bad, eval=dict(bad["eval"], xsid_tr_wrong_actions=0.048, massive_tr_wrong_actions=0.015))
+    assert importer.komut_better(good, cur, (0.83, 0.8), None, (0.68, 0.67))[0]

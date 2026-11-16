@@ -1,4 +1,4 @@
-"""Ekip diyalogları (2026-11-14, sahibin isteği: Kaggle'a yeni veri): Orion'un 13 ajanlık ekibini tanıması.
+"""Ekip diyalogları (2026-11-14, sahibin isteği: Kaggle'a yeni veri): Orion'un ajan ekibini tanıması.
 
 Kaynak tek: shared/self/ajanlar.json (ad, rol, alt ajanlar, komutlar). Kotlin tarafı aynı dosyayı okur; ekip
 değişince veri de kendiliğinden değişir. Cevaplar Orion'un kendi sesiyle ve kısa; kullanıcı verisi YOK (halka açık

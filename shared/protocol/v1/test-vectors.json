@@ -422,6 +422,23 @@
    "input": "{\"v\": 1, \"id\": \"w5\", \"cmd\": \"work.digest\", \"args\": {\"hour\": 25}}",
    "ok": false,
    "err_code": "E_ARG_RANGE"
+  },
+  {
+   "name": "mesaj özeti geçerli",
+   "input": "{\"v\": 1, \"id\": \"z1\", \"cmd\": \"msg.inbox\", \"args\": {\"waiting\": true}}",
+   "ok": true
+  },
+  {
+   "name": "cevap taslağı kişi yok",
+   "input": "{\"v\": 1, \"id\": \"z2\", \"cmd\": \"msg.reply\", \"args\": {\"say\": \"geliyorum\"}}",
+   "ok": false,
+   "err_code": "E_ARG_MISSING"
+  },
+  {
+   "name": "kişi kademesi geçersiz",
+   "input": "{\"v\": 1, \"id\": \"z3\", \"cmd\": \"msg.contacts\", \"args\": {\"action\": \"hepsi\"}}",
+   "ok": false,
+   "err_code": "E_ARG_RANGE"
   }
  ],
  "responses": [

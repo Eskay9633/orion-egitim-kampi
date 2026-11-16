@@ -98,6 +98,9 @@ def same_handwritten_set(new: dict, cur: dict | None) -> bool:
 OOD_TOLERANCE = 0.04
 
 
+WRONG_TOLERANCE = 0.01
+
+
 def komut_better(new: dict, cur: dict | None, local_hw: tuple[float, float] | None = None,
                  local_hw_error: str | None = None, local_ood: tuple[float, float] | None = None) -> tuple[bool, str]:
     """Yeni komut modeli alınır mı? Güvenlik tabanı ayrıca evaluate ile sınanır; burada gerileme denetimi.
@@ -135,6 +138,11 @@ def komut_better(new: dict, cur: dict | None, local_hw: tuple[float, float] | No
         hw_note += f"; yeni cümle yapıları bu depoda yeniden ölçüldü ({local_ood[0]:.4f} / mevcut {local_ood[1]:.4f})"
     elif n.get("t2c_ood_exact", 0) + OOD_TOLERANCE < c.get("t2c_ood_exact", 0):
         return False, "yeni cümle yapılarında geriledi"
+    # Gerçek kullanıcı cümlelerine en yakın dış kümelerde (MASSIVE, xSID) YANLIŞ İŞ artamaz (2026-11-15: elle yazılmış
+    # kümede en iyi olan aday xSID'de yanlış işi %6,1'den %11,7'ye çıkarıyordu). Eşik değil gerileme denetimi; pay 0.01.
+    for k, name in (("massive_tr_wrong_actions", "MASSIVE"), ("xsid_tr_wrong_actions", "xSID")):
+        if k in n and k in c and n[k] > c[k] + WRONG_TOLERANCE:
+            return False, f"{name} cümlelerinde yanlış iş arttı ({n[k]:.4f} > {c[k]:.4f})"
     return True, "daha iyi ya da eşit" + hw_note
 
 
@@ -184,39 +192,71 @@ def run(token: str | None, evaluate_gate, measure_handwritten=None, measure_ood=
     core_dir, chat_dir = SHARED / "core-model", SHARED / "chat-model"
     measure = measure_handwritten or _local_handwritten
     measure_o = measure_ood or _local_ood
-    rel = latest("komut-", token)
-    if rel:
-        with tempfile.TemporaryDirectory() as td:
-            t = Path(td)
+    # Komut adayları (2026-11-15, sahibin kararı: "daha iyi beyin bulunduysa uygulamaya ekle; sonraki eğitimlerde daha
+    # iyisi varsa karşılaştır, hangisi iyiyse o girer"): yalnız EN YENİ Release'e bakmak, iki eğitim hattından (komut.yml
+    # hızlı, komut-surekli.yml uzun) zayıf olanı sonra yayınlandığında iyi modelin hiç alınmamasına yol açıyordu.
+    # Son adaylar tek tek bu depoda ölçülür; mevcut modeli geçenlerden elle yazılmış kümede (eşitse yeni yapılarda)
+    # en iyisi alınır; güvenlik tabanı yine şarttır.
+    rels_k = [r for r in recent("komut-", token, n=6) if r["tag_name"].startswith("komut-")]
+    if not rels_k:
+        one = latest("komut-", token)
+        rels_k = [one] if one else []
+    cur = json.loads((core_dir / "manifest.json").read_text()) if (core_dir / "manifest.json").exists() else None
+    tried, best = [], None
+    with tempfile.TemporaryDirectory() as td:
+        for rel in rels_k:
+            t = Path(td) / rel["tag_name"]
+            t.mkdir()
             download(rel, KOMUT_FILES, t, token)
+            if not (t / "manifest.json").exists():
+                tried.append({"tag": rel["tag_name"], "alındı": False, "neden": "manifest yok"})
+                continue
             new = json.loads((t / "manifest.json").read_text())
-            cur = json.loads((core_dir / "manifest.json").read_text()) if (core_dir / "manifest.json").exists() else None
-            local_hw, local_err, local_ood = None, None, None
+            local_hw, local_err, local_ood, ood_err = None, None, None, None
             if cur and "eval" in cur and new.get("sha256") != cur.get("sha256"):
                 # İki model de burada, güncel elle yazılmış kümede ölçülür (kümeler aynı olsa da: ucuz ve kesin).
                 try:
                     if not (core_dir / "model.bin").exists():
                         raise FileNotFoundError("mevcut model dosyası (model.bin) bu depoda yok")
                     local_hw = (measure(t), measure(core_dir))
-                    report["elle_yerel"] = {"yeni": round(local_hw[0], 4), "mevcut": round(local_hw[1], 4)}
-                    # Yeni cümle yapıları da aynı kümede; ölçülemezse eski yol (manifest sayıları) geçerli kalır.
                     try:
                         local_ood = (measure_o(t), measure_o(core_dir))
-                        report["ood_yerel"] = {"yeni": round(local_ood[0], 4), "mevcut": round(local_ood[1], 4)}
-                    except Exception as e:  # noqa: BLE001
+                    except Exception as e:  # noqa: BLE001 — ölçülemezse manifest sayıları
                         local_ood = None
-                        report["ood_yerel"] = {"hata": str(e) or type(e).__name__}
+                        ood_err = str(e) or type(e).__name__
                 except Exception as e:  # noqa: BLE001 — ölçülemezse: aynı kümede manifest, değilse model ALINMAZ
                     local_err = str(e) or type(e).__name__
-                    report["elle_yerel"] = {"hata": local_err}
             ok, why = komut_better(new, cur, local_hw, local_err, local_ood)
             if ok and not evaluate_gate(t):
                 ok, why = False, "güvenlik tabanını bu depoda geçemedi"
-            report["komut"] = {"tag": rel["tag_name"], "alındı": ok, "neden": why}
+            row = {"tag": rel["tag_name"], "alındı": False, "neden": why}
+            if local_hw:
+                row["elle"] = {"yeni": round(local_hw[0], 4), "mevcut": round(local_hw[1], 4)}
+            elif local_err:
+                row["elle"] = {"hata": local_err}
+            if local_ood:
+                row["ood"] = {"yeni": round(local_ood[0], 4), "mevcut": round(local_ood[1], 4)}
+            elif ood_err and local_hw:
+                row["ood"] = {"hata": ood_err}
+            tried.append(row)
             if ok:
-                for n in KOMUT_FILES:
-                    shutil.copy(t / n, core_dir / n)
-                report["changed"] = True
+                key = (local_hw[0] if local_hw else new.get("eval", {}).get("handwritten_exact", 0),
+                       local_ood[0] if local_ood else new.get("eval", {}).get("t2c_ood_exact", 0))
+                if best is None or key > best[0]:
+                    best = (key, t, row)
+        if best is not None:
+            best[2]["alındı"] = True
+            for n in KOMUT_FILES:
+                shutil.copy(best[1] / n, core_dir / n)
+            report["changed"] = True
+    if rels_k:
+        main_row = best[2] if best else (tried[0] if tried else {"alındı": False, "neden": "aday yok"})
+        report["komut"] = {k: main_row[k] for k in ("tag", "alındı", "neden") if k in main_row}
+        if "elle" in main_row:
+            report["elle_yerel"] = main_row["elle"]
+        if "ood" in main_row:
+            report["ood_yerel"] = main_row["ood"]
+        report["komut_adaylar"] = tried
     floor = json.loads((SHARED / "chat-model-floor.json").read_text())
     cur = json.loads((chat_dir / "manifest.json").read_text()) if (chat_dir / "manifest.json").exists() else None
     with tempfile.TemporaryDirectory() as td:

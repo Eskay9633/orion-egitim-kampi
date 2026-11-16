@@ -714,6 +714,9 @@ TEMPLATES: dict[str, list[Gen]] = {
     "research.watch": [lambda rng, sp: g_research_watch(rng, sp, False, False)] * 3,
     "repo.watch": [lambda rng, sp: g_repo_watch(rng, sp, False, False)] * 3,
     "work.digest": [lambda rng, sp: g_work_digest(rng, sp, False, False)] * 3,
+    "msg.inbox": [lambda rng, sp: g_msg_inbox(rng, sp, False, False)] * 3,
+    "msg.reply": [lambda rng, sp: g_msg_reply(rng, sp, False, False)] * 3,
+    "msg.contacts": [lambda rng, sp: g_msg_contacts(rng, sp, False, False)] * 3,
 }
 
 # Komut ağırlıkları (gerçek kullanım tahmini; çok değerli olanlar daha sık)
@@ -723,6 +726,7 @@ WEIGHTS = {
     "timer.start": 2, "provider.discover": 1, "health.check": 1, "memory.save": 2, "ask": 3, "calc.eval": 2, "text.translate": 2, "market.crypto": 2, "skill.run": 2, "skill.list": 1, "skill.learn": 2, "skill.record": 1, "agent.hire": 1, "mail.check": 2, "mail.send": 1, "self.status": 1, "app.open": 2, "app.list": 1, "memory.recall": 1, "self.advise": 1, "help": 1,
     "code.run": 2, "code.repo": 1, "work.check": 1, "market.alert": 2,
     "seo.audit": 1, "ad.check": 1, "ad.budget": 1, "design.colors": 1, "research.watch": 1, "repo.watch": 1, "work.digest": 1,
+    "msg.inbox": 1, "msg.reply": 2, "msg.contacts": 1,
 }
 
 
@@ -834,6 +838,9 @@ PLANS = {
     "research.watch": ["duty.save", "card.render"],
     "repo.watch": ["duty.save", "card.render"],
     "work.digest": ["duty.save", "card.render"],
+    "msg.inbox": ["messages.read", "summary.compute", "card.render"],
+    "msg.reply": ["messages.read", "style.read", "helper.write", "proposal.create", "user.confirm", "whatsapp.reply"],
+    "msg.contacts": ["contacts.save", "card.render"],
     "help": ["commands.list"],
 }
 
@@ -1420,7 +1427,7 @@ ROLES = ["kaynakları doğrulayan titiz araştırmacı", "kod örneklerini incel
          "fiyat ve piyasa verisini yorumlayan analist", "Türkçe metinleri düzelten yazım uzmanı", "görsel fikir üreten tasarımcı"]
 AGENT_TR = [("Sophia", "sophia", "'ya"), ("Jack", "jack", "'e"), ("Emma", "emma", "'ya"), ("Chloe", "chloe", "'ye"),
             ("Luna", "luna", "'ya"), ("Mike", "mike", "'a"), ("David", "david", "'e"), ("Maya", "maya", "'ya"), ("Grace", "grace", "'e"),
-            ("EkBot", "ekbot", "'a"), ("Leo", "leo", "'ya"), ("Nora", "nora", "'ya"), ("Iris", "iris", "'e")]
+            ("EkBot", "ekbot", "'a"), ("Leo", "leo", "'ya"), ("Nora", "nora", "'ya"), ("Iris", "iris", "'e"), ("Zoe", "zoe", "'ye")]
 
 
 def g_skill_run(rng, sp, hf, hv):
@@ -1784,6 +1791,66 @@ def g_work_digest(rng, sp, hf, hv):
     return f, {}
 
 
+# --------------------------------------------------------------------------- Zoe › WhatsApp (2026-11-16)
+MSG_CONTACTS = ["Annem", "Babam", "Ahmet", "Ayşe", "Mehmet", "Elif", "Kardeşim", "Can", "Zeynep", "Murat", "Selin", "Emre"]
+MSG_SAY = ["yarın geliyorum", "tamam uygunum", "15:00 olur", "akşam ararım", "biraz geç kalacağım", "teşekkür ederim",
+           "evet geliyorum", "şu an toplantıdayım", "hafta sonu buluşalım", "yoldayım"]
+INBOX_FRAMES = ["whatsapp'ta kim yazdı", "mesajlarımı özetle", "whatsapp mesajlarıma bak", "yeni mesaj var mı", "cevap bekleyen mesaj var mı",
+                "Zoe, mesajları özetle", "wp'de neler var", "okunmamış mesajlarım neler", "bugün kimler mesaj attı"]
+REPLY_FRAMES = ["{C}'e cevap yaz: {S}", "{C}'e cevap ver: {S}", "Zoe, {C}'e cevap yaz: {S}", "{C}'e whatsapp'tan cevap yaz: {S}",
+                "{C}'e yanıt yaz: {S}", "{C}'e cevap gönder: {S}"]
+REPLY_BARE = ["{C}'e cevap yaz", "{C}'e cevap hazırla", "Zoe, {C}'e cevap ver", "{C}'e yanıt yaz"]
+CONTACT_AUTO = ["Zoe, {C}'e otomatik cevap ver", "{C}'e kendin cevap ver", "{C}'e otomatik yanıt ver", "{C}'e bundan sonra kendin cevap ver"]
+CONTACT_ADD = ["Zoe, {C}'i izle", "{C}'in mesajlarını izle", "whatsapp'ta {C}'i takip et", "{C}'in whatsapp mesajlarını takibe al"]
+CONTACT_REMOVE = ["{C}'i izlemeyi bırak", "Zoe, {C}'i takip etmeyi bırak"]
+CONTACT_LIST = ["Zoe, izlediğin kişileri göster", "whatsapp'ta kimleri izliyorsun", "Zoe kimleri izliyorsun"]
+
+
+def _dat(c):
+    """Kişi adına yönelme eki (kesme işaretli) yerine çerçevede sabit 'e kullanılır; ünlü uyumu kabaca."""
+    v = [ch for ch in c.lower() if ch in "aeıioöuü"]
+    back = bool(v) and v[-1] in "aıou"
+    y = "y" if c[-1].lower() in "aeıioöuü" else ""
+    return "'" + y + ("a" if back else "e")
+
+
+def g_msg_inbox(rng, sp, hf, hv):
+    f = G.choose(rng, INBOX_FRAMES, sp, hf or hv)
+    args = {}
+    if "bekleyen" in f:
+        args["waiting"] = True
+    return f, args
+
+
+def g_msg_reply(rng, sp, hf, hv):
+    c = pick(rng, MSG_CONTACTS, sp)
+    if rng.random() < 0.7:
+        s = pick(rng, MSG_SAY, sp, lambda r: random_phrase(r, 2, 6), 0.4)
+        f = G.choose(rng, REPLY_FRAMES, sp, hf or hv)
+        return f.replace("{C}'e", c + _dat(c)).replace("{S}", s), {"contact": c, "say": s}
+    f = G.choose(rng, REPLY_BARE, sp, hf or hv)
+    return f.replace("{C}'e", c + _dat(c)), {"contact": c}
+
+
+def g_msg_contacts(rng, sp, hf, hv):
+    c = pick(rng, MSG_CONTACTS, sp)
+    r = rng.random()
+    last = [ch for ch in c.lower() if ch in "aeıioöuü"][-1]
+    y = "y" if c[-1].lower() in "aeıioöuü" else ""
+    acc = "'" + y + {"a": "ı", "ı": "ı", "e": "i", "i": "i", "o": "u", "u": "u", "ö": "ü", "ü": "ü"}[last]
+    gen = "'" + ("n" if y else "") + {"a": "ı", "ı": "ı", "e": "i", "i": "i", "o": "u", "u": "u", "ö": "ü", "ü": "ü"}[last] + "n"
+    if r < 0.35:
+        f = G.choose(rng, CONTACT_AUTO, sp, hf or hv)
+        return f.replace("{C}'e", c + _dat(c)).replace("{C}", c), {"action": "auto", "contact": c}
+    if r < 0.7:
+        f = G.choose(rng, CONTACT_ADD, sp, hf or hv)
+        return f.replace("{C}'in", c + gen).replace("{C}'i", c + acc), {"action": "add", "contact": c}
+    if r < 0.85:
+        f = G.choose(rng, CONTACT_REMOVE, sp, hf or hv)
+        return f.replace("{C}'i", c + acc), {"action": "remove", "contact": c}
+    return G.choose(rng, CONTACT_LIST, sp, hf or hv), {"action": "list"}
+
+
 GRAMMAR = {
     "reminder.set": g_reminder, "reminder.list": g_reminder_list, "note.write": g_note, "note.search": g_note_search,
     "research.start": g_research, "repo.audit": g_repo, "calendar.add": g_calendar_add, "calendar.list": g_calendar_list,
@@ -1796,11 +1863,12 @@ GRAMMAR = {
     "code.run": g_code_run, "code.repo": g_code_repo, "work.check": g_work_check, "market.alert": g_alert,
     "seo.audit": g_seo, "ad.check": g_ad_check, "ad.budget": g_ad_budget,
     "design.colors": g_colors, "research.watch": g_research_watch, "repo.watch": g_repo_watch, "work.digest": g_work_digest,
+    "msg.inbox": g_msg_inbox, "msg.reply": g_msg_reply, "msg.contacts": g_msg_contacts,
 }
 GRAMMAR_FRAC = 0.75
 
 
-AGENT_NAMES = ["Mike", "Sophia", "Emma", "Luna", "David", "Jack", "Chloe", "Grace", "Maya", "EkBot", "Leo", "Nora", "Iris", "Orion"]
+AGENT_NAMES = ["Mike", "Sophia", "Emma", "Zoe", "Luna", "David", "Jack", "Chloe", "Grace", "Maya", "EkBot", "Leo", "Nora", "Iris", "Orion"]
 
 
 # --------------------------------------------------------------------------- karşıt çiftler (Tur 14)

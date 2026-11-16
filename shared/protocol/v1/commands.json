@@ -914,6 +914,69 @@
         }
       }
     },
+    "msg.inbox": {
+      "agent": "zoe",
+      "doc": "Zoe: WhatsApp bildirimlerinden okunan mesajların özeti (telefonda kalır): kim cevap bekliyor, randevu geçen mesajlar, sorular. contact verilirse yalnız o kişi; waiting=true ise yalnız cevap bekleyenler. İnternetsiz.",
+      "needs_net": false,
+      "effect": "read",
+      "args": {
+        "contact": {
+          "type": "string",
+          "required": false,
+          "minLen": 2,
+          "maxLen": 60
+        },
+        "waiting": {
+          "type": "bool",
+          "required": false
+        }
+      }
+    },
+    "msg.reply": {
+      "agent": "zoe",
+      "doc": "Zoe bir kişiye WhatsApp cevap taslağı yazar (kişiye özel üslupla); onay kartında Gönder denince bildirimin hızlı cevabıyla gider. say: sahibin söylemek istediği. Kendi başına cevap yalnız sahibin 'otomatik' yaptığı kişilerde ve hassas olmayan konularda arka planda olur.",
+      "needs_net": false,
+      "effect": "proposal",
+      "args": {
+        "contact": {
+          "type": "string",
+          "required": true,
+          "minLen": 2,
+          "maxLen": 60
+        },
+        "say": {
+          "type": "string",
+          "required": false,
+          "minLen": 1,
+          "maxLen": 500
+        }
+      }
+    },
+    "msg.contacts": {
+      "agent": "zoe",
+      "doc": "Zoe'nin izlediği kişiler ve güven kademesi: add (izle, taslak + onay), auto (kendi başına cevap ver), ask (yine onaya sor), remove (izleme), list.",
+      "needs_net": false,
+      "effect": "write-easy",
+      "args": {
+        "action": {
+          "type": "enum",
+          "values": [
+            "add",
+            "auto",
+            "ask",
+            "remove",
+            "list"
+          ],
+          "default": "list"
+        },
+        "contact": {
+          "type": "string",
+          "required": false,
+          "minLen": 2,
+          "maxLen": 60
+        }
+      }
+    },
     "help": {
       "agent": "mike",
       "doc": "Yapılabilecek işleri listeler.",
@@ -926,6 +989,7 @@
     "mike",
     "sophia",
     "emma",
+    "zoe",
     "luna",
     "david",
     "jack",
