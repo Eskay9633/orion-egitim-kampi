@@ -777,6 +777,8 @@ def _t2c_example_once(rng: random.Random, split: str, noise: bool) -> dict:
         cmd, tr, args = identity_example(rng)
     elif r_train < CONTRAST_FRAC + IDENTITY_FRAC + SKILL_FRAC:
         cmd, tr, args = skill_example(rng)  # Tur 19 yeni beceri aileleri (yalnızca eğitim)
+    elif r_train < CONTRAST_FRAC + IDENTITY_FRAC + SKILL_FRAC + REALGAP_FRAC:
+        cmd, tr, args = realgap_example(rng)  # Tur 21 gerçek cümle açıkları (yalnızca eğitim)
     elif split == "legacy_ood":
         tr, args = rng.choice(_templates_for(cmd, "test_ood"))(rng, "test_ood")
     elif split == "test_ood" or rng.random() < GRAMMAR_FRAC:
@@ -2301,6 +2303,101 @@ def skill_example(rng: random.Random, family: str | None = None) -> tuple[str, s
         if not _fenced(tr):
             return cmd, tr, args
     raise ProtocolError("E_INTERNAL", "beceri ailesi değerlendirme cümlelerinden uzak cümle üretemedi")
+
+
+# --------------------------------------------------------------------------- gerçek cümle açıkları (Tur 21, yalnızca eğitim)
+# 2026-11-16 ölçümü (komut-20261116-1418, xSID/MASSIVE yanlış işleri): (1) saatsiz gün sözü ("Yarın X'i hatırlat",
+# "Salı günü ...", "Gelecek pazartesi ...") bugüne çevriliyor ya da metne karışıyordu; (2) Orion'un yapamadığı istekler
+# (resim arama, rezervasyon, çalma listesi, hava durumu) ve olumsuz/iptal cümleleri ("beni uyandırma", "alarmı iptal et")
+# bir işe çevriliyordu. Doğrusu: saatsiz gün → 09:00 (Kotlin TimeParser varsayılanı), yapılamayan istek → ask.
+# Değerler kendi listelerimizden; elle yazılmış/kör kümeler ve (hazırsa) MASSIVE/xSID değerlendirme cümleleri çitle dışlanır.
+REALGAP_FRAC = 0.05
+
+GAP_INF = ["eczaneden ilaç almak", "kuzenimi aramak", "su faturasını yatırmak", "kargoyu teslim almak", "bisikleti tamir ettirmek",
+           "anneannemi ziyaret etmek", "kütüphaneye kitap iade etmek", "arabayı yıkatmak", "ödevi teslim etmek",
+           "bankaya uğramak", "pasaport başvurusu yapmak", "balkonu temizlemek", "çiçekçiden buket almak",
+           "ekmek almak", "komşuya anahtar bırakmak", "spor çantasını hazırlamak", "veterinere aşı için gitmek",
+           "teyzemi aramak", "fotoğrafları yedeklemek", "kombiyi kontrol ettirmek", "postaneye uğramak",
+           "dişçiden randevu almak", "kira sözleşmesini imzalamak", "terziye pantolon bırakmak"]
+GAP_DAYS = [("yarın", "d+1"), ("bugün", "d+0"), ("öbür gün", "d+2"), ("pazartesi", "mon"), ("salı günü", "tue"),
+            ("çarşamba günü", "wed"), ("gelecek perşembe", "thu"), ("önümüzdeki cuma", "fri"), ("cumartesi günü", "sat"),
+            ("gelecek pazar", "sun"), ("pazartesi günü", "mon"), ("önümüzdeki salı", "tue"), ("perşembe", "thu")]
+GAP_REM_V = ["hatırlat", "bana hatırlat", "hatırlatır mısın", "unutmamam için hatırlat", "aklıma getir"]
+GAP_CLOCK = [("sabah 8'de", "08:00"), ("sabah 9'da", "09:00"), ("öğleden sonra 3'te", "15:00"), ("öğleden sonra 5'te", "17:00"),
+             ("akşam 7'de", "19:00"), ("sabah 6:45'te", "06:45"), ("sabah 8:15'te", "08:15"), ("öğlen 12'de", "12:00"),
+             ("akşam 8:30'da", "20:30"), ("öğleden sonra 2'de", "14:00"), ("sabah 11'de", "11:00")]
+GAP_NAMES = ["Kuzey Işıkları", "Mavi Kapı", "Son Tren", "Rüzgarın Sesi", "Eski Liman", "Gece Bekçisi", "Kırmızı Balon",
+             "Taş Köprü", "Yaz Yağmuru", "Sessiz Orman", "Altın Kafes", "Uzak Ada"]
+GAP_CITIES = ["Eskişehir", "Trabzon", "Çanakkale", "Van", "Sinop", "Bodrum", "Kars", "Edirne", "Rize", "Muğla", "Hatay", "Ordu"]
+GAP_VENUES = ["Deniz Kızı Lokantası", "Köşe Kahve", "Bahçe Restoran", "Yıldız Pide", "Liman Balıkçısı", "Asmalı Ev"]
+GAP_SONGS = ["Gesi Bağları", "Üsküdar'a Gider İken", "Yağmur", "Bir Teselli Ver", "Kara Toprak", "Sarı Gelin"]
+GAP_LISTS = ["yolculuk", "spor", "sabah", "hafta sonu", "çalışma", "parti"]
+GAP_ASK = [
+    "{N} filminin resmini bul", "{N} adlı resmi internette ara", "{N} afişinin fotoğrafını göster", "bana {N} fotoğrafı bul",
+    "{V} için {k} kişilik masa ayırt", "{C} şehrinde {k} kişilik restoran rezervasyonu yap", "{V} için akşama yer ayırt",
+    "{S} şarkısını {L} çalma listesine ekle", "{L} listesine {S} parçasını koy", "çalma listemden {S} şarkısını çıkar",
+    "{C} için yarın hava nasıl olacak", "{C} şehrinde yağmur yağacak mı", "bu akşam {C} şehrinde hava kaç derece",
+    "yarın beni uyandırma", "sabahki alarmımı iptal et", "alarmımı {m} dakika ertele", "hatırlatıcılarımın hepsini sil",
+    "hiç alarm istemiyorum", "{h} alarmını kapat", "dünkü hatırlatıcıyı iptal et", "bu gece alarm kurma",
+]
+
+
+def _gap_day_reminder(rng):
+    tr_d, code = rng.choice(GAP_DAYS)
+    inf = rng.choice(GAP_INF)
+    acc = G.inf_accusative(inf)
+    r = rng.random()
+    if r < 0.55:
+        tr = f"{tr_d} {acc} {rng.choice(GAP_REM_V)}"
+        at = f"{code}@09:00"
+    elif r < 0.8:
+        clk, hm = rng.choice(GAP_CLOCK)
+        tr = f"{tr_d} {clk} {acc} {rng.choice(GAP_REM_V)}"
+        at = f"{code}@{hm}"
+    else:
+        clk, hm = rng.choice(GAP_CLOCK)
+        tr = f"{tr_d} {clk} {inf} için hatırlatıcı {rng.choice(['kur', 'ekle', 'ayarla'])}"
+        at = f"{code}@{hm}"
+    if rng.random() < 0.4:
+        tr = tr[:1].upper() + tr[1:]
+    return "reminder.set", tr, {"at": at, "text": inf}
+
+
+def _gap_ask(rng):
+    f = rng.choice(GAP_ASK)
+    hours = ["sabah yedi", "akşam beş", "saat altı", "sabah sekiz"]
+    q = _fill(f, N=rng.choice(GAP_NAMES), C=rng.choice(GAP_CITIES), V=rng.choice(GAP_VENUES), S=rng.choice(GAP_SONGS),
+              L=rng.choice(GAP_LISTS), k=str(rng.choice([2, 3, 4, 5, 6, 8])), m=str(rng.choice([5, 10, 15])), h=rng.choice(hours))
+    tr = q[:1].upper() + q[1:] if rng.random() < 0.3 else q
+    return "ask", tr, {"question": tr}
+
+
+_GAP_EXT: dict = {}
+
+
+def _gap_ext_fenced(src: str) -> bool:
+    """MASSIVE/xSID değerlendirme cümlelerine (hazırlandıysa) aynı ya da Jaccard ≥ 0.8 olan üretilmez."""
+    if "toks" not in _GAP_EXT:
+        try:
+            from . import massive
+            rows = [r["src"] for v in massive.load_eval_sets().values() for r in v]
+        except Exception:
+            rows = []
+        _GAP_EXT["norm"] = {_fence_norm(s) for s in rows}
+        _GAP_EXT["toks"] = [_fence_toks(s) for s in rows]
+    if _fence_norm(src) in _GAP_EXT["norm"]:
+        return True
+    t = _fence_toks(src)
+    return any(len(t & u) / len(t | u) >= 0.8 for u in _GAP_EXT["toks"])
+
+
+def realgap_example(rng: random.Random) -> tuple[str, str, dict]:
+    """(komut, cümle, argümanlar): yarısı saatsiz/gün sözlü hatırlatıcı, yarısı yapılamayan istek → ask."""
+    for _ in range(30):
+        cmd, tr, args = (_gap_day_reminder if rng.random() < 0.5 else _gap_ask)(rng)
+        if not _fenced(tr) and not _gap_ext_fenced(tr):
+            return cmd, tr, args
+    raise ProtocolError("E_INTERNAL", "gerçek açık ailesi değerlendirme cümlelerinden uzak cümle üretemedi")
 
 
 def grammar_example(rng: random.Random, cmd: str, split: str) -> tuple[str, dict]:
