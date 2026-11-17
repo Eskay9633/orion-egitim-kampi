@@ -2355,7 +2355,8 @@ GAP_ASK = [
 # gidiyordu; ajana seslenip talimat vermek ("Zoe dediğimde sen cevap ver") bir iş değil, sohbettir (ask).
 GAP_INBOX = ["herhangi gelen bir mesaj var mı bana", "bana mesaj geldi mi", "kimden mesaj var", "bana kim yazdı",
              "gelen mesajları göster", "bana yazan var mı", "mesaj atan oldu mu", "son gelen mesajlar ne",
-             "whatsapp'tan bir şey geldi mi", "bugün bana kimler yazdı", "yazan biri oldu mu", "gelen kutumda ne var"]
+             "whatsapp'tan bir şey geldi mi", "bugün bana kimler yazdı", "yazan biri oldu mu"]
+# "gelen kutusu" e-postadır (mail.check); Tur 22'de msg.inbox'a yazılmıştı, elle yazılmış kümede e-posta sorusunu bozdu
 GAP_INBOX_WAIT = ["cevap vermediğim mesaj var mı", "cevaplamadığım kimse kaldı mı", "beklettiğim mesaj var mı"]
 GAP_AGENT_TALK = ["{A} burada mısın", "{A} beni duyuyor musun", "{A} dediğimde sen cevap ver", "{A}, sadece sen cevap ver",
                   "{A} sana soru soruyorum", "{A} neredesin", "{A} uyanık mısın", "{A}, bundan sonra sen cevapla"]

@@ -44,7 +44,9 @@ SKIP = {"alarm", "timer", "reminder_update", "todo_list", "todo_list_update", "s
         "calendar_update", "translate", "calculator", "meeting_schedule", "schedule_meeting", "text", "user_name",
         "measurement_conversion", "change_ai_name", "change_user_name", "reset_settings", "sync_device", "repeat",
         "whisper_mode", "change_accent", "change_language", "change_speed", "change_volume", "yes", "no", "maybe", "cancel",
-        "spelling", "definition"}
+        "spelling", "definition",
+        # Para birimi/kur soruları: Orion'un kripto fiyat komutuyla (market.crypto) karışıyor ("bitcoin kaç dolar" → soru)
+        "exchange_rate"}
 DAY_WORDS = {"today": "d+0", "tonight": "d+0", "tomorrow": "d+1"}
 TIME_RE = re.compile(r"\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|week|weekend|month|january|february|march|"
                      r"april|may|june|july|august|september|october|november|december|next|yesterday|\d)", re.I)
