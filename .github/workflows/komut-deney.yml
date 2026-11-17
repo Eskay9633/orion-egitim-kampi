@@ -1,0 +1,76 @@
+name: komut-deney
+
+# Deney (2026-11-17, sahibin isteği): komut beyni MASSIVE eğitim verisi OLMADAN (yalnız Orion verisi + çevrilmiş CLINC150).
+# Ölçüm aynı (MASSIVE ve xSID değerlendirme kümeleri yine ölçülür; MASSIVE yalnız bilgi için). Sonuç ön sürüm Release
+# "deney-komut-massivesiz-*" olarak yayınlanır; içe aktarma bunu ADAY SAYMAZ (etiket "komut-" ile başlamaz), karar sahibin.
+# Başlatma: Actions → komut-deney → Run workflow YA DA kaggle/komut-deney.txt dosyasına işlemek.
+on:
+  workflow_dispatch:
+    inputs:
+      steps:
+        description: 'Eğitim adımı'
+        default: '10000'
+  push:
+    branches: [main]
+    paths:
+      - 'kaggle/komut-deney.txt'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: komut-deney
+  cancel-in-progress: true
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bağımlılıklar
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -r core-model/requirements.txt
+      - name: Testler
+        working-directory: core-model
+        run: python -m pytest -q tests
+      # Gerçek Türkçe cümleler: MASSIVE 1.1 tr-TR (CC BY 4.0) eğitim + massive_tr, xSID 0.6 tr (CC BY-SA 4.0) xsid_tr.
+      # Adresler ve sha256 orion_core/massive.py içinde sabit; indirme ya da özet tutmazsa iş DURUR (sessiz geri dönüş yok).
+      - name: Dış veri (MASSIVE + xSID)
+        working-directory: core-model
+        run: python -m orion_core.massive prepare --out work/ext --download
+      - name: Çevrilmiş ek veri (CLINC150 → tr, komut-veri Release; yoksa yalnız MASSIVE)
+        working-directory: core-model
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          T=$(gh release list --limit 100 --json tagName -q '.[].tagName' | grep '^komut-veri-' | sort | tail -1 || true)
+          if [ -n "$T" ]; then gh release download "$T" --pattern clinc-tr.jsonl.gz --dir work/ext --clobber && gunzip -f work/ext/clinc-tr.jsonl.gz && echo "ek veri: $T ($(wc -l < work/ext/clinc-tr.jsonl) satır)"; else echo "komut-veri Release yok"; fi
+      - name: MASSIVE eğitim verisini çıkar (deney; değerlendirme kümeleri kalır)
+        working-directory: core-model
+        run: ": > work/ext/massive-train.jsonl && echo 'MASSIVE eğitim satırı: 0'"
+      - name: Eğit
+        working-directory: core-model
+        run: python -m orion_core.train --out work/run --steps ${{ inputs.steps || '10000' }} --time-budget-min 240 --ext-data work/ext --ext-frac 0.0625
+      - name: Dışa aktar + manifest
+        working-directory: core-model
+        run: |
+          python -m orion_core.export --run work/run --out work/export
+          python -m orion_core.manifest --dir work/export --run work/run --ext-data work/ext
+      - name: Güvenlik tabanı (yanlış iş yapan model yayınlanmaz)
+        working-directory: core-model
+        run: python -m orion_core.evaluate --model work/export --gate --ext-data work/ext
+      - name: Release olarak yayınla
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="deney-komut-massivesiz-$(date -u +%Y%m%d-%H%M)"
+          NOTES=$(python -c "import json;m=json.load(open('core-model/work/export/manifest.json'));print(json.dumps(m['eval'],ensure_ascii=False))")
+          cd core-model/work/export
+          cp ../../../shared/core-model/DIS-VERI.md .
+          gh release create "$TAG" model.bin tokenizer.json parity.json manifest.json eval.json DIS-VERI.md \
+            --target "$GITHUB_SHA" --title "Komut beyni deneyi (MASSIVE eğitimsiz) $TAG" --notes "MASSIVE eğitim verisi olmadan · $NOTES" --prerelease
