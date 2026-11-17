@@ -14,8 +14,10 @@ def test_realgap_valid_and_fenced():
         assert not datagen._gap_ext_fenced(tr)
         if cmd == "ask":
             assert args["question"] == tr
+        elif cmd == "reminder.set":
+            assert "@" in args["at"]
         else:
-            assert cmd == "reminder.set" and "@" in args["at"]
+            assert cmd == "msg.inbox"
 
 
 def test_day_only_reminder_defaults_to_nine():
@@ -37,3 +39,15 @@ def test_realgap_only_in_training_stream():
     for split in ("test_iid", "test_ood"):
         test = {e["src"] for e in datagen.t2c_set(1000, split, seed=31)}
         assert not any("unutmamam için hatırlat" in t or "kişilik masa ayırt" in t for t in test)
+
+
+def test_tur22_inbox_and_agent_talk():
+    rng = random.Random(9)
+    seen = set()
+    for _ in range(400):
+        cmd, tr, args = datagen._gap_agent(rng)
+        validate_request({"v": 1, "id": "g", "cmd": cmd, "args": args})
+        seen.add(cmd)
+        if cmd == "ask":
+            assert args["question"] == tr
+    assert seen == {"msg.inbox", "ask"}

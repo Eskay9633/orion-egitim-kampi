@@ -1737,6 +1737,15 @@ CONTRAST_FRAMES = ["{A} yazı {B} zeminde okunur mu", "{A} metin {B} arka plan k
 
 
 def g_colors(rng, sp, hf, hv):
+    # Eğitimde elle yazılmış/kör değerlendirme cümlesinin aynısı üretilmez (renk çiftleri az; çakışma olabiliyordu)
+    for _ in range(20):
+        tr, args = _g_colors_once(rng, sp, hf, hv)
+        if sp != "train" or not _fenced(tr):
+            return tr, args
+    return tr, args
+
+
+def _g_colors_once(rng, sp, hf, hv):
     def col():
         return rng.choice(COLOR_HEX) if rng.random() < 0.5 else rng.choice(COLOR_NAMES)
     if rng.random() < 0.45:
@@ -2311,7 +2320,7 @@ def skill_example(rng: random.Random, family: str | None = None) -> tuple[str, s
 # (resim arama, rezervasyon, çalma listesi, hava durumu) ve olumsuz/iptal cümleleri ("beni uyandırma", "alarmı iptal et")
 # bir işe çevriliyordu. Doğrusu: saatsiz gün → 09:00 (Kotlin TimeParser varsayılanı), yapılamayan istek → ask.
 # Değerler kendi listelerimizden; elle yazılmış/kör kümeler ve (hazırsa) MASSIVE/xSID değerlendirme cümleleri çitle dışlanır.
-REALGAP_FRAC = 0.05
+REALGAP_FRAC = 0.06
 
 GAP_INF = ["eczaneden ilaç almak", "kuzenimi aramak", "su faturasını yatırmak", "kargoyu teslim almak", "bisikleti tamir ettirmek",
            "anneannemi ziyaret etmek", "kütüphaneye kitap iade etmek", "arabayı yıkatmak", "ödevi teslim etmek",
@@ -2340,6 +2349,28 @@ GAP_ASK = [
     "yarın beni uyandırma", "sabahki alarmımı iptal et", "alarmımı {m} dakika ertele", "hatırlatıcılarımın hepsini sil",
     "hiç alarm istemiyorum", "{h} alarmını kapat", "dünkü hatırlatıcıyı iptal et", "bu gece alarm kurma",
 ]
+
+
+# Tur 22 (2026-11-17, sahibin telefon denemesi): "herhangi gelen bir mesaj var mı bana" sohbet sorusu sanılıp yardımcıya
+# gidiyordu; ajana seslenip talimat vermek ("Zoe dediğimde sen cevap ver") bir iş değil, sohbettir (ask).
+GAP_INBOX = ["herhangi gelen bir mesaj var mı bana", "bana mesaj geldi mi", "kimden mesaj var", "bana kim yazdı",
+             "gelen mesajları göster", "bana yazan var mı", "mesaj atan oldu mu", "son gelen mesajlar ne",
+             "whatsapp'tan bir şey geldi mi", "bugün bana kimler yazdı", "yazan biri oldu mu", "gelen kutumda ne var"]
+GAP_INBOX_WAIT = ["cevap vermediğim mesaj var mı", "cevaplamadığım kimse kaldı mı", "beklettiğim mesaj var mı"]
+GAP_AGENT_TALK = ["{A} burada mısın", "{A} beni duyuyor musun", "{A} dediğimde sen cevap ver", "{A}, sadece sen cevap ver",
+                  "{A} sana soru soruyorum", "{A} neredesin", "{A} uyanık mısın", "{A}, bundan sonra sen cevapla"]
+
+
+def _gap_agent(rng):
+    r = rng.random()
+    pre = rng.choice(["", "", "Zoe, ", "Zoe "])
+    if r < 0.45:
+        tr = pre + rng.choice(GAP_INBOX)
+        return "msg.inbox", (tr[:1].upper() + tr[1:] if rng.random() < 0.3 else tr), {}
+    if r < 0.6:
+        return "msg.inbox", pre + rng.choice(GAP_INBOX_WAIT), {"waiting": True}
+    tr = rng.choice(GAP_AGENT_TALK).replace("{A}", rng.choice(["Zoe", "Emma", "Sophia", "Mike", "Luna"]))
+    return "ask", tr, {"question": tr}
 
 
 def _gap_day_reminder(rng):
@@ -2394,7 +2425,8 @@ def _gap_ext_fenced(src: str) -> bool:
 def realgap_example(rng: random.Random) -> tuple[str, str, dict]:
     """(komut, cümle, argümanlar): yarısı saatsiz/gün sözlü hatırlatıcı, yarısı yapılamayan istek → ask."""
     for _ in range(30):
-        cmd, tr, args = (_gap_day_reminder if rng.random() < 0.5 else _gap_ask)(rng)
+        r = rng.random()
+        cmd, tr, args = (_gap_day_reminder if r < 0.35 else _gap_ask if r < 0.7 else _gap_agent)(rng)
         if not _fenced(tr) and not _gap_ext_fenced(tr):
             return cmd, tr, args
     raise ProtocolError("E_INTERNAL", "gerçek açık ailesi değerlendirme cümlelerinden uzak cümle üretemedi")
