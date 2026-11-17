@@ -65,7 +65,7 @@ jobs:
       - name: Eğit (kaldığı yerden, ~5 saat)
         working-directory: core-model
         run: |
-          python -m orion_core.train --out work/run --steps "$TOTAL_STEPS" --time-budget-min 290 --ext-data work/ext --ext-frac 0.05
+          python -m orion_core.train --out work/run --steps "$TOTAL_STEPS" --time-budget-min 290 --ext-data work/ext --ext-frac 0.0625
           cat work/run/status.json
       - name: Checkpoint'i sakla (sonraki iş devam etsin)
         if: always()

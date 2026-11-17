@@ -39,3 +39,14 @@ def test_extra_rows_leaking_into_eval_are_dropped(tmp_path):
         json.dumps({"src": "uçak bileti al", "tgt": "z", "kind": "neg", "training_allowed": True}) + "\n")
     rows = massive.load_train(tmp_path)
     assert [r["src"] for r in rows] == ["alarm kur", "uçak bileti al"]
+    assert rows[1]["pool"] == "clinc_neg"
+
+
+def test_extra_action_rows_are_not_trained(tmp_path):
+    import json
+    from orion_core import massive
+    (tmp_path / massive.TRAIN_FILE).write_text("")
+    for name in massive.EVAL_FILES.values():
+        (tmp_path / name).write_text(json.dumps({"src": "x"}) + "\n")
+    (tmp_path / "clinc-tr.jsonl").write_text(json.dumps({"src": "hatırlatıcılarım", "tgt": "r", "kind": "action", "training_allowed": True}) + "\n")
+    assert massive.load_train(tmp_path) == []

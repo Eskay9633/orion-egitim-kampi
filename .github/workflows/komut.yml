@@ -59,7 +59,7 @@ jobs:
           if [ -n "$T" ]; then gh release download "$T" --pattern clinc-tr.jsonl.gz --dir work/ext --clobber && gunzip -f work/ext/clinc-tr.jsonl.gz && echo "ek veri: $T ($(wc -l < work/ext/clinc-tr.jsonl) satır)"; else echo "komut-veri Release yok"; fi
       - name: Eğit
         working-directory: core-model
-        run: python -m orion_core.train --out work/run --steps ${{ inputs.steps || '10000' }} --time-budget-min 240 --ext-data work/ext --ext-frac 0.05
+        run: python -m orion_core.train --out work/run --steps ${{ inputs.steps || '10000' }} --time-budget-min 240 --ext-data work/ext --ext-frac 0.0625
       - name: Dışa aktar + manifest
         working-directory: core-model
         run: |

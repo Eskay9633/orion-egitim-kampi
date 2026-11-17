@@ -83,7 +83,9 @@ EVAL_FILES = {"massive_tr": "massive_tr.jsonl", "xsid_tr": "xsid_tr.jsonl"}
 # %12'de kapsam dışı "ask" olumsuzları ("salı günkü doktor randevusunu iptal edebilir misin", "alarmları kaldır")
 # eylem komutlarıyla aynı yüzey ipuçlarını taşıdığından eylem cümlelerinde ilk belirteç güvenini bölüyordu (Tur 19 raporu).
 EXT_FRAC = 0.05
-POOL_WEIGHTS = {"action": 0.25, "chat": 0.3, "neg": 0.45}
+POOL_WEIGHTS = {"action": 0.25, "chat": 0.3, "neg": 0.45, "clinc_neg": 0.2, "clinc_chat": 0.05}
+# CLINC havuzları eklendiğinde MASSIVE havuzlarının akıştaki payı aynı kalsın diye iş akışları --ext-frac 0.0625 kullanır
+# (0.0625 × 1/1.25 = 0.05, eskisi kadar).
 
 
 def default_ext_dir() -> Path:
@@ -1011,7 +1013,11 @@ def load_train(ext_dir: Path) -> list[dict]:
     for extra in EXTRA_TRAIN_FILES:
         q = ext_dir / extra
         if q.exists():
-            ex = [r for r in _read(q) if r.get("training_allowed") is True]
+            # Yalnız soru (ask: yapılamayan istek / sohbet) satırları, kendi havuzlarında: ölçüm 2026-11-17 —
+            # argümansız eylem satırları (hatırlatıcı listesi, yardım) belirsiz cümleleri "reminder.list"e çekiyordu ve
+            # MASSIVE havuzunun payını azaltmak MASSIVE'de yanlış işi artırdı (%2,3 → %4,0). Ayrı havuz MASSIVE payını korur.
+            ex = [{**r, "kind": "clinc_" + r["kind"]} for r in _read(q)
+                  if r.get("training_allowed") is True and r.get("kind") in ("neg", "chat")]
             kept = [r for r in ex if norm_key(r["src"]) not in keys]
             print(f"ek veri {extra}: {len(kept)} satır (ölçümle çakışan {len(ex) - len(kept)} atıldı)", flush=True)
             rows += kept
