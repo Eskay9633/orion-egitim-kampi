@@ -73,6 +73,7 @@ DATA_SOURCES = [
 ]
 
 TRAIN_FILE = "massive-train.jsonl"
+EXTRA_TRAIN_FILES = ("clinc-tr.jsonl",)
 EVAL_FILES = {"massive_tr": "massive_tr.jsonl", "xsid_tr": "xsid_tr.jsonl"}
 
 # Eğitim akışındaki pay (train.py Stream): tüm örneklerin %5'i (Tur 19 sahip kararı; önce %12). Bu payın içinde:
@@ -1005,6 +1006,15 @@ def load_train(ext_dir: Path) -> list[dict]:
     leak = [r["src"] for r in rows if norm_key(r["src"]) in keys]
     if leak:
         raise DataError(f"eğitim/değerlendirme çakışması: {leak[:5]}")
+    # Çevrilmiş insan yazımı ek veri (CLINC150, clinc.py; komut-veri Release'i): ölçüm cümlesiyle aynı düşen satır
+    # (çeviride tesadüfen "merhaba" gibi) eğitimi durdurmaz, atılır ve sayılır.
+    for extra in EXTRA_TRAIN_FILES:
+        q = ext_dir / extra
+        if q.exists():
+            ex = [r for r in _read(q) if r.get("training_allowed") is True]
+            kept = [r for r in ex if norm_key(r["src"]) not in keys]
+            print(f"ek veri {extra}: {len(kept)} satır (ölçümle çakışan {len(ex) - len(kept)} atıldı)", flush=True)
+            rows += kept
     return [{"task": "t2c", "src": r["src"], "tgt": r["tgt"], "pool": r["kind"]} for r in rows]
 
 

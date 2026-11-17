@@ -54,3 +54,10 @@ eğitime girmez; eğitim yükleyicisi bunu her çalışmada yeniden denetler, ç
 - Kullanım: ~6.100 soru sohbet beyninin diyalog akışında (eğitim, `chat.prepare`; indirme sabit adres + sha256, uymazsa
   iş durur); 1.000 soru ayrılır (`mkqa-eval.jsonl`) ve yalnızca **rapor** amaçlı değerlendirilir (manifest
   `mkqa_eval`, kapı eşiği yok). Türetilen eğitim verisi de CC BY-SA 3.0 lisanslıdır.
+
+## CLINC150 (2026-11-17)
+- Kaynak: https://github.com/clinc/oos-eval (data_full.json, sha256 36923c37…56e0), Larson vd. 2019.
+- Lisans: CC BY 3.0 Unported (depodaki LICENSE dosyasından doğrulandı; iş her çalışmada yeniden denetler).
+- Kullanım: komut beyni eğitimi (training_allowed=true). İnsan yazımı İngilizce istekler opus-mt-tc-big-en-tr ile Türkçeye
+  çevrilir, gidiş-dönüş chrF ile süzülür; niyetler Orion komutlarına eşlenir (yapılamayan istek → ask). Ölçüm kümesiyle
+  çakışan satır atılır. Değerlendirmede kullanılmaz. Atıf: Release'teki LISANS-ATIF.md.

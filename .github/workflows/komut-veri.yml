@@ -1,0 +1,66 @@
+name: komut-veri
+
+# Komut beyni için çevrilmiş insan yazımı veri (2026-11-17): CLINC150 (CC BY 3.0) → Türkçe (opus-mt-tc-big en→tr,
+# gidiş-dönüş chrF süzgeci). Lisans ve veri özeti her çalışmada denetlenir (orion_core/clinc.py); tutmazsa iş durur.
+# Çıktı Release olarak yayınlanır (etiket komut-veri-YYYYMMDD-HHMM, ön sürüm); komut eğitimleri en yenisini kendiliğinden
+# kullanır. Bittiğinde komut-beyni eğitimini başlatır.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['core-model/orion_core/clinc.py']
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: komut-veri
+  cancel-in-progress: false
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  veri:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bağımlılıklar
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -r core-model/requirements.txt -r core-model/requirements-ceviri.txt
+      - name: Çeviri modelleri önbellekten
+        id: mcache
+        uses: actions/cache/restore@v4
+        with:
+          path: work/ct2
+          key: ct2-opus-tc-big-en-tr-tr-en-v1
+      - name: Modelleri CTranslate2'ye dönüştür (int8)
+        if: steps.mcache.outputs.cache-hit != 'true'
+        run: |
+          ct2-transformers-converter --model Helsinki-NLP/opus-mt-tc-big-en-tr --output_dir work/ct2/en-tr --quantization int8
+          ct2-transformers-converter --model Helsinki-NLP/opus-mt-tc-big-tr-en --output_dir work/ct2/tr-en --quantization int8
+      - name: İndir + lisans/özet denetimi + niyet eşleme
+        working-directory: core-model
+        run: python -m orion_core.clinc build --out ../work/clinc
+      - name: Çevir + süz
+        working-directory: core-model
+        run: python -m orion_core.clinc translate --rows ../work/clinc/clinc-en.jsonl --out ../work/rel --ct2 ../work/ct2/en-tr --ct2-back ../work/ct2/tr-en --threads 4
+      - name: Release (ön sürüm)
+        run: |
+          TAG="komut-veri-$(date -u +%Y%m%d-%H%M)"
+          NOTES="CLINC150 → Türkçe komut beyni verisi · $(python -c "import json;s=json.load(open('work/rel/stats.json'));print(s['satir'],'satır ·',json.dumps(s['dagilim'],ensure_ascii=False)[:600])") · Lisans/atıf: LISANS-ATIF.md (CC BY 3.0)"
+          for D in 0 30 90; do
+            sleep $D
+            gh release create "$TAG" work/rel/clinc-tr.jsonl.gz work/rel/stats.json work/rel/LISANS-ATIF.md work/clinc/build-stats.json \
+              --target "$GITHUB_SHA" --title "Komut verisi $TAG" --notes "$NOTES" --prerelease && break
+          done
+          gh release view "$TAG" >/dev/null
+      - name: Komut beyni eğitimini başlat
+        run: gh workflow run komut.yml --ref main
