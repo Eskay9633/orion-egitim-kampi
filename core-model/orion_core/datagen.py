@@ -2348,6 +2348,11 @@ GAP_ASK = [
     "{C} için yarın hava nasıl olacak", "{C} şehrinde yağmur yağacak mı", "bu akşam {C} şehrinde hava kaç derece",
     "yarın beni uyandırma", "sabahki alarmımı iptal et", "alarmımı {m} dakika ertele", "hatırlatıcılarımın hepsini sil",
     "hiç alarm istemiyorum", "{h} alarmını kapat", "dünkü hatırlatıcıyı iptal et", "bu gece alarm kurma",
+    # Tur 23b (komut-20261119-1954 xSID yanlış işleri): alarmı değiştirme/temizleme/durdurma bir iş değil (Orion yapamaz)
+    "yarınki alarmı {h} değiştir", "alarmımı {h} olarak güncelle", "{h} alarmını {m} dakika ileri al", "kurduğum alarmları temizle",
+    "bütün alarmları sil", "ayarlı alarmların hepsini kaldır", "{h} alarmını durdur", "çalan alarmı sustur",
+    "hafta içi alarmlarımı kapat", "hatırlatıcının saatini değiştir", "yarınki hatırlatıcıyı {h} olarak düzelt",
+    "alarmı bir saat geç kur, eskisini sil", "{h} alarmını iptal edip yenisini kurma",
 ]
 
 
