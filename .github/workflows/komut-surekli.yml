@@ -54,6 +54,8 @@ jobs:
         run: |
           T=$(gh release list --limit 100 --json tagName -q '.[].tagName' | grep '^komut-veri-' | sort | tail -1 || true)
           if [ -n "$T" ]; then gh release download "$T" --pattern clinc-tr.jsonl.gz --dir work/ext --clobber && gunzip -f work/ext/clinc-tr.jsonl.gz && echo "ek veri: $T ($(wc -l < work/ext/clinc-tr.jsonl) satır)"; else echo "komut-veri Release yok"; fi
+          D=$(gh release list --limit 100 --json tagName -q '.[].tagName' | grep '^komut-dis-' | sort | tail -1 || true)
+          if [ -n "$D" ]; then gh release download "$D" --pattern dis-tr.jsonl.gz --dir work/ext --clobber && gunzip -f work/ext/dis-tr.jsonl.gz && echo "dış veri: $D ($(wc -l < work/ext/dis-tr.jsonl) satır)"; else echo "komut-dis Release yok"; fi
       - name: Önceki checkpoint (önbellek)
         id: restore
         uses: actions/cache/restore@v4
@@ -65,7 +67,7 @@ jobs:
       - name: Eğit (kaldığı yerden, ~5 saat)
         working-directory: core-model
         run: |
-          python -m orion_core.train --out work/run --steps "$TOTAL_STEPS" --time-budget-min 290 --ext-data work/ext --ext-frac 0.0625
+          python -m orion_core.train --out work/run --steps "$TOTAL_STEPS" --time-budget-min 290 --ext-data work/ext --ext-frac 0.07
           cat work/run/status.json
       - name: Checkpoint'i sakla (sonraki iş devam etsin)
         if: always()

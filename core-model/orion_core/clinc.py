@@ -122,7 +122,9 @@ def finish(rows: list[dict], tr: list[str], back: list[str] | None) -> tuple[lis
         if r["cmd"] == "ask":
             args = {"question": strip_polite(t).rstrip("?.! ").strip() or t}
         try:
-            row = make_row(t, r["cmd"], args, kind=r["kind"], intent="clinc:" + r["intent"], partition="train", source="clinc150")
+            src = r.get("source", "clinc150")
+            row = make_row(t, r["cmd"], args, kind=r["kind"], intent=("clinc" if src == "clinc150" else src) + ":" + r["intent"],
+                           partition="train", source=src)
         except Skip as e:
             stats[f"geçersiz:{e}"] += 1
             continue

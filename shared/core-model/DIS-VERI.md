@@ -61,3 +61,15 @@ eğitime girmez; eğitim yükleyicisi bunu her çalışmada yeniden denetler, ç
 - Kullanım: komut beyni eğitimi (training_allowed=true). İnsan yazımı İngilizce istekler opus-mt-tc-big-en-tr ile Türkçeye
   çevrilir, gidiş-dönüş chrF ile süzülür; niyetler Orion komutlarına eşlenir (yapılamayan istek → ask). Ölçüm kümesiyle
   çakışan satır atılır. Değerlendirmede kullanılmaz. Atıf: Release'teki LISANS-ATIF.md.
+
+## Banking77, SNIPS, Schema-Guided Dialogue, TOPv2 (2026-11-19)
+- Banking77: https://github.com/PolyAI-LDN/task-specific-datasets — CC BY 4.0 (depodaki LICENSE'tan doğrulandı).
+- SNIPS: https://github.com/sonos/nlu-benchmark — CC0 1.0 (depodaki LICENSE'tan doğrulandı).
+- Schema-Guided Dialogue: https://github.com/google-research-datasets/dstc8-schema-guided-dialogue — CC BY-SA 4.0
+  (LICENSE.txt'den doğrulandı); türetilen satırlar da CC BY-SA 4.0.
+- TOPv2: https://fb.me/TOPv2Dataset — CC BY-SA olduğu yalnız ikincil kaynakta yazıyor: **doğrulanmadı**. İş arşivde lisans
+  metni bulamazsa TOPv2'yi kullanmaz (`dis-lisans.json`).
+- Kullanım: komut beyni eğitimi (training_allowed=true), yalnız "Orion yapamaz" (ask) satırları, kendi havuzunda (dis_neg).
+  Kur/döviz ve kripto sözü geçen satırlar atılır (EkBot'un kripto komutuyla karışmasın). Takvim/alarm/mesaj hizmetleri
+  atlanır. Çeviri ve süzgeç CLINC150 ile aynı; ölçüm kümeleriyle çakışan satır atılır. Değerlendirmede kullanılmaz.
+  Atıf: Release'teki LISANS-ATIF-DIS.md. Kod: `core-model/orion_core/disveri.py`, iş akışı `dis-veri`.
