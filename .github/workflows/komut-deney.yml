@@ -1,9 +1,8 @@
 name: komut-deney
 
-# Deney (2026-11-17, sahibin isteği): komut beyni MASSIVE eğitim verisi OLMADAN (yalnız Orion verisi + çevrilmiş CLINC150).
-# Ölçüm aynı (MASSIVE ve xSID değerlendirme kümeleri yine ölçülür; MASSIVE yalnız bilgi için). Sonuç ön sürüm Release
-# "deney-komut-massivesiz-*" olarak yayınlanır; içe aktarma bunu ADAY SAYMAZ (etiket "komut-" ile başlamaz), karar sahibin.
-# Başlatma: Actions → komut-deney → Run workflow YA DA kaggle/komut-deney.txt dosyasına işlemek.
+# Komut beyni deneyleri (aday sayılmaz; etiket "deney-komut-*", ön sürüm; karar sahibin). Ayar kaggle/komut-deney.txt:
+#   "D_MODEL N_LAYER N_HEAD D_FF ADIM MASSIVE"  ör. "256 6 4 1024 10000 acik"  (MASSIVE: acik | kapali)
+# 2026-11-17: MASSIVE'siz deney; 2026-11-19: model kapasitesi (boyut sorun değil, sahibin kararı).
 on:
   workflow_dispatch:
     inputs:
@@ -25,7 +24,7 @@ concurrency:
 jobs:
   train:
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    timeout-minutes: 340
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -50,12 +49,25 @@ jobs:
         run: |
           T=$(gh release list --limit 100 --json tagName -q '.[].tagName' | grep '^komut-veri-' | sort | tail -1 || true)
           if [ -n "$T" ]; then gh release download "$T" --pattern clinc-tr.jsonl.gz --dir work/ext --clobber && gunzip -f work/ext/clinc-tr.jsonl.gz && echo "ek veri: $T ($(wc -l < work/ext/clinc-tr.jsonl) satır)"; else echo "komut-veri Release yok"; fi
-      - name: MASSIVE eğitim verisini çıkar (deney; değerlendirme kümeleri kalır)
+      - name: Deney ayarı
+        id: cfg
+        run: |
+          read D L H F N M < kaggle/komut-deney.txt || true
+          D=${D:-192}; L=${L:-4}; H=${H:-4}; F=${F:-768}; N=${N:-10000}; M=${M:-acik}
+          case "$D$L$H$F$N" in *[!0-9]*) echo "HATA: biçim 'D L H FF ADIM MASSIVE'"; exit 1;; esac
+          echo "d=$D" >> "$GITHUB_OUTPUT"; echo "l=$L" >> "$GITHUB_OUTPUT"; echo "h=$H" >> "$GITHUB_OUTPUT"
+          echo "f=$F" >> "$GITHUB_OUTPUT"; echo "n=$N" >> "$GITHUB_OUTPUT"; echo "m=$M" >> "$GITHUB_OUTPUT"
+          echo "deney: d=$D katman=$L baş=$H ff=$F adım=$N massive=$M"
+      - name: MASSIVE eğitim verisini çıkar (yalnız MASSIVE=kapali; değerlendirme kümeleri kalır)
+        if: steps.cfg.outputs.m == 'kapali'
         working-directory: core-model
         run: ": > work/ext/massive-train.jsonl && echo 'MASSIVE eğitim satırı: 0'"
       - name: Eğit
         working-directory: core-model
-        run: python -m orion_core.train --out work/run --steps ${{ inputs.steps || '10000' }} --time-budget-min 240 --ext-data work/ext --ext-frac 0.0625
+        run: >-
+          python -m orion_core.train --out work/run --steps ${{ steps.cfg.outputs.n }} --time-budget-min 270
+          --ext-data work/ext --ext-frac 0.0625 --d-model ${{ steps.cfg.outputs.d }} --n-layer ${{ steps.cfg.outputs.l }}
+          --n-head ${{ steps.cfg.outputs.h }} --d-ff ${{ steps.cfg.outputs.f }}
       - name: Dışa aktar + manifest
         working-directory: core-model
         run: |
@@ -68,9 +80,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="deney-komut-massivesiz-$(date -u +%Y%m%d-%H%M)"
+          TAG="deney-komut-d${{ steps.cfg.outputs.d }}l${{ steps.cfg.outputs.l }}-${{ steps.cfg.outputs.m }}-$(date -u +%Y%m%d-%H%M)"
           NOTES=$(python -c "import json;m=json.load(open('core-model/work/export/manifest.json'));print(json.dumps(m['eval'],ensure_ascii=False))")
           cd core-model/work/export
           cp ../../../shared/core-model/DIS-VERI.md .
           gh release create "$TAG" model.bin tokenizer.json parity.json manifest.json eval.json DIS-VERI.md \
-            --target "$GITHUB_SHA" --title "Komut beyni deneyi (MASSIVE eğitimsiz) $TAG" --notes "MASSIVE eğitim verisi olmadan · $NOTES" --prerelease
+            --target "$GITHUB_SHA" --title "Komut beyni deneyi $TAG" --notes "Deney (aday değil): d=${{ steps.cfg.outputs.d }} katman=${{ steps.cfg.outputs.l }} ff=${{ steps.cfg.outputs.f }} massive=${{ steps.cfg.outputs.m }} · $NOTES" --prerelease
