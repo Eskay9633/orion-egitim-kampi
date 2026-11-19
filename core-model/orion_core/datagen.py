@@ -2285,7 +2285,7 @@ def _fence() -> dict:
         from pathlib import Path
         base = Path(__file__).resolve().parents[2] / "shared" / "core-model"
         srcs = []
-        for name in ("handwritten-eval.jsonl", "blind-eval.jsonl"):
+        for name in ("handwritten-eval.jsonl", "blind-eval.jsonl", "ajan-sinavi.jsonl"):
             p = base / name
             if p.exists():
                 srcs += [json.loads(x)["src"] for x in p.read_text(encoding="utf-8").splitlines() if x.strip()]
@@ -2320,7 +2320,7 @@ def skill_example(rng: random.Random, family: str | None = None) -> tuple[str, s
 # (resim arama, rezervasyon, çalma listesi, hava durumu) ve olumsuz/iptal cümleleri ("beni uyandırma", "alarmı iptal et")
 # bir işe çevriliyordu. Doğrusu: saatsiz gün → 09:00 (Kotlin TimeParser varsayılanı), yapılamayan istek → ask.
 # Değerler kendi listelerimizden; elle yazılmış/kör kümeler ve (hazırsa) MASSIVE/xSID değerlendirme cümleleri çitle dışlanır.
-REALGAP_FRAC = 0.07
+REALGAP_FRAC = 0.08
 
 GAP_INF = ["eczaneden ilaç almak", "kuzenimi aramak", "su faturasını yatırmak", "kargoyu teslim almak", "bisikleti tamir ettirmek",
            "anneannemi ziyaret etmek", "kütüphaneye kitap iade etmek", "arabayı yıkatmak", "ödevi teslim etmek",
@@ -2412,6 +2412,51 @@ def _gap_team(rng):
     return "note.search", _fill(rng.choice(TEAM_NOTE), Q=q), {"query": q}
 
 
+# Tur 24 (2026-11-20, ajan sınavı bulguları): sınavın kendi cümleleri DEĞİL, takılınan söyleyiş aileleri (sınav çitli):
+# "X'e … diye yaz / … de" (Zoe cevabı), "X yazarsa sen cevapla" (otomatik), "… olduğunu unutma" (hafıza), "a çarpı b bölü c"
+# (hesap), "kayıtlı becerilerim" (beceri listesi), "haftalık iş özeti" (iş özeti), "pilim / şarjım" (telefon sağlığı).
+T24_SAY = ["birazdan çıkıyorum", "yarın uygunum", "akşama döneceğim", "toplantı uzadı", "geliyorum", "sonra konuşalım",
+           "evdeyim", "trafikteyim", "yarın ararım", "tamam anlaştık"]
+T24_REPLY = ["{C}'e {S} diye yaz", "{C}'e {S} de", "{C}'e yaz: {S}", "{C}'e söyle, {S}", "{C}'e {S} diye cevap ver",
+             "{C}'e haber ver: {S}", "{C}'e {S} diye mesaj at"]
+T24_AUTO = ["{C} yazarsa sen cevapla", "{C} yazınca cevabı sen ver", "{C}'e gelen mesajları sen yanıtla", "{C} mesaj atarsa kendin cevapla"]
+T24_LIST = ["izlediğin kişiler kimler", "Zoe kişi listeni göster", "takip ettiğin kişileri listele", "hangi kişileri izliyorsun"]
+T24_MEM = [("{X} olduğunu unutma", "preference"), ("{X} olduğunu aklında tut", "preference"), ("şunu hafızana yaz: {X}", "note"),
+           ("benim hakkımda şunu bil: {X}", "preference")]
+T24_MEMX = ["çayı şekersiz içerim", "sabahları koşarım", "fıstığa alerjim var", "akşamları erken yatarım", "deniz kenarını severim",
+            "hafta sonları çalışmam"]
+T24_CALC = [("{a} çarpı {b} bölü {c} hesapla", "*/"), ("{a} artı {b} eksi {c} kaç eder", "+-"), ("{a} çarpı {b} artı {c} ne yapar", "*+"),
+            ("{a} bölü {b} çarpı {c} hesaplar mısın", "/*")]
+T24_SKILL = ["kayıtlı becerileri listele", "öğrendiğin becerileri göster", "kayıtlı becerilerin neler", "beceri listemi aç"]
+T24_DIGEST = ["haftalık iş özetini hazırla", "bu haftaki işleri özetle", "ekibin bu hafta ne yaptığını özetle"]
+T24_HEALTH = ["şarjım neden çabuk bitiyor", "pil sağlığıma bak", "telefonum neden ısınıyor bir kontrol et", "pilim ne durumda"]
+
+
+def _gap_tur24(rng):
+    r = rng.random()
+    c = rng.choice(MSG_CONTACTS)
+    if r < 0.25:
+        sy = rng.choice(T24_SAY)
+        return "msg.reply", rng.choice(T24_REPLY).replace("{C}'e", c + _dat(c)).replace("{S}", sy), {"contact": c, "say": sy}
+    if r < 0.37:
+        return "msg.contacts", rng.choice(T24_AUTO).replace("{C}'e", c + _dat(c)).replace("{C}", c), {"action": "auto", "contact": c}
+    if r < 0.42:
+        return "msg.contacts", rng.choice(T24_LIST), {"action": "list"}
+    if r < 0.55:
+        f, kind = rng.choice(T24_MEM)
+        x = rng.choice(T24_MEMX)
+        return "memory.save", f.replace("{X}", x), {"kind": kind, "text": x}
+    if r < 0.7:
+        f, ops = rng.choice(T24_CALC)
+        a, b, cc = rng.randint(2, 999), rng.randint(2, 99), rng.randint(2, 50)
+        return "calc.eval", f.format(a=a, b=b, c=cc), {"expr": f"{a}{ops[0]}{b}{ops[1]}{cc}"}
+    if r < 0.8:
+        return "skill.list", rng.choice(T24_SKILL), {}
+    if r < 0.88:
+        return "work.digest", rng.choice(T24_DIGEST), {}
+    return "health.check", rng.choice(T24_HEALTH), {}
+
+
 def _gap_day_reminder(rng):
     tr_d, code = rng.choice(GAP_DAYS)
     inf = rng.choice(GAP_INF)
@@ -2465,7 +2510,8 @@ def realgap_example(rng: random.Random) -> tuple[str, str, dict]:
     """(komut, cümle, argümanlar): yarısı saatsiz/gün sözlü hatırlatıcı, yarısı yapılamayan istek → ask."""
     for _ in range(30):
         r = rng.random()
-        cmd, tr, args = (_gap_day_reminder if r < 0.3 else _gap_ask if r < 0.58 else _gap_agent if r < 0.78 else _gap_team)(rng)
+        cmd, tr, args = (_gap_day_reminder if r < 0.26 else _gap_ask if r < 0.5 else _gap_agent if r < 0.66 else _gap_team if r < 0.82
+                         else _gap_tur24)(rng)
         if not _fenced(tr) and not _gap_ext_fenced(tr):
             return cmd, tr, args
     raise ProtocolError("E_INTERNAL", "gerçek açık ailesi değerlendirme cümlelerinden uzak cümle üretemedi")

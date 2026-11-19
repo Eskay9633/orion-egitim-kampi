@@ -888,7 +888,7 @@ def xsid_rows(text: str, split: str) -> tuple[list[dict], Counter, Counter]:
 def held_out_keys() -> set[str]:
     """Depodaki ölçüm kümeleri (elle yazılmış, kör) — dış eğitim verisi bunlarla çakışamaz."""
     keys = set()
-    for name in ("handwritten-eval.jsonl", "blind-eval.jsonl"):
+    for name in ("handwritten-eval.jsonl", "blind-eval.jsonl", "ajan-sinavi.jsonl"):
         p = SHARED / "core-model" / name
         if p.exists():
             for line in p.read_text(encoding="utf-8").splitlines():
