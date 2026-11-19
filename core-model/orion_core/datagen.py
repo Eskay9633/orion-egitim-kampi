@@ -2320,7 +2320,7 @@ def skill_example(rng: random.Random, family: str | None = None) -> tuple[str, s
 # (resim arama, rezervasyon, çalma listesi, hava durumu) ve olumsuz/iptal cümleleri ("beni uyandırma", "alarmı iptal et")
 # bir işe çevriliyordu. Doğrusu: saatsiz gün → 09:00 (Kotlin TimeParser varsayılanı), yapılamayan istek → ask.
 # Değerler kendi listelerimizden; elle yazılmış/kör kümeler ve (hazırsa) MASSIVE/xSID değerlendirme cümleleri çitle dışlanır.
-REALGAP_FRAC = 0.06
+REALGAP_FRAC = 0.07
 
 GAP_INF = ["eczaneden ilaç almak", "kuzenimi aramak", "su faturasını yatırmak", "kargoyu teslim almak", "bisikleti tamir ettirmek",
            "anneannemi ziyaret etmek", "kütüphaneye kitap iade etmek", "arabayı yıkatmak", "ödevi teslim etmek",
@@ -2372,6 +2372,39 @@ def _gap_agent(rng):
         return "msg.inbox", pre + rng.choice(GAP_INBOX_WAIT), {"waiting": True}
     tr = rng.choice(GAP_AGENT_TALK).replace("{A}", rng.choice(["Zoe", "Emma", "Sophia", "Mike", "Luna"]))
     return "ask", tr, {"question": tr}
+
+
+# Tur 23 (2026-11-19, ekip sistemi 3-4 sonrası ölçüm): yeni yeteneklerin cümleleri işe gitmiyordu: gün planı soruları
+# ("günümü özetle", "bugünkü planım ne") sohbet sanılıyordu (Emma › Gün planlayıcı: calendar.list); "X hakkında son
+# haberler" / "kaynakları karşılaştır" araştırma değil soru sanılıyordu (Sophia kendi kaynaklarıyla: research.start);
+# "kim yazdı bana" (söz sırası) gelen kutusu, "notlarımda X geçen var mı" not araması değildi.
+TEAM_DAY = [("günümü özetle", "d+0"), ("bugünkü planım ne", "d+0"), ("bugün beni neler bekliyor", "d+0"),
+            ("bugünün planını söyle", "d+0"), ("bugün programımda ne var", "d+0"), ("bugün planımda neler var", "d+0"),
+            ("yarınki planım ne", "d+1"), ("yarın beni neler bekliyor", "d+1"), ("yarının planını özetle", "d+1"),
+            ("bugün için planımı özetle", "d+0"), ("bugün yapacaklarım ne", "d+0"), ("yarın programım nasıl", "d+1")]
+TEAM_NEWS = ["{X} hakkında son haberler", "{X} ile ilgili son haberleri araştır", "{X} konusunda yeni ne var, araştır",
+             "{X} konusunu kaynaklardan karşılaştır", "{X} hakkında kaynakları karşılaştır", "{X} hakkında farklı kaynaklara bak",
+             "{X} ile ilgili haberleri topla", "{X} konusundaki son gelişmeleri araştır", "{X} hakkında ne yazılmış, karşılaştır"]
+TEAM_INBOX = ["kim yazdı bana", "mesaj geldi mi bana", "yazan oldu mu bana", "kimler yazmış bana", "mesaj var mı bana",
+              "bir mesaj gelmiş mi"]
+TEAM_NOTE = ["notlarımda {Q} geçen var mı", "{Q} ile ilgili notum var mı", "notlarımda {Q} var mıydı",
+             "{Q} hakkında not almış mıydım", "notlarıma bak, {Q} geçiyor mu"]
+
+
+def _gap_team(rng):
+    r = rng.random()
+    if r < 0.3:
+        tr, d = rng.choice(TEAM_DAY)
+        tr = rng.choice(["", "", "Emma, ", "Emma "]) + tr
+        return "calendar.list", tr, {"day": d}
+    if r < 0.6:
+        x = rng.choice(TOPICS)
+        tr = rng.choice(["", "", "Sophia, ", "Sophia "]) + _fill(rng.choice(TEAM_NEWS), X=x)
+        return "research.start", tr, {"topic": x}
+    if r < 0.75:
+        return "msg.inbox", rng.choice(["", "", "Zoe, "]) + rng.choice(TEAM_INBOX), {}
+    q = rng.choice(QUERIES)
+    return "note.search", _fill(rng.choice(TEAM_NOTE), Q=q), {"query": q}
 
 
 def _gap_day_reminder(rng):
@@ -2427,7 +2460,7 @@ def realgap_example(rng: random.Random) -> tuple[str, str, dict]:
     """(komut, cümle, argümanlar): yarısı saatsiz/gün sözlü hatırlatıcı, yarısı yapılamayan istek → ask."""
     for _ in range(30):
         r = rng.random()
-        cmd, tr, args = (_gap_day_reminder if r < 0.35 else _gap_ask if r < 0.7 else _gap_agent)(rng)
+        cmd, tr, args = (_gap_day_reminder if r < 0.3 else _gap_ask if r < 0.58 else _gap_agent if r < 0.78 else _gap_team)(rng)
         if not _fenced(tr) and not _gap_ext_fenced(tr):
             return cmd, tr, args
     raise ProtocolError("E_INTERNAL", "gerçek açık ailesi değerlendirme cümlelerinden uzak cümle üretemedi")

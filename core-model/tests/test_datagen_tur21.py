@@ -16,8 +16,20 @@ def test_realgap_valid_and_fenced():
             assert args["question"] == tr
         elif cmd == "reminder.set":
             assert "@" in args["at"]
+        elif cmd == "research.start":
+            assert args["topic"] in tr
+        elif cmd == "note.search":
+            assert args["query"] in tr
+        elif cmd == "calendar.list":
+            assert args["day"] in ("d+0", "d+1")
         else:
             assert cmd == "msg.inbox"
+
+
+def test_tur23_team_capabilities_present():
+    rng = random.Random(11)
+    cmds = {datagen._gap_team(rng)[0] for _ in range(400)}
+    assert cmds == {"calendar.list", "research.start", "msg.inbox", "note.search"}
 
 
 def test_day_only_reminder_defaults_to_nine():
