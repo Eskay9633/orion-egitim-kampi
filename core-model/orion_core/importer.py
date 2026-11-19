@@ -99,6 +99,9 @@ OOD_TOLERANCE = 0.04
 
 
 WRONG_TOLERANCE = 0.01
+# Elle yazılmış kümede izin verilen gerileme (sahibin kararı 2026-11-19): en çok 4 cümle (133'te %3). Karşılığında gerçek
+# kullanıcı cümlelerinde (xSID) yanlış iş artamaz ve doğruluk düşemez; MASSIVE karşılaştırmada yalnız bilgidir.
+HW_TOLERANCE = 0.031
 
 
 def komut_better(new: dict, cur: dict | None, local_hw: tuple[float, float] | None = None,
@@ -119,11 +122,11 @@ def komut_better(new: dict, cur: dict | None, local_hw: tuple[float, float] | No
     n, c = new.get("eval", {}), cur["eval"]
     if local_hw is not None:
         ln, lc = local_hw
-        if ln + 1e-9 < lc:
-            return False, f"elle yazılmış cümlelerde geriledi (bu depoda aynı kümede: {ln:.4f} < {lc:.4f})"
-        hw_note = f"; elle yazılmış küme bu depoda yeniden ölçüldü ({ln:.4f} ≥ {lc:.4f})"
+        if ln + HW_TOLERANCE + 1e-9 < lc:
+            return False, f"elle yazılmış cümlelerde geriledi (bu depoda aynı kümede: {ln:.4f} < {lc:.4f}, pay {HW_TOLERANCE})"
+        hw_note = f"; elle yazılmış küme bu depoda yeniden ölçüldü ({ln:.4f} / mevcut {lc:.4f}, pay {HW_TOLERANCE})"
     elif same_handwritten_set(new, cur):
-        if n.get("handwritten_exact", 0) + 1e-9 < c.get("handwritten_exact", 0):
+        if n.get("handwritten_exact", 0) + HW_TOLERANCE + 1e-9 < c.get("handwritten_exact", 0):
             return False, f"elle yazılmış cümlelerde geriledi ({n.get('handwritten_exact')} < {c.get('handwritten_exact')})"
         hw_note = "; elle yazılmış küme aynı, manifest sayıları karşılaştırıldı"
         if local_hw_error:
@@ -138,11 +141,15 @@ def komut_better(new: dict, cur: dict | None, local_hw: tuple[float, float] | No
         hw_note += f"; yeni cümle yapıları bu depoda yeniden ölçüldü ({local_ood[0]:.4f} / mevcut {local_ood[1]:.4f})"
     elif n.get("t2c_ood_exact", 0) + OOD_TOLERANCE < c.get("t2c_ood_exact", 0):
         return False, "yeni cümle yapılarında geriledi"
-    # Gerçek kullanıcı cümlelerine en yakın dış kümelerde (MASSIVE, xSID) YANLIŞ İŞ artamaz (2026-11-15: elle yazılmış
-    # kümede en iyi olan aday xSID'de yanlış işi %6,1'den %11,7'ye çıkarıyordu). Eşik değil gerileme denetimi; pay 0.01.
-    for k, name in (("massive_tr_wrong_actions", "MASSIVE"), ("xsid_tr_wrong_actions", "xSID")):
-        if k in n and k in c and n[k] > c[k] + WRONG_TOLERANCE:
-            return False, f"{name} cümlelerinde yanlış iş arttı ({n[k]:.4f} > {c[k]:.4f})"
+    # Gerçek kullanıcı cümleleri (xSID, başka kurumun Türkçe cümleleri): yanlış iş ARTAMAZ, doğruluk DÜŞEMEZ (sahibin kararı
+    # 2026-11-19; elle yazılmış kümedeki payın karşılığı). MASSIVE yalnız bilgi: modeli tek bir veri setine bağlamasın.
+    if "xsid_tr_wrong_actions" in n and "xsid_tr_wrong_actions" in c:
+        if n["xsid_tr_wrong_actions"] > c["xsid_tr_wrong_actions"] + 1e-9:
+            return False, f"xSID cümlelerinde yanlış iş arttı ({n['xsid_tr_wrong_actions']:.4f} > {c['xsid_tr_wrong_actions']:.4f})"
+        if n.get("xsid_tr_exact", 0) + 1e-9 < c.get("xsid_tr_exact", 0):
+            return False, f"xSID cümlelerinde doğruluk düştü ({n.get('xsid_tr_exact', 0):.4f} < {c.get('xsid_tr_exact', 0):.4f})"
+    if "massive_tr_wrong_actions" in n:
+        hw_note += f"; MASSIVE yanlış iş {n['massive_tr_wrong_actions']:.4f} (bilgi)"
     return True, "daha iyi ya da eşit" + hw_note
 
 

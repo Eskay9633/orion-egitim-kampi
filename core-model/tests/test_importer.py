@@ -9,9 +9,11 @@ def test_komut_regression_rejected():
     s = "handwritten_set_sha256"
     cur = {"sha256": "a", "eval": {"handwritten_exact": 0.96, "t2c_ood_exact": 0.67, s: "S"}}
     assert komut_better({"sha256": "b", "eval": {"handwritten_exact": 0.97, "t2c_ood_exact": 0.70, s: "S"}}, cur)[0]
-    assert not komut_better({"sha256": "b", "eval": {"handwritten_exact": 0.93, "t2c_ood_exact": 0.80, s: "S"}}, cur)[0]
-    assert not komut_better({"sha256": "b", "eval": {"handwritten_exact": 0.93, "t2c_ood_exact": 0.80}}, cur,
-                            local_hw=(0.93, 0.96))[0]
+    # Sahibin kararı 2026-11-19: elle yazılmış kümede en çok %3 (4/133) gerileme payı
+    assert komut_better({"sha256": "b", "eval": {"handwritten_exact": 0.935, "t2c_ood_exact": 0.80, s: "S"}}, cur)[0]
+    assert not komut_better({"sha256": "b", "eval": {"handwritten_exact": 0.92, "t2c_ood_exact": 0.80, s: "S"}}, cur)[0]
+    assert not komut_better({"sha256": "b", "eval": {"handwritten_exact": 0.92, "t2c_ood_exact": 0.80}}, cur,
+                            local_hw=(0.92, 0.96))[0]
     assert not komut_better({"sha256": "a", "eval": {}}, cur)[0]
     assert komut_better({"sha256": "b", "eval": {}}, None)[0]
 
@@ -192,7 +194,7 @@ def test_handwritten_rule_fails_closed_across_different_sets_without_local_measu
 def test_handwritten_rule_uses_local_same_set_measurement():
     old, new = _m("a", 0.9655), _m("b", 0.80, set_sha="S2")
     assert komut_better(new, old, local_hw=(0.92, 0.88))[0]
-    ok, why = komut_better(new, old, local_hw=(0.87, 0.88))
+    ok, why = komut_better(new, old, local_hw=(0.84, 0.88))
     assert not ok and "aynı kümede" in why
 
 
@@ -267,7 +269,7 @@ def test_run_same_set_remeasures_locally_and_prefers_it(monkeypatch, tmp_path):
 
 
 def test_run_same_set_falls_back_to_strict_manifest(monkeypatch, tmp_path):
-    importer, _ = _komut_world(monkeypatch, tmp_path, _m("b", 0.95, set_sha="S1"), _m("a", 0.96, set_sha="S1"))
+    importer, _ = _komut_world(monkeypatch, tmp_path, _m("b", 0.92, set_sha="S1"), _m("a", 0.96, set_sha="S1"))
 
     def boom(d):
         raise RuntimeError("torch yok")
@@ -338,3 +340,12 @@ def test_komut_rejects_more_wrong_actions_on_real_sentences():
     assert not ok and "xSID" in why
     good = dict(bad, eval=dict(bad["eval"], xsid_tr_wrong_actions=0.048, massive_tr_wrong_actions=0.015))
     assert importer.komut_better(good, cur, (0.83, 0.8), None, (0.68, 0.67))[0]
+    # 2026-11-19: xSID'de yanlış iş hiç artamaz, doğruluk düşemez; MASSIVE yalnız bilgi
+    slightly = dict(bad, eval=dict(bad["eval"], xsid_tr_wrong_actions=0.065))
+    assert not importer.komut_better(slightly, cur, (0.9, 0.8), None, (0.74, 0.67))[0]
+    worse_acc = dict(good, eval=dict(good["eval"], xsid_tr_exact=0.70))
+    cur2 = dict(cur, eval=dict(cur["eval"], xsid_tr_exact=0.80))
+    assert not importer.komut_better(worse_acc, cur2, (0.9, 0.8), None, (0.74, 0.67))[0]
+    massive_worse = dict(good, eval=dict(good["eval"], massive_tr_wrong_actions=0.09))
+    ok, why = importer.komut_better(massive_worse, cur, (0.9, 0.8), None, (0.74, 0.67))
+    assert ok and "MASSIVE" in why and "bilgi" in why
