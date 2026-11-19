@@ -1,1 +1,2 @@
 256 6 4 1024 24000 acik
+# 2026-11-20: ajan sınavı çitiyle yeniden başlatıldı
