@@ -934,7 +934,7 @@
     },
     "msg.reply": {
       "agent": "zoe",
-      "doc": "Zoe bir kişiye WhatsApp cevap taslağı yazar (kişiye özel üslupla); onay kartında Gönder denince bildirimin hızlı cevabıyla gider. say: sahibin söylemek istediği. Kendi başına cevap yalnız sahibin 'otomatik' yaptığı kişilerde ve hassas olmayan konularda arka planda olur.",
+      "doc": "Zoe bir kişiye WhatsApp cevap taslağı yazar (kişiye özel üslupla); onay kartında Gönder denince bildirimin hızlı cevabıyla gider. say: sahibin söylemek istediği. Kendi başına cevap (2026-11-20) herkese, sahibin kendi cümleleriyle; para, sağlık, kod, adres gibi hassas konular, kapatılan kişi ve grup hariç.",
       "needs_net": false,
       "effect": "proposal",
       "args": {

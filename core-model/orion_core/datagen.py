@@ -2457,6 +2457,72 @@ def _gap_tur24(rng):
     return "health.check", rng.choice(T24_HEALTH), {}
 
 
+# Tur 25 (2026-11-20 gece, sahibin isteği: "Emma öncelikli gelişsin, ajanlar ve alt ajanlar da dahil"): Emma'nın
+# dört alt ajanının (ayıklayıcı, zamanlayıcı, takvim, gün) günlük söyleyişleri. Sınavın cümleleri DEĞİL (çitli).
+T25_DAILY = [("her sabah {k}", "sabah"), ("her akşam {k}", "akşam"), ("her gün {k}", "gün")]
+T25_DAILY_CLK = {"sabah": [("7'de", "07:00"), ("8'de", "08:00"), ("6:30'da", "06:30"), ("9'da", "09:00")],
+                 "akşam": [("8'de", "20:00"), ("9'da", "21:00"), ("10'da", "22:00"), ("7'de", "19:00")],
+                 "gün": [("öğlen 12'de", "12:00"), ("saat 14:00'te", "14:00"), ("sabah 10'da", "10:00"), ("akşam 6'da", "18:00")]}
+T25_DAILY_X = ["ilacımı içmeyi", "su içmeyi", "vitamin almayı", "yürüyüşe çıkmayı", "çiçekleri sulamayı", "günlük yazmayı",
+               "esneme yapmayı", "kediyi beslemeyi"]
+T25_WEEK = [("her pazartesi", "mon"), ("her salı", "tue"), ("her çarşamba", "wed"), ("her perşembe", "thu"), ("her cuma", "fri"),
+            ("her cumartesi", "sat"), ("her pazar", "sun")]
+T25_WEEK_X = ["çöpü çıkarmayı", "haftalık raporu göndermeyi", "pazara gitmeyi", "annemi aramayı", "faturaları kontrol etmeyi",
+              "çamaşır yıkamayı", "yüzmeye gitmeyi"]
+T25_EV = ["Ahmet'le kahve", "doktor randevusu", "proje toplantısı", "veli toplantısı", "diş kontrolü", "spor salonu",
+          "akşam yemeği", "kuaför", "arabanın bakımı", "ekip görüşmesi", "Ayşe'nin doğum günü", "noter randevusu"]
+T25_PLACE = [("Köşe Kahve'de", "Köşe Kahve"), ("hastanede", "hastane"), ("ofiste", "ofis"), ("okulda", "okul"),
+             ("Kadıköy'de", "Kadıköy"), ("serviste", "servis"), ("Moda'da", "Moda")]
+T25_TIMER = [("çay", "çay demlensin diye"), ("makarna", "makarna için"), ("mola", "mola için"), ("fırın", "fırındaki kek için"),
+             ("ders", "ders çalışmak için"), ("toplantı", "toplantıya hazırlanmak için")]
+T25_REMLIST = ["hatırlatıcılarımda ne var", "kurduğum hatırlatıcıları göster", "bekleyen hatırlatıcılarım neler",
+               "hangi hatırlatıcılar kurulu", "hatırlatmalarımı listele"]
+T25_DAYQ = [("bugün beni ne bekliyor, kısaca söyle", "d+0"), ("yarın neler var, bir bak", "d+1"),
+            ("öbür gün programım dolu mu", "d+2"), ("bugün kaç işim var", "d+0"), ("yarın erken bir işim var mı", "d+1"),
+            ("bugünkü randevularım ne", "d+0"), ("yarınki toplantılarımı say", "d+1")]
+T25_EMMA = ["", "", "Emma, ", "Emma ", "Emma bana "]
+
+
+def _gap_tur25(rng):
+    r = rng.random()
+    pre = rng.choice(T25_EMMA)
+    if r < 0.18:
+        f, kind = rng.choice(T25_DAILY)
+        clk, hm = rng.choice(T25_DAILY_CLK[kind])
+        x = rng.choice(T25_DAILY_X)
+        verb = rng.choice(["hatırlat", "hatırlatır mısın", "her seferinde hatırlat"])
+        tr = pre + f.replace("{k}", clk) + f" {x} {verb}"
+        return "reminder.set", tr, {"at": f"d+0@{hm}", "text": x, "repeat": "daily"}
+    if r < 0.32:
+        tr_d, code = rng.choice(T25_WEEK)
+        clk, hm = rng.choice(GAP_CLOCK)
+        x = rng.choice(T25_WEEK_X)
+        tr = pre + f"{tr_d} {clk} {x} hatırlat"
+        return "reminder.set", tr, {"at": f"{code}@{hm}", "text": x, "repeat": "weekly"}
+    if r < 0.55:
+        tr_d, code = rng.choice(GAP_DAYS[:7])
+        clk, hm = rng.choice(GAP_CLOCK)
+        ev = rng.choice(T25_EV)
+        k = rng.random()
+        if k < 0.35:
+            pl, place = rng.choice(T25_PLACE)
+            return ("calendar.add", pre + f"{tr_d} {clk} {ev} var, {pl}, takvime yaz",
+                    {"title": ev, "start": f"{code}@{hm}", "place": place})
+        if k < 0.65:
+            n = rng.choice([30, 45, 90, 120])
+            return ("calendar.add", pre + f"{tr_d} {clk} {ev} ekle, {n} dakika sürer",
+                    {"title": ev, "start": f"{code}@{hm}", "minutes": n})
+        return "calendar.add", pre + f"{ev} için {tr_d} {clk} takvime yer aç", {"title": ev, "start": f"{code}@{hm}"}
+    if r < 0.7:
+        lb, why = rng.choice(T25_TIMER)
+        m = rng.choice([3, 5, 7, 10, 12, 20, 25, 40])
+        return "timer.start", pre + rng.choice([f"{why} {m} dakika say", f"{why} {m} dakikalık sayaç kur"]), {"minutes": m, "label": lb}
+    if r < 0.82:
+        return "reminder.list", pre + rng.choice(T25_REMLIST), {}
+    tr, d = rng.choice(T25_DAYQ)
+    return "calendar.list", pre + tr, {"day": d}
+
+
 def _gap_day_reminder(rng):
     tr_d, code = rng.choice(GAP_DAYS)
     inf = rng.choice(GAP_INF)
@@ -2510,8 +2576,9 @@ def realgap_example(rng: random.Random) -> tuple[str, str, dict]:
     """(komut, cümle, argümanlar): yarısı saatsiz/gün sözlü hatırlatıcı, yarısı yapılamayan istek → ask."""
     for _ in range(30):
         r = rng.random()
-        cmd, tr, args = (_gap_day_reminder if r < 0.26 else _gap_ask if r < 0.5 else _gap_agent if r < 0.66 else _gap_team if r < 0.82
-                         else _gap_tur24)(rng)
+        # Tur 25: Emma ailesi %22 pay alır (sahibin önceliği); diğer aileler aynı sırayla daraldı
+        cmd, tr, args = (_gap_day_reminder if r < 0.2 else _gap_ask if r < 0.4 else _gap_agent if r < 0.52 else _gap_team if r < 0.64
+                         else _gap_tur24 if r < 0.78 else _gap_tur25)(rng)
         if not _fenced(tr) and not _gap_ext_fenced(tr):
             return cmd, tr, args
     raise ProtocolError("E_INTERNAL", "gerçek açık ailesi değerlendirme cümlelerinden uzak cümle üretemedi")

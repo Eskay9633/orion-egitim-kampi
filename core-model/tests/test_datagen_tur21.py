@@ -21,9 +21,11 @@ def test_realgap_valid_and_fenced():
         elif cmd == "note.search":
             assert args["query"] in tr
         elif cmd == "calendar.list":
-            assert args["day"] in ("d+0", "d+1")
+            assert args["day"] in ("d+0", "d+1", "d+2")  # Tur 25: "öbür gün"
         elif cmd in ("msg.reply", "msg.contacts", "memory.save", "calc.eval", "skill.list", "work.digest", "health.check"):
             pass  # Tur 24 (şema validate_request ile denetlendi)
+        elif cmd in ("calendar.add", "timer.start", "reminder.list"):
+            pass  # Tur 25 Emma ailesi (test_datagen_tur25)
         else:
             assert cmd == "msg.inbox"
 

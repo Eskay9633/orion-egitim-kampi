@@ -7,7 +7,9 @@ name: komut-beyni-surekli
 # Veri üreticisi / protokol değişince önbellek anahtarı değişir ve eğitim sıfırdan başlar.
 on:
   schedule:
-    - cron: '5 0,6,11,17 * * *'  # 2026-11-20: üç tur 01–16 UTC; akşam 20:00 (İstanbul) sonuç sunumuna yetişir
+    # 2026-11-20 gece: sahibin isteği 270 bin adım; turlar arka arkaya dönsün diye saatlik tetik (eşzamanlılık grubu
+    # çalışan işi kesmez, en fazla bir iş bekler). Hedef dolunca iş eğitmeden biter (aşağıdaki "Hedef doldu mu").
+    - cron: '5 * * * *'
   workflow_dispatch:
     inputs:
       steps:
@@ -26,7 +28,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  TOTAL_STEPS: ${{ inputs.steps || '210000' }}  # 2026-11-20: sahibin isteği 210 bin adım bandı, rapor 21:00 (İstanbul)
+  TOTAL_STEPS: ${{ inputs.steps || '270000' }}  # 2026-11-20 gece: sahibin isteği 270 bin adım; raporlar 03/10/13/17 (İstanbul)
 
 jobs:
   train:
@@ -64,18 +66,26 @@ jobs:
           key: komut-surekli-${{ hashFiles('core-model/orion_core/datagen.py', 'core-model/orion_core/grammar.py', 'core-model/orion_core/copy.py', 'core-model/orion_core/massive.py', 'core-model/orion_core/train.py', 'core-model/orion_core/bpe.py', 'shared/protocol/**') }}-${{ github.run_id }}
           restore-keys: |
             komut-surekli-${{ hashFiles('core-model/orion_core/datagen.py', 'core-model/orion_core/grammar.py', 'core-model/orion_core/copy.py', 'core-model/orion_core/massive.py', 'core-model/orion_core/train.py', 'core-model/orion_core/bpe.py', 'shared/protocol/**') }}-
+      - name: Hedef doldu mu
+        id: done
+        run: |
+          S=$(python -c "import json;print(json.load(open('core-model/work/run/status.json')).get('step',0))" 2>/dev/null || echo 0)
+          echo "adım $S / $TOTAL_STEPS"
+          if [ "$S" -ge "$TOTAL_STEPS" ]; then echo "done=true" >> "$GITHUB_OUTPUT"; else echo "done=false" >> "$GITHUB_OUTPUT"; fi
       - name: Eğit (kaldığı yerden, ~5 saat)
+        if: steps.done.outputs.done != 'true'
         working-directory: core-model
         run: |
           python -m orion_core.train --out work/run --steps "$TOTAL_STEPS" --time-budget-min 290 --ext-data work/ext --ext-frac 0.07
           cat work/run/status.json
       - name: Checkpoint'i sakla (sonraki iş devam etsin)
-        if: always()
+        if: always() && steps.done.outputs.done != 'true'
         uses: actions/cache/save@v4
         with:
           path: core-model/work/run
           key: komut-surekli-${{ hashFiles('core-model/orion_core/datagen.py', 'core-model/orion_core/grammar.py', 'core-model/orion_core/copy.py', 'core-model/orion_core/massive.py', 'core-model/orion_core/train.py', 'core-model/orion_core/bpe.py', 'shared/protocol/**') }}-${{ github.run_id }}
       - name: Dışa aktar + manifest
+        if: steps.done.outputs.done != 'true'
         working-directory: core-model
         run: |
           python -m orion_core.export --run work/run --out work/export
@@ -83,12 +93,13 @@ jobs:
       # Eğitimin başında taban geçilmeyebilir: o zaman Release yok, iş yeşil kalır, sonraki iş devam eder.
       - name: Güvenlik tabanı
         id: gate
+        if: steps.done.outputs.done != 'true'
         continue-on-error: true
         working-directory: core-model
         run: python -m orion_core.evaluate --model work/export --gate --ext-data work/ext
       # 2026-11-20: Release oluşturma 403 verdiğinde model kaybolmasın: iş çıktısı olarak da saklanır (14 gün)
       - name: Model iş çıktısı olarak saklanır (yedek)
-        if: always()
+        if: always() && steps.done.outputs.done != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: komut-model-${{ github.run_id }}
