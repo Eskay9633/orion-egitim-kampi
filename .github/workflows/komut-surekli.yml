@@ -22,16 +22,34 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
+# 2026-11-20 gece: elle başlatılan (push) koşu eski tarifeden kalan koşuyu beklemesin diye ayrı sıradadır; saatlik
+# koşular başka bir eğitim sürerken eğitmeden biter (aşağıdaki "kontrol" işi), aynı checkpoint'ten iki dal çıkmaz.
 concurrency:
-  group: komut-beyni-surekli
+  group: komut-beyni-surekli${{ github.event_name == 'push' && '-hemen' || '' }}
   cancel-in-progress: false
 
 env:
   TOTAL_STEPS: ${{ inputs.steps || '270000' }}  # 2026-11-20 gece: sahibin isteği 270 bin adım; raporlar 03/10/13/17 (İstanbul)
 
 jobs:
+  kontrol:
+    runs-on: ubuntu-latest
+    outputs:
+      busy: ${{ steps.b.outputs.busy }}
+    steps:
+      - name: Başka eğitim sürüyor mu
+        id: b
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          N=$(gh run list -R "$GITHUB_REPOSITORY" --workflow komut-surekli.yml --status in_progress --json databaseId -q "[.[] | select(.databaseId != ${{ github.run_id }})] | length" || echo 0)
+          echo "süren başka koşu: $N"
+          if [ "${{ github.event_name }}" != "push" ] && [ "$N" -gt 0 ]; then echo "busy=true" >> "$GITHUB_OUTPUT"; else echo "busy=false" >> "$GITHUB_OUTPUT"; fi
   train:
+    needs: kontrol
+    if: needs.kontrol.outputs.busy != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 350
     steps:
