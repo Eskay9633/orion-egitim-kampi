@@ -37,3 +37,35 @@ def test_cap_dedupes():
     import random
     rows = [D._row("snips", "Play jazz", "PlayMusic"), D._row("snips", "play jazz", "PlayMusic")]
     assert len(D._cap(rows, 10, random.Random(1))) == 1
+
+
+def test_multi3woz_first_turn_and_chat_native_turkish():
+    data = {"D1": {"log": [
+        {"speaker": "USER", "text": "Şehir merkezinde ucuz bir otel arıyorum.", "en_text": "I need a cheap hotel in the centre.",
+         "dialog_act": "{'Hotel-Inform': [['Price', 'cheap']]}"},
+        {"speaker": "SYSTEM", "text": "Tabii.", "dialog_act": "{}"},
+        {"speaker": "USER", "text": "Hayır, ucuz olsun.", "en_text": "No, cheap.", "dialog_act": {"Hotel-Inform": [["Price", "cheap"]]}},
+        {"speaker": "USER", "text": "Teşekkür ederim.", "en_text": "Thanks.", "dialog_act": {"general-thank": []}},
+    ]}}
+    neg, chat = D.parse_multi3woz(data)
+    assert [r["tr"] for r in neg] == ["Şehir merkezinde ucuz bir otel arıyorum."]  # ara cümle alınmaz
+    assert [r["tr"] for r in chat] == ["Teşekkür ederim."] and chat[0]["kind"] == "chat"
+
+
+def test_nlupp_skips_time_slots_and_no_intent():
+    items = [{"text": "block my card", "intents": ["block", "card"], "slots": {}},
+             {"text": "we arrive tomorrow at 7", "intents": None},
+             {"text": "book a room for monday", "intents": ["book"], "slots": {"date": {"text": "monday"}}}]
+    assert [r["en"] for r in D.parse_nlupp("banking", items)] == ["block my card"]
+
+
+def test_tm2_first_user_turn():
+    dl = [{"utterances": [{"speaker": "ASSISTANT", "text": "Hi"}, {"speaker": "USER", "text": "What place are the Dodgers in?"}]}]
+    assert D.parse_tm2("sports", dl)[0]["en"] == "What place are the Dodgers in?"
+
+
+def test_native_rows_skip_translation_filters():
+    from orion_core import clinc
+    r = D._row("multi3woz", "Find me a cheap hotel please", "Hotel-Inform", "neg", "Uygun fiyatlı otel bul")
+    out, st = clinc.finish([r], [r["tr"]], [None])
+    assert len(out) == 1 and out[0]["src"].startswith("Uygun fiyatlı")

@@ -41,9 +41,21 @@ SGD = {"base": RAW + "google-research-datasets/dstc8-schema-guided-dialogue/mast
        "license": RAW + "google-research-datasets/dstc8-schema-guided-dialogue/master/LICENSE.txt",
        "mark": "Attribution-ShareAlike 4.0 International", "files": 40}
 TOPV2 = {"zip": "https://dl.fbaipublicfiles.com/TOPv2/TOPv2_Dataset.zip", "mark": "Attribution-ShareAlike"}
+# 2026-11-20 (sahibin onayı): Multi3WOZ Türkçe (insan yazımı, kültüre uyarlanmış; ÇEVİRİSİZ), NLU++, Taskmaster-2
+MULTI3WOZ = {"zip": RAW + "cambridgeltl/multi3woz/main/data.zip", "license": RAW + "cambridgeltl/multi3woz/main/LICENSE",
+             "mark": "MIT License", "member": "data/Turkish/data.json"}
+NLUPP = {"base": RAW + "PolyAI-LDN/task-specific-datasets/master/nlupp/data/", "license": BANKING["license"],
+         "mark": "Attribution 4.0 International", "domains": ["banking", "hotels"], "folds": 20}
+TM2 = {"base": RAW + "google-research-datasets/Taskmaster/master/TM-2-2020/data/",
+       "license": RAW + "google-research-datasets/Taskmaster/master/TM-2-2020/README.md",
+       "mark": "Creative Commons Attribution 4.0",
+       "files": ["flights", "food-ordering", "hotels", "movies", "music", "restaurant-search", "sports"]}
 
 # Kaynak başına üst sınır (çeviri süresi ve havuz dengesi)
-CAP = {"banking77": 2500, "snips": 3000, "sgd": 3000, "topv2": 4000}
+CAP = {"banking77": 2500, "snips": 3000, "sgd": 3000, "topv2": 4000, "multi3woz": 3000, "multi3woz_chat": 800, "nlupp": 1500, "tm2": 2500}
+# NLU++: tarih/saat taşıyan satırlar alınmaz ("yarın 7'de" kalıbı "yapamaz" diye öğretilirse hatırlatıcı tanıma bozulur)
+NLUPP_TIME_SLOTS = {"date", "date_from", "date_to", "date_period", "time", "time_from", "time_to"}
+MULTI3WOZ_CHAT_ACTS = ("general-thank", "general-bye", "general-greet")
 
 BANKING_SKIP = {"exchange_rate", "exchange_via_app", "exchange_charge", "fiat_currency_support", "supported_cards_and_currencies"}
 SGD_SKIP_PREFIX = ("Calendar", "Alarm", "Messaging")
@@ -78,11 +90,62 @@ def _license_ok(url: str, mark: str) -> bool:
         return False
 
 
-def _row(source: str, en: str, intent: str) -> dict | None:
+def _row(source: str, en: str, intent: str, kind: str = "neg", tr: str | None = None) -> dict | None:
     en = " ".join(str(en).split()).strip()
-    if not en or len(en) < 4 or CRYPTO.search(en):
+    if not en or len(en) < 4 or CRYPTO.search(en) or (tr is not None and CRYPTO.search(tr)):
         return None
-    return {"en": en, "intent": intent, "cmd": "ask", "args": {}, "kind": "neg", "source": source}
+    r = {"en": en, "intent": intent, "cmd": "ask", "args": {}, "kind": kind, "source": source}
+    if tr is not None:
+        r["tr"] = " ".join(str(tr).split()).strip()  # Türkçe aslı: çeviri yapılmaz
+    return r
+
+
+def parse_multi3woz(data: dict) -> tuple[list[dict], list[dict]]:
+    """(yapılamayan istekler, sohbet): diyaloğun ilk kullanıcı cümlesi + teşekkür/selam/veda cümleleri. Ara cümleler
+    (bağlama bağlı: "hayır, ucuz olsun") alınmaz."""
+    import ast
+    neg, chat = [], []
+    for did, d in data.items():
+        for i, t in enumerate(d.get("log") or []):
+            if t.get("speaker") != "USER" or not t.get("text"):
+                continue
+            a = t.get("dialog_act") or {}
+            try:
+                acts = a if isinstance(a, dict) else ast.literal_eval(a)
+            except Exception:
+                acts = {}
+            names = list(acts.keys()) if isinstance(acts, dict) else []
+            if names and all(n.startswith(MULTI3WOZ_CHAT_ACTS) for n in names):
+                r = _row("multi3woz", t.get("en_text") or t["text"], names[0], "chat", t["text"])
+                if r:
+                    chat.append(r)
+            elif i == 0:
+                r = _row("multi3woz", t.get("en_text") or t["text"], names[0] if names else "ilk", "neg", t["text"])
+                if r:
+                    neg.append(r)
+    return neg, chat
+
+
+def parse_nlupp(domain: str, items: list) -> list[dict]:
+    out = []
+    for e in items:
+        if not e.get("intents") or NLUPP_TIME_SLOTS & set((e.get("slots") or {}).keys()):
+            continue
+        r = _row("nlupp", e.get("text", ""), domain + ":" + "+".join(e["intents"][:3]))
+        if r:
+            out.append(r)
+    return out
+
+
+def parse_tm2(name: str, dialogues: list) -> list[dict]:
+    out = []
+    for d in dialogues:
+        u = next((x for x in d.get("utterances", []) if x.get("speaker") == "USER" and x.get("text")), None)
+        if u:
+            r = _row("tm2", u["text"], name)
+            if r:
+                out.append(r)
+    return out
 
 
 def parse_banking(text: str) -> list[dict]:
@@ -144,7 +207,7 @@ def parse_topv2(tsv: str) -> list[dict]:
 def _cap(rows: list[dict], n: int, rng: random.Random) -> list[dict]:
     seen, uniq = set(), []
     for r in rows:
-        k = r["en"].lower()
+        k = (r.get("tr") or r["en"]).lower()  # Türkçe aslı varsa tekilleştirme Türkçe metne göre
         if k not in seen:
             seen.add(k)
             uniq.append(r)
@@ -204,6 +267,46 @@ def build(out: Path) -> tuple[list[dict], Counter, dict]:
     except Exception as e:
         lic["topv2"] = f"indirilemedi ({type(e).__name__}): atlandı"
 
+    if _license_ok(MULTI3WOZ["license"], MULTI3WOZ["mark"]):
+        lic["multi3woz"] = "MIT (depodaki LICENSE'tan doğrulandı; veri için ayrı lisans yok)"
+        try:
+            z = zipfile.ZipFile(io.BytesIO(_get(MULTI3WOZ["zip"], 600)))
+            neg, chat = parse_multi3woz(json.loads(z.read(MULTI3WOZ["member"]).decode("utf-8")))
+            rows += _cap(neg, CAP["multi3woz"], rng) + _cap(chat, CAP["multi3woz_chat"], rng)
+        except Exception as e:
+            lic["multi3woz"] += f"; indirilemedi ({type(e).__name__})"
+    else:
+        lic["multi3woz"] = "lisans doğrulanamadı: atlandı"
+
+    if _license_ok(NLUPP["license"], NLUPP["mark"]):
+        lic["nlupp"] = "CC BY 4.0 (doğrulandı)"
+        nl = []
+        for dom in NLUPP["domains"]:
+            for k in range(NLUPP["folds"]):
+                try:
+                    nl += parse_nlupp(dom, json.loads(_get(f"{NLUPP['base']}{dom}/fold{k}.json")))
+                except Exception:
+                    stats["nlupp-hata"] += 1
+        rows += _cap(nl, CAP["nlupp"], rng)
+    else:
+        lic["nlupp"] = "lisans doğrulanamadı: atlandı"
+
+    try:
+        tm_ok = TM2["mark"] in _get(TM2["license"], 60).decode("utf-8", "replace")
+    except Exception:
+        tm_ok = False
+    if tm_ok:
+        lic["tm2"] = "CC BY 4.0 (TM-2-2020 README'sinden doğrulandı)"
+        tm = []
+        for name in TM2["files"]:
+            try:
+                tm += parse_tm2(name, json.loads(_get(f"{TM2['base']}{name}.json", 600)))
+            except Exception:
+                stats["tm2-hata"] += 1
+        rows += _cap(tm, CAP["tm2"], rng)
+    else:
+        lic["tm2"] = "lisans doğrulanamadı: atlandı"
+
     for i, r in enumerate(rows):
         r["id"] = f"dis-{i}"
         stats[f"{r['source']}"] += 1
@@ -213,11 +316,14 @@ def build(out: Path) -> tuple[list[dict], Counter, dict]:
     return rows, stats, lic
 
 
-ATTRIBUTION = """Türkçeye makine çevirisi (opus-mt-tc-big-en-tr, CC BY 4.0); yalnız "Orion bunu yapamaz" satırları. Değiştirilmiş türevler.
+ATTRIBUTION = """Multi3WOZ satırları Türkçe aslıdır (çeviri yok). Diğerleri Türkçeye makine çevirisi (opus-mt-tc-big-en-tr, CC BY 4.0); yalnız "Orion bunu yapamaz" satırları. Değiştirilmiş türevler.
 - Banking77: Casanueva vd. 2020, https://github.com/PolyAI-LDN/task-specific-datasets, CC BY 4.0
 - SNIPS: Coucke vd. 2018, https://github.com/sonos/nlu-benchmark, CC0 1.0
 - Schema-Guided Dialogue: Rastogi vd. 2020, https://github.com/google-research-datasets/dstc8-schema-guided-dialogue, CC BY-SA 4.0
   (bu kaynaktan türeyen satırlar CC BY-SA 4.0 ile paylaşılır)
+- Multi3WOZ: Hu vd. 2023, https://github.com/cambridgeltl/multi3woz, MIT (Türkçe, insan yazımı, kültüre uyarlanmış)
+- NLU++: Casanueva vd. 2022, https://github.com/PolyAI-LDN/task-specific-datasets, CC BY 4.0
+- Taskmaster-2: Byrne vd. 2020, https://github.com/google-research-datasets/Taskmaster, CC BY 4.0
 - TOPv2: Chen vd. 2020, https://fb.me/TOPv2Dataset, CC BY-SA (yalnız arşivdeki lisans metniyle doğrulandıysa kullanıldı;
   dis-lisans.json'a bakın)"""
 
@@ -244,8 +350,18 @@ def main(argv=None) -> None:
     import gzip
     from .translate_data import Ct2Translator, MT_MODEL, BT_MODEL
     rows = [json.loads(x) for x in Path(a.rows).read_text(encoding="utf-8").splitlines() if x.strip()]
-    tr = Ct2Translator(a.ct2, MT_MODEL, threads=a.threads)([r["en"] for r in rows])
-    back = Ct2Translator(a.ct2_back, BT_MODEL, threads=a.threads)(tr) if a.ct2_back else None
+    # Türkçe aslı olan satırlar (Multi3WOZ) çevrilmez; yalnız İngilizceler çevrilir
+    need = [i for i, r in enumerate(rows) if not r.get("tr")]
+    mt = Ct2Translator(a.ct2, MT_MODEL, threads=a.threads)([rows[i]["en"] for i in need]) if need else []
+    tr = [r.get("tr") for r in rows]
+    for i, t in zip(need, mt):
+        tr[i] = t
+    back = None
+    if a.ct2_back and need:
+        bt = Ct2Translator(a.ct2_back, BT_MODEL, threads=a.threads)([tr[i] for i in need])
+        back = [None] * len(rows)
+        for i, b in zip(need, bt):
+            back[i] = b
     out_rows, stats = clinc.finish(rows, tr, back)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)

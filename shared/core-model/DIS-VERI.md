@@ -73,3 +73,15 @@ eğitime girmez; eğitim yükleyicisi bunu her çalışmada yeniden denetler, ç
   Kur/döviz ve kripto sözü geçen satırlar atılır (EkBot'un kripto komutuyla karışmasın). Takvim/alarm/mesaj hizmetleri
   atlanır. Çeviri ve süzgeç CLINC150 ile aynı; ölçüm kümeleriyle çakışan satır atılır. Değerlendirmede kullanılmaz.
   Atıf: Release'teki LISANS-ATIF-DIS.md. Kod: `core-model/orion_core/disveri.py`, iş akışı `dis-veri`.
+
+## Multi3WOZ (Türkçe), NLU++, Taskmaster-2 (2026-11-20)
+- Multi3WOZ: https://github.com/cambridgeltl/multi3woz — depo lisansı MIT (LICENSE'tan doğrulandı; veri için ayrı lisans
+  yok). Türkçe bölüm insan yazımı, kültüre uyarlanmış diyaloglardır: ÇEVİRİSİZ kullanılır. Diyaloğun ilk kullanıcı cümlesi
+  "Orion yapamaz" (otel/restoran/tren/taksi/hastane/karakol), teşekkür/selam/veda cümleleri sohbet satırıdır; bağlama bağlı
+  ara cümleler alınmaz.
+- NLU++: https://github.com/PolyAI-LDN/task-specific-datasets (nlupp) — CC BY 4.0 (doğrulandı). Yalnız niyetli satırlar;
+  tarih/saat taşıyanlar atılır (hatırlatıcı tanıma bozulmasın).
+- Taskmaster-2: https://github.com/google-research-datasets/Taskmaster (TM-2-2020) — CC BY 4.0 (README'den doğrulandı).
+  Diyaloğun ilk kullanıcı cümlesi, "Orion yapamaz".
+- Multi3NLU++ (Türkçe, Hugging Face): lisans görülemedi → doğrulanmadı, kullanılmıyor. Leyzer: CC BY-NC-ND (türev yasak)
+  → kullanılmaz.

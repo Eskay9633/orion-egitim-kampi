@@ -85,7 +85,7 @@ EVAL_FILES = {"massive_tr": "massive_tr.jsonl", "xsid_tr": "xsid_tr.jsonl"}
 # %12'de kapsam dışı "ask" olumsuzları ("salı günkü doktor randevusunu iptal edebilir misin", "alarmları kaldır")
 # eylem komutlarıyla aynı yüzey ipuçlarını taşıdığından eylem cümlelerinde ilk belirteç güvenini bölüyordu (Tur 19 raporu).
 EXT_FRAC = 0.05
-POOL_WEIGHTS = {"action": 0.25, "chat": 0.3, "neg": 0.45, "clinc_neg": 0.2, "clinc_chat": 0.05, "dis_neg": 0.15}
+POOL_WEIGHTS = {"action": 0.25, "chat": 0.3, "neg": 0.45, "clinc_neg": 0.2, "clinc_chat": 0.05, "dis_neg": 0.15, "dis_chat": 0.03}
 # CLINC havuzları eklendiğinde MASSIVE havuzlarının akıştaki payı aynı kalsın diye iş akışları --ext-frac 0.0625 kullanır
 # (0.0625 × 1/1.25 = 0.05, eskisi kadar).
 

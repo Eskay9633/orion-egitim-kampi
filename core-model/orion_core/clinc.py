@@ -111,11 +111,12 @@ def finish(rows: list[dict], tr: list[str], back: list[str] | None) -> tuple[lis
     out, stats = [], Counter()
     for i, (r, t) in enumerate(zip(rows, tr)):
         t = " ".join(t.split()).strip()
-        why = T.tr_reject(r["en"], t)
+        native = bool(r.get("tr"))  # Türkçe aslı (çeviri değil): çeviri süzgeçleri uygulanmaz
+        why = None if native else T.tr_reject(r["en"], t)
         if why:
             stats[f"süzgeç:{why}"] += 1
             continue
-        if back is not None and T.chrf(back[i], r["en"]) < 0.30:
+        if not native and back is not None and back[i] is not None and T.chrf(back[i], r["en"]) < 0.30:
             stats["süzgeç:gidiş-dönüş"] += 1
             continue
         args = dict(r["args"])
