@@ -26,7 +26,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  TOTAL_STEPS: ${{ inputs.steps || '80000' }}
+  TOTAL_STEPS: ${{ inputs.steps || '130000' }}  # 2026-11-20: akşama kadar eğitim (sahibin isteği)
 
 jobs:
   train:
