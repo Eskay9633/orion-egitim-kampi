@@ -1,1 +1,1 @@
-2026-11-20: Tur 24 + ajan sınavı çiti ile yeniden eğitim
+2026-11-20 14:25 UTC: dış veriyle (Multi3WOZ, NLU++, TM-2) kısa eğitim yeniden (Release 403 sonrası deneme)
