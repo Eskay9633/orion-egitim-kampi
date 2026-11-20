@@ -86,6 +86,15 @@ jobs:
         continue-on-error: true
         working-directory: core-model
         run: python -m orion_core.evaluate --model work/export --gate --ext-data work/ext
+      # 2026-11-20: Release oluşturma 403 verdiğinde model kaybolmasın: iş çıktısı olarak da saklanır (14 gün)
+      - name: Model iş çıktısı olarak saklanır (yedek)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: komut-model-${{ github.run_id }}
+          path: core-model/work/export/
+          retention-days: 14
+          if-no-files-found: ignore
       - name: Release olarak yayınla
         if: steps.gate.outcome == 'success'
         env:
