@@ -28,6 +28,13 @@ CORPUS_MAX_CHARS = "2400000000"
 HAZIR_URL = "__HAZIR__"  # GitHub'da önceden hazırlanmış dil modeli akışı (hazir-veri Release klasörü); boşsa yok
 DIY_URLS = "__DIY__"  # diyalog-* Release'leri (bilgi.yml: Wikidata gerçekleri + okuduğunu anlama); boşsa yok
 OZ_URLS = "__OZ__"  # Orion'un önceki oturumlarda kendi çözüp doğrulanan cevapları (orion-ozogrenme Release); boşsa yok
+# KOMUT BEYNİ (sahibin kararı 2026-11-21: tek oturumda komut + sohbet beyni). Oturumun başında komut beyni ekran
+# kartında, CI'dakinden büyük modelle sıfırdan eğitilir; aynı veri katmanı (üretici + MASSIVE + CLINC150/dış veri
+# Release'leri, hepsi training_allowed=true) ve aynı güvenlik tabanı. Çıktı out/komut-export; yayınlamayı kaggle.yml
+# toplama adımı yapar (taban geçtiyse). Hata olursa sohbet beyni yine eğitilir. Boş = aşama yok.
+KOMUT_MIN = "__KOMUTMIN__"  # komut beyni eğitim süresi (dk)
+KOMUT_EXT = "__KOMUTEXT__"  # boşlukla ayrılmış clinc-tr / dis-tr .jsonl.gz adresleri
+KOMUT_ARCH = ["--d-model", "256", "--n-layer", "6", "--n-head", "4", "--d-ff", "1024", "--batch", "96", "--lr", "1.5e-3"]
 SELF_MIN = 20  # oturum sonunda kendi kendine öğrenmeye ayrılan dakika
 # Kaggle bir oturumu 12 saatte (720 dk) keser; kesilen oturumun çıktısı kaydedilmeyebilir (2026-11-14: eğitim + iki dışa
 # aktarma + kendi kendine öğrenme 12 saati aştı, oturum "hata" ile bitti). Her adım kalan süreye göre kısaltılır.
@@ -131,6 +138,36 @@ os.makedirs(out, exist_ok=True)
 # Kaggle'ın yeni görüntüsünde /kaggle/tmp hazır gelmiyor (29 Eki: tüm indirmeler FileNotFoundError verdi).
 os.makedirs("/kaggle/tmp", exist_ok=True)
 prev = "/kaggle/tmp/prev-ckpt.pt"
+
+
+def komut_phase():
+    """Komut beyni: hazırla → eğit (GPU) → dışa aktar → manifest (sızıntı raporu dahil) → güvenlik tabanı."""
+    import gzip
+    ext, run, exp = "/kaggle/tmp/komut-ext", "/kaggle/tmp/komut-run", f"{out}/komut-export"
+    sh(sys.executable, "-m", "orion_core.massive", "prepare", "--out", ext, "--download")
+    for u in KOMUT_EXT.split():
+        name = u.rsplit("/", 1)[1]
+        urllib.request.urlretrieve(u, f"/kaggle/tmp/{name}")
+        with gzip.open(f"/kaggle/tmp/{name}", "rb") as f_in, open(f"{ext}/{name[:-3]}", "wb") as f_out:
+            shutil.copyfileobj(f_in, f_out)
+        print(f"ORION: komut ek verisi {name}", flush=True)
+    sh(sys.executable, "-m", "orion_core.train", "--out", run, "--steps", "2000000", "--time-budget-min", KOMUT_MIN,
+       "--ext-data", ext, "--ext-frac", "0.07", "--device", "auto", "--ckpt-every", "2000", *KOMUT_ARCH)
+    sh(sys.executable, "-m", "orion_core.export", "--run", run, "--out", exp)
+    sh(sys.executable, "-m", "orion_core.manifest", "--dir", exp, "--run", run, "--ext-data", ext)
+    gate = subprocess.run([sys.executable, "-m", "orion_core.evaluate", "--model", exp, "--gate", "--ext-data", ext])
+    with open(f"{exp}/taban.json", "w") as f:
+        json.dump({"passed": gate.returncode == 0, "status": json.load(open(f"{run}/status.json"))}, f)
+    print(f"ORION: komut beyni tabanı {'GEÇTİ' if gate.returncode == 0 else 'geçmedi'}", flush=True)
+
+
+if KOMUT_MIN.isdigit() and int(KOMUT_MIN) > 0:
+    _t = _time.time()
+    try:
+        komut_phase()
+    except Exception as e:
+        print(f"ORION: komut beyni aşaması hata verdi (sohbet beyni sürüyor): {e!r}", flush=True)
+    print(f"ORION: komut beyni aşaması {(_time.time() - _t) / 60:.0f} dk; kalan {minutes_left():.0f} dk", flush=True)
 
 
 def fetch_ckpt(dst):

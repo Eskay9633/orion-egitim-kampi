@@ -145,7 +145,7 @@ class TinyGpt(nn.Module):
         for length, idxs in by_len.items():
             for s in range(0, len(idxs), batch):
                 group = idxs[s:s + batch]
-                x = torch.tensor([prompts[i] for i in group])
+                x = torch.tensor([prompts[i] for i in group], device=self.tok.weight.device)
                 logits, past = self.forward_kv(x)
                 done = [False] * len(group)
                 for step in range(max_new):

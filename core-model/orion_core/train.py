@@ -200,11 +200,15 @@ def main(argv=None) -> None:
     ap.add_argument("--mine-n", type=int, default=512, help="her avda sınanan iş-değil cümle sayısı")
     ap.add_argument("--hard-frac", type=float, default=0.04, help="akışta zor örnek payı")
     ap.add_argument("--ext-data", help="massive.py prepare çıktısı (MASSIVE train); verilirse eksik/sızıntılı veri = hata")
+    ap.add_argument("--device", default="auto", help="auto | cpu | cuda (Kaggle GPU); auto = cuda varsa cuda")
     ap.add_argument("--ext-frac", type=float, default=None, help="akıştaki dış veri payı (varsayılan massive.EXT_FRAC)")
     a = ap.parse_args(argv)
 
     if a.threads:
         torch.set_num_threads(a.threads)
+    dev = torch.device("cuda" if a.device == "auto" and torch.cuda.is_available() else
+                       ("cpu" if a.device == "auto" else a.device))
+    print(f"cihaz: {dev}", flush=True)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     torch.manual_seed(a.seed)
@@ -238,20 +242,28 @@ def main(argv=None) -> None:
         opt.load_state_dict(ck["opt"])
         step = ck["step"]
         print(f"devam: adım {step}", flush=True)
+    model.to(dev)
+    if step and dev.type != "cpu":
+        # AdamW durumu yüklenirken CPU'da kalır; modelle aynı cihaza taşınır
+        for st in opt.state.values():
+            for k, v in st.items():
+                if torch.is_tensor(v) and k != "step":
+                    st[k] = v.to(dev)
     print(f"model: {model.n_params():,} parametre", flush=True)
     # Ağırlık ortalaması (2026-11-21): eğitim boyunca ağırlıkların üstel ortalaması tutulur, dışa aktarım onu kullanır.
     # Önceki checkpoint'te yoksa (eski koşudan devam) güncel ağırlıklardan başlar.
     ema_state = None
     if a.ema > 0:
         prev = ck.get("ema") if ckpt_path.exists() else None
-        ema_state = {k: (prev[k] if prev and k in prev else v.detach().clone().float()) for k, v in model.state_dict().items()}
+        ema_state = {k: (prev[k] if prev and k in prev else v.detach().clone().float()).to(dev)
+                     for k, v in model.state_dict().items()}
 
     teacher = None
     if a.teacher:
         tk = torch.load(a.teacher, map_location="cpu", weights_only=False)
         teacher = TinyGpt(GptConfig(**tk["config"]))
         teacher.load_state_dict(tk["model"])
-        teacher.eval()
+        teacher.eval().to(dev)
         assert teacher.config.vocab_size == cfg.vocab_size, "öğretmen ve öğrenci aynı tokenizer'ı kullanmalı"
         print(f"damıtma: öğretmen {teacher.n_params():,} parametre, alpha={a.kd_alpha}, T={a.kd_temp}", flush=True)
 
@@ -269,8 +281,10 @@ def main(argv=None) -> None:
     log = open(out / "train.log", "a", encoding="utf-8")
 
     def save(final: bool = False) -> None:
-        torch.save({"config": model.config.to_dict(), "model": model.state_dict(), "opt": opt.state_dict(),
-                    "step": step, "final": final, **({"ema": ema_state} if ema_state is not None else {})}, ckpt_path)
+        # checkpoint her zaman CPU tensörleriyle yazılır (dışa aktarım ve telefon CPU'da okur)
+        cpu = lambda d: {k: v.detach().cpu() for k, v in d.items()}
+        torch.save({"config": model.config.to_dict(), "model": cpu(model.state_dict()), "opt": opt.state_dict(),
+                    "step": step, "final": final, **({"ema": cpu(ema_state)} if ema_state is not None else {})}, ckpt_path)
 
     model.train()
     ema = None
@@ -278,6 +292,7 @@ def main(argv=None) -> None:
         for g in opt.param_groups:
             g["lr"] = lr_at(step, a.steps, a.lr)
         x, y = stream.batch(a.batch)
+        x, y = x.to(dev, non_blocking=True), y.to(dev, non_blocking=True)
         if teacher is None:
             # Kayıp yalnız hedef konumlarda: sözlük çıkışı (4k × d) kaynak/dolgu konumlarında hesaplanmaz (aynı kayıp)
             h = model.hidden(x)

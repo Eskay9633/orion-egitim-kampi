@@ -157,6 +157,22 @@ jobs:
           fi
           DONE=$(python -c "import json;print(json.load(open('$M'))['step'] >= ${{ steps.st.outputs.steps }})")
           if [ "$DONE" = "True" ]; then echo "Hedefe ulaşıldı."; echo "next=done" >> "$GITHUB_OUTPUT"; fi
+      # Komut beyni (2026-11-21, tek oturumda komut + sohbet): taban geçtiyse komut-k-... Release'i (içe aktarıcı onu da
+      # aday görür ve tabanı yeniden sınar); geçmediyse aday-komut-k-... ön sürümü (yalnız inceleme, içe aktarılmaz).
+      - name: Komut beynini yayınla
+        if: steps.st.outputs.go == 'collect'
+        continue-on-error: true
+        run: |
+          M=$(find kout -path '*komut-export/manifest.json' | head -1)
+          if [ -z "$M" ]; then echo "Bu oturumda komut beyni çıktısı yok."; exit 0; fi
+          EXP=$(dirname "$M"); cp shared/core-model/DIS-VERI.md "$EXP/" 2>/dev/null || true
+          STEP=$(python -c "import json;print(json.load(open('$EXP/taban.json'))['status']['step'])")
+          PASS=$(python -c "import json;print(json.load(open('$EXP/taban.json'))['passed'])")
+          NOTES=$(python -c "import json;m=json.load(open('$M'));print('Kaggle GPU · ' + str(m['config']) + ' · ' + json.dumps(m.get('eval',{}),ensure_ascii=False) + ' · sızıntı ' + json.dumps(m.get('leak_check',{}),ensure_ascii=False))")
+          if [ "$PASS" = "True" ]; then TAG="komut-k-$(date -u +%Y%m%d-%H%M)-a${STEP}"; PRE=""; else TAG="aday-komut-k-$(date -u +%Y%m%d-%H%M)-a${STEP}"; PRE="--prerelease"; fi
+          FILES=""; for F in model.bin tokenizer.json parity.json manifest.json eval.json DIS-VERI.md taban.json; do [ -f "$EXP/$F" ] && FILES="$FILES $EXP/$F"; done
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" $FILES --target "$GITHUB_SHA" $PRE --title "Komut beyni (Kaggle) $TAG" --notes "$NOTES"
+          echo "### Komut beyni (Kaggle): $TAG (taban $PASS)" >> "$GITHUB_STEP_SUMMARY"
       # Sahibin kararı (2026-11-13): yeni veri hazır olana kadar kendiliğinden oturum başlatılmaz. kaggle/beklet.txt
       # varsa zamanlanmış iş yalnız toplar (bitmiş oturumu yayınlar); yeni oturumu yalnız elle başlatma açar.
       - name: Bekletme var mı
@@ -207,7 +223,16 @@ jobs:
           # GitHub'da önceden belirteçlere ayrılmış dil modeli akışı (hazirlik.yml); uymazsa Kaggle eski yoldan hazırlar
           HAZIR=""; gh release view hazir-veri --json assets -q '.assets[].name' 2>/dev/null | grep -qx lm-hazir.json && HAZIR="$R/hazir-veri/"
           echo "hazır veri: ${HAZIR:-yok}"
-          sed -e "s#__HAZIR__#$HAZIR#" -e "s#__TOK__#$TOK#" -e "s#__EXTRA__#$EXTRA#" -e "s#__CORPUS__#${CORPUS# }#" -e "s#__DMMATH__#$DMMATH#" -e "s#__KODD__#$KODD#" -e "s#__KODS__#$KODS#" -e "s#__KODP__#$KODP#" -e "s#__OZ__#${OZ# }#" -e "s#__DIY__#${DIY# }#" -e "s/__SIZE__/$SIZE/g" -e "s/__STEPS__/$STEPS/" -e "s/__BATCH__/$BATCH/" -e "s/__BUDGET__/$SURE/" kaggle/orion_sohbet.py > kpush/orion_sohbet.py
+          # Komut beyni aşaması: kaggle/komut-kaggle.txt dakikayı verir (yoksa aşama yok); ek veri en son Release'lerden
+          KMIN=$(head -1 kaggle/komut-kaggle.txt 2>/dev/null | tr -dc 0-9); KEXT=""
+          if [ -n "$KMIN" ]; then
+            for P in "komut-veri-:clinc-tr.jsonl.gz" "komut-dis-:dis-tr.jsonl.gz"; do
+              T=$(gh release list --limit 100 --json tagName -q '.[].tagName' | grep "^${P%%:*}" | sort | tail -1 || true)
+              [ -n "$T" ] && KEXT="$KEXT $R/$T/${P#*:}"
+            done
+          fi
+          echo "komut beyni: ${KMIN:-yok} dk ·${KEXT:- ek veri yok}"
+          sed -e "s#__KOMUTMIN__#$KMIN#" -e "s#__KOMUTEXT__#${KEXT# }#" -e "s#__HAZIR__#$HAZIR#" -e "s#__TOK__#$TOK#" -e "s#__EXTRA__#$EXTRA#" -e "s#__CORPUS__#${CORPUS# }#" -e "s#__DMMATH__#$DMMATH#" -e "s#__KODD__#$KODD#" -e "s#__KODS__#$KODS#" -e "s#__KODP__#$KODP#" -e "s#__OZ__#${OZ# }#" -e "s#__DIY__#${DIY# }#" -e "s/__SIZE__/$SIZE/g" -e "s/__STEPS__/$STEPS/" -e "s/__BATCH__/$BATCH/" -e "s/__BUDGET__/$SURE/" kaggle/orion_sohbet.py > kpush/orion_sohbet.py
           cat > kpush/kernel-metadata.json <<JSON
           {"id": "${{ steps.st.outputs.kid }}", "title": "$(basename ${{ steps.st.outputs.kid }})", "code_file": "orion_sohbet.py",
            "language": "python", "kernel_type": "script", "is_private": true,

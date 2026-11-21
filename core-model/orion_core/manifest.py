@@ -64,6 +64,14 @@ def write_manifest(export_dir: Path, run_dir: Path | None, evaluate: bool = True
         # Telefon: güven [confirm_threshold, abstain_threshold) → yan etkili işte çalıştırmadan önce sorulur.
         m["confirm_threshold"] = res.get("confirm", {}).get("threshold", 0.8)
         (export_dir / "eval.json").write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")
+    # Otomatik sızıntı denetimi (2026-11-21): her eğitimde; yalnız bilgi, kapıya girmez (leakcheck.py)
+    try:
+        from .leakcheck import run as leak_run
+        lk = leak_run(ext_dir)
+        m["leak_check"] = {"train_sample": lk["train_sample"], "near_jaccard": lk["near_jaccard"],
+                           **{k: {f: v[f] for f in ("n", "exact", "near", "near_frac")} for k, v in lk["sets"].items()}}
+    except Exception as e:  # rapor eğitimi durdurmaz
+        m["leak_check"] = {"error": repr(e)[:200]}
     (export_dir / "manifest.json").write_text(json.dumps(m, ensure_ascii=False, indent=1), encoding="utf-8")
     return m
 
