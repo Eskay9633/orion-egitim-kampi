@@ -41,8 +41,6 @@ env:
   KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
   KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
   GH_TOKEN: ${{ github.token }}
-  # kaggle/baslat-istek.txt'ye işlemek elle başlatmayla aynıdır (bu ortamdan workflow_dispatch çağrılamıyor, 2026-11-21)
-  BASLAT: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (contains(toJSON(github.event.commits.*.modified), 'kaggle/baslat-istek.txt') || contains(toJSON(github.event.commits.*.added), 'kaggle/baslat-istek.txt'))) }}
 
 jobs:
   kaggle:
@@ -71,6 +69,12 @@ jobs:
           # Biçim: "BOYUT ADIM [CEVIRI]" — CEVIRI yoksa "otomatik"
           # Biçim: "BOYUT ADIM [CEVIRI] [SÜRE_DK]"
           read SIZE STEPS CEVIRI SURE < kaggle/hedef.txt
+          # kaggle/baslat-istek.txt (ilk satır: Unix zamanı) son 30 dk içindeyse elle başlatmayla aynıdır (bu ortamdan
+          # workflow_dispatch çağrılamıyor, 2026-11-21)
+          BASLAT=false; [ "${{ github.event_name }}" = "workflow_dispatch" ] && BASLAT=true
+          BT=$(head -1 kaggle/baslat-istek.txt 2>/dev/null | tr -dc 0-9); NOW=$(date -u +%s)
+          if [ -n "$BT" ] && [ $((NOW - BT)) -lt 1800 ] && [ $((NOW - BT)) -ge 0 ]; then BASLAT=true; fi
+          echo "elle başlatma: $BASLAT"
           case "$SURE" in ''|*[!0-9]*) SURE="";; esac
           echo "size=$SIZE" >> "$GITHUB_OUTPUT"; echo "steps=$STEPS" >> "$GITHUB_OUTPUT"; echo "ceviri=${CEVIRI:-otomatik}" >> "$GITHUB_OUTPUT"
           echo "sure=$SURE" >> "$GITHUB_OUTPUT"
