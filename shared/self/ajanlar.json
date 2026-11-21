@@ -148,6 +148,26 @@
           "id": "kisiler",
           "name": "Kişiler ve güven",
           "commands": ["msg.contacts"]
+        },
+        {
+          "id": "niyet",
+          "name": "Niyet okuyucu",
+          "commands": ["msg.reply"]
+        },
+        {
+          "id": "musaitlik",
+          "name": "Müsaitlik",
+          "commands": ["msg.reply"]
+        },
+        {
+          "id": "tepki",
+          "name": "Tepki ölçer",
+          "commands": ["msg.inbox"]
+        },
+        {
+          "id": "uslup",
+          "name": "Üslup",
+          "commands": ["msg.reply"]
         }
       ],
       "group": "personal"

@@ -1,0 +1,65 @@
+name: yedek-yayin
+
+# 2026-11-21: Sürekli eğitimde "Release olarak yayınla" adımı uzun işin sonunda 403 ("Resource not accessible by
+# integration") alıyor; model Actions yedeği (komut-model-<run>) olarak kalıyor. Bu kısa iş, taze bir jetonla yedeği
+# indirir, güvenlik tabanını (app-floor.json, eşikler değişmez) YENİDEN çalıştırır ve geçerse komut-s-... Release'ini açar.
+# Tetik: sürekli eğitim bitince kendiliğinden, ya da kaggle/yedek-yayin.txt'ye run kimliği yazıp işlemek.
+on:
+  workflow_run:
+    workflows: [komut-beyni-surekli]
+    types: [completed]
+  push:
+    branches: [main]
+    paths: ['kaggle/yedek-yayin.txt']
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Yedeği yayınlanacak koşu'
+        required: true
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  yayin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Hangi koşular
+        id: runs
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then R="${{ github.event.workflow_run.id }}"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then R="${{ inputs.run_id }}"
+          else R=$(grep -oE '[0-9]{8,}' kaggle/yedek-yayin.txt | tr '\n' ' '); fi
+          echo "runs=$R" >> "$GITHUB_OUTPUT"; echo "koşular: $R"
+      - name: Bağımlılıklar
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -r core-model/requirements.txt
+      - name: Dış veri (MASSIVE + xSID)
+        working-directory: core-model
+        run: python -m orion_core.massive prepare --out work/ext --download
+      - name: Yedekleri indir, tabanı yeniden çalıştır, geçeni yayınla
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for R in ${{ steps.runs.outputs.runs }}; do
+            D="yedek/$R"; mkdir -p "$D"
+            if ! gh run download "$R" -R "$GITHUB_REPOSITORY" -n "komut-model-$R" -D "$D"; then echo "$R: yedek yok"; continue; fi
+            [ -f "$D/manifest.json" ] || { echo "$R: manifest yok"; continue; }
+            if gh release list -R "$GITHUB_REPOSITORY" --limit 200 --json name -q '.[].name' | grep -q "yedek $R"; then echo "$R: zaten yayında"; continue; fi
+            if ! (cd core-model && python -m orion_core.evaluate --model "../$D" --gate --ext-data work/ext); then echo "$R: taban geçilmedi, yayın yok"; continue; fi
+            STEP=$(python -c "import json,sys;m=json.load(open('$D/manifest.json'));print(m.get('train_steps') or m.get('steps') or 0)")
+            TAG="komut-s-$(date -u +%Y%m%d-%H%M)-a${STEP}"
+            NOTES=$(python -c "import json;m=json.load(open('$D/manifest.json'));print(json.dumps(m.get('eval',{}),ensure_ascii=False))")
+            cp shared/core-model/DIS-VERI.md "$D/" 2>/dev/null || true
+            FILES=$(cd "$D" && ls model.bin tokenizer.json parity.json manifest.json eval.json DIS-VERI.md 2>/dev/null | sed "s|^|$D/|" | tr '\n' ' ')
+            gh release create "$TAG" $FILES -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "Komut beyni (sürekli) $TAG · yedek $R" --notes "Actions yedeğinden (koşu $R) · adım $STEP · $NOTES"
+            echo "$R → $TAG"
+          done
