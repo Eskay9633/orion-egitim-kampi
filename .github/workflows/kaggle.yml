@@ -27,7 +27,7 @@ on:
   # zamanlanmış çalışmanın aynısını hemen yapar (durum → bittiyse topla/yayınla → gerekirse yeni oturum)
   push:
     branches: [main]
-    paths: ['kaggle/topla-istek.txt']
+    paths: ['kaggle/topla-istek.txt', 'kaggle/baslat-istek.txt']
 
 permissions:
   contents: write
@@ -41,6 +41,8 @@ env:
   KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
   KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
   GH_TOKEN: ${{ github.token }}
+  # kaggle/baslat-istek.txt'ye işlemek elle başlatmayla aynıdır (bu ortamdan workflow_dispatch çağrılamıyor, 2026-11-21)
+  BASLAT: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (contains(toJSON(github.event.commits.*.modified), 'kaggle/baslat-istek.txt') || contains(toJSON(github.event.commits.*.added), 'kaggle/baslat-istek.txt'))) }}
 
 jobs:
   kaggle:
@@ -86,7 +88,7 @@ jobs:
               # çıktıdadır: topla ve yayınla (2026-11-14'te böyle bir oturum boşa gidecekti)
               if find kerr -path '*chat-export/manifest.json' | grep -q . && [ -n "$(find kerr -name ckpt.pt -o -name 'ckpt.pt.part*' | head -1)" ]; then
                 echo "Oturum kesildi ama model çıktıda: toplanıyor."; echo "go=collect" >> "$GITHUB_OUTPUT"
-              elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then echo "go=start" >> "$GITHUB_OUTPUT"
+              elif [ "$BASLAT" = "true" ]; then echo "go=start" >> "$GITHUB_OUTPUT"
               else echo "go=false" >> "$GITHUB_OUTPUT"; echo "::warning::Kaggle oturumu hata verdi; günlük yukarıda. Yeniden başlatmak için elle çalıştır."; fi ;;
             *) echo "go=start" >> "$GITHUB_OUTPUT" ;;
           esac
