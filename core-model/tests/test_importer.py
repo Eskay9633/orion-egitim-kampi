@@ -333,19 +333,32 @@ def test_komut_picks_best_of_recent_not_newest(monkeypatch, tmp_path):
 
 
 def test_komut_rejects_more_wrong_actions_on_real_sentences():
+    """2026-11-21 sahibin kararı: gerçek cümlelerde (xSID ve MASSIVE) yanlış iş en çok %1,5; xSID doğruluğu düşemez."""
     from orion_core import importer
-    cur = {"sha256": "a", "eval": {"handwritten_exact": 0.88, "t2c_ood_exact": 0.7, "xsid_tr_wrong_actions": 0.06, "massive_tr_wrong_actions": 0.02}}
-    bad = {"sha256": "b", "eval": {"handwritten_exact": 0.9, "t2c_ood_exact": 0.74, "xsid_tr_wrong_actions": 0.117, "massive_tr_wrong_actions": 0.03}}
-    ok, why = importer.komut_better(bad, cur, (0.9, 0.8), None, (0.74, 0.67))
+    cur = {"sha256": "a", "eval": {"handwritten_exact": 0.887, "t2c_ood_exact": 0.7, "xsid_tr_exact": 0.861,
+                                   "xsid_tr_wrong_actions": 0.0101, "massive_tr_wrong_actions": 0.0152}}
+    # 2. tur benzeri: 1 cümle fazla yanlış iş ama sınırın altında → artık alınır
+    r2 = {"sha256": "b", "eval": {"handwritten_exact": 0.88, "t2c_ood_exact": 0.69, "xsid_tr_exact": 0.966,
+                                  "xsid_tr_wrong_actions": 0.0121, "massive_tr_wrong_actions": 0.0114}}
+    ok, why = importer.komut_better(r2, cur, (0.88, 0.887), None, (0.69, 0.7))
+    assert ok and "xSID yanlış iş" in why, why
+    bad = dict(r2, eval=dict(r2["eval"], xsid_tr_wrong_actions=0.0162))
+    ok, why = importer.komut_better(bad, cur, (0.88, 0.887), None, (0.69, 0.7))
     assert not ok and "xSID" in why
-    good = dict(bad, eval=dict(bad["eval"], xsid_tr_wrong_actions=0.048, massive_tr_wrong_actions=0.015))
-    assert importer.komut_better(good, cur, (0.83, 0.8), None, (0.68, 0.67))[0]
-    # 2026-11-19: xSID'de yanlış iş hiç artamaz, doğruluk düşemez; MASSIVE yalnız bilgi
-    slightly = dict(bad, eval=dict(bad["eval"], xsid_tr_wrong_actions=0.065))
-    assert not importer.komut_better(slightly, cur, (0.9, 0.8), None, (0.74, 0.67))[0]
-    worse_acc = dict(good, eval=dict(good["eval"], xsid_tr_exact=0.70))
-    cur2 = dict(cur, eval=dict(cur["eval"], xsid_tr_exact=0.80))
-    assert not importer.komut_better(worse_acc, cur2, (0.9, 0.8), None, (0.74, 0.67))[0]
-    massive_worse = dict(good, eval=dict(good["eval"], massive_tr_wrong_actions=0.09))
-    ok, why = importer.komut_better(massive_worse, cur, (0.9, 0.8), None, (0.74, 0.67))
-    assert ok and "MASSIVE" in why and "bilgi" in why
+    massive_bad = dict(r2, eval=dict(r2["eval"], massive_tr_wrong_actions=0.02))
+    ok, why = importer.komut_better(massive_bad, cur, (0.88, 0.887), None, (0.69, 0.7))
+    assert not ok and "MASSIVE" in why
+    worse_acc = dict(r2, eval=dict(r2["eval"], xsid_tr_exact=0.80))
+    assert not importer.komut_better(worse_acc, cur, (0.88, 0.887), None, (0.69, 0.7))[0]
+
+
+def test_floor_real_sentences_main_and_ood_info_only():
+    from orion_core.evaluate import check_floor
+    floor = {"t2c_iid_valid": 0.95, "coverage_iid_min": 0.6, "wrong_actions_iid_max": 0.03, "wrong_actions_ood_max": 0.05,
+             "wrong_actions_legacy_ood_max": 0.05, "floor_info_only": ["test_ood"], "wrong_actions_real_max": 0.015}
+    res = {"test_iid": {"valid": 0.99}, "abstain": {"test_iid": {"coverage": 0.87, "wrong_actions": 0.01},
+           "test_ood": {"wrong_actions": 0.062}, "legacy_ood": {"wrong_actions": 0.048}},
+           "massive_tr": {"wrong_actions": 0.011}, "xsid_tr": {"wrong_actions": 0.008}}
+    assert check_floor(res, floor) == []  # 3. tur (270k) artık geçer
+    res["xsid_tr"]["wrong_actions"] = 0.02
+    assert any("xsid_tr" in f for f in check_floor(res, floor))

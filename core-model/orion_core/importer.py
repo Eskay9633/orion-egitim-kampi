@@ -102,6 +102,8 @@ WRONG_TOLERANCE = 0.01
 # Elle yazılmış kümede izin verilen gerileme (sahibin kararı 2026-11-19): en çok 4 cümle (133'te %3). Karşılığında gerçek
 # kullanıcı cümlelerinde (xSID) yanlış iş artamaz ve doğruluk düşemez; MASSIVE karşılaştırmada yalnız bilgidir.
 HW_TOLERANCE = 0.031
+# Gerçek cümlelerde yanlış iş üst sınırı (sahibin kararı 2026-11-21; app-floor.json wrong_actions_real_max ile aynı)
+REAL_WRONG_MAX = 0.015
 
 
 def komut_better(new: dict, cur: dict | None, local_hw: tuple[float, float] | None = None,
@@ -143,13 +145,15 @@ def komut_better(new: dict, cur: dict | None, local_hw: tuple[float, float] | No
         return False, "yeni cümle yapılarında geriledi"
     # Gerçek kullanıcı cümleleri (xSID, başka kurumun Türkçe cümleleri): yanlış iş ARTAMAZ, doğruluk DÜŞEMEZ (sahibin kararı
     # 2026-11-19; elle yazılmış kümedeki payın karşılığı). MASSIVE yalnız bilgi: modeli tek bir veri setine bağlamasın.
-    if "xsid_tr_wrong_actions" in n and "xsid_tr_wrong_actions" in c:
-        if n["xsid_tr_wrong_actions"] > c["xsid_tr_wrong_actions"] + 1e-9:
-            return False, f"xSID cümlelerinde yanlış iş arttı ({n['xsid_tr_wrong_actions']:.4f} > {c['xsid_tr_wrong_actions']:.4f})"
-        if n.get("xsid_tr_exact", 0) + 1e-9 < c.get("xsid_tr_exact", 0):
-            return False, f"xSID cümlelerinde doğruluk düştü ({n.get('xsid_tr_exact', 0):.4f} < {c.get('xsid_tr_exact', 0):.4f})"
-    if "massive_tr_wrong_actions" in n:
-        hw_note += f"; MASSIVE yanlış iş {n['massive_tr_wrong_actions']:.4f} (bilgi)"
+    # 2026-11-21 sahibin kararı: "hiç artmaz" yerine gerçek cümlelerde (xSID ve MASSIVE) yanlış iş en çok %1,5
+    for k, name in (("xsid_tr_wrong_actions", "xSID"), ("massive_tr_wrong_actions", "MASSIVE")):
+        if k in n and n[k] > REAL_WRONG_MAX + 1e-9:
+            return False, f"{name} cümlelerinde yanlış iş sınırın üstünde ({n[k]:.4f} > {REAL_WRONG_MAX})"
+    if "xsid_tr_exact" in n and "xsid_tr_exact" in c and n["xsid_tr_exact"] + 1e-9 < c["xsid_tr_exact"]:
+        return False, f"xSID cümlelerinde doğruluk düştü ({n.get('xsid_tr_exact', 0):.4f} < {c.get('xsid_tr_exact', 0):.4f})"
+    for k, name in (("xsid_tr_wrong_actions", "xSID"), ("massive_tr_wrong_actions", "MASSIVE")):
+        if k in n:
+            hw_note += f"; {name} yanlış iş {n[k]:.4f}"
     return True, "daha iyi ya da eşit" + hw_note
 
 

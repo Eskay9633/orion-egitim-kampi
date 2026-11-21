@@ -250,11 +250,19 @@ def check_floor(res: dict, floor: dict) -> list[str]:
     cov = ab.get("test_iid", {}).get("coverage", 0.0)
     if cov < floor["coverage_iid_min"]:
         fails.append(f"test_iid kapsam={cov:.3f} < {floor['coverage_iid_min']} (hep susan model işe yaramaz)")
+    info = set(floor.get("floor_info_only", []))  # 2026-11-21 sahibin kararı: test_ood yalnız bilgi
     for k, key in (("test_iid", "wrong_actions_iid_max"), ("test_ood", "wrong_actions_ood_max"),
                    ("legacy_ood", "wrong_actions_legacy_ood_max")):
         w = ab.get(k, {}).get("wrong_actions")
-        if w is not None and w > floor[key]:
+        if k not in info and w is not None and w > floor[key]:
             fails.append(f"{k} yanlış-iş={w:.3f} > {floor[key]}")
+    # Gerçek cümleler ana ölçüt (2026-11-21): ölçüldüyse MASSIVE ve xSID'de yanlış iş en çok wrong_actions_real_max
+    lim = floor.get("wrong_actions_real_max")
+    if lim is not None:
+        for name in EXT_SETS:
+            w = res.get(name, {}).get("wrong_actions")
+            if w is not None and w > lim:
+                fails.append(f"{name} yanlış-iş={w:.3f} > {lim} (gerçek cümle)")
     return fails
 
 

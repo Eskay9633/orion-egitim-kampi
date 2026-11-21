@@ -4,5 +4,10 @@
   "coverage_iid_min": 0.6,
   "wrong_actions_iid_max": 0.03,
   "wrong_actions_ood_max": 0.05,
-  "wrong_actions_legacy_ood_max": 0.05
+  "wrong_actions_legacy_ood_max": 0.05,
+  "floor_info_only": [
+    "test_ood"
+  ],
+  "wrong_actions_real_max": 0.015,
+  "_doc_owner": "2026-11-21: sahibin kararı (amaç ve eşikler değişti): yapay dağıtım dışı set (test_ood) yanlış işi yalnız bilgi (susma eşiği hesabında kullanılmaya devam eder); gerçek cümlelerde (MASSIVE + xSID) yanlış iş ana ölçüt, her biri en çok %1,5; içe aktarmada xSID yanlış iş 'hiç artmaz' yerine en çok %1,5; elle yazılmış kümede %3 pay aynı; yeni kör ajan sınavında (ajan-sinavi-2) yanlış iş en çok 2 (uygulama derlemesinde denetlenir)."
 }
