@@ -30,7 +30,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  TOTAL_STEPS: ${{ inputs.steps || '480000' }}  # 2026-11-21 gece: sahibin isteği sabah 10'a (İstanbul) kadar; 270k'dan iki tur daha
+  INPUT_STEPS: ${{ inputs.steps || '480000' }}
 
 jobs:
   kontrol:
@@ -53,6 +53,13 @@ jobs:
     timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
+      # Hedef adım (2026-11-21 gece, sahibin isteği: yarın 19:00 APK'ya kadar gelişsin): kaggle/komut-hedef.txt varsa
+      # girdiyi ezer; zincir koşularının kendi girdisi eski kalsa da hedef depodan okunur.
+      - name: Hedef adım
+        run: |
+          T=$(head -1 kaggle/komut-hedef.txt 2>/dev/null | tr -dc 0-9)
+          echo "TOTAL_STEPS=${T:-$INPUT_STEPS}" >> "$GITHUB_ENV"
+          echo "hedef: ${T:-$INPUT_STEPS}"
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
