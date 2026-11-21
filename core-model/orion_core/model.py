@@ -96,12 +96,16 @@ class TinyGpt(nn.Module):
     def n_params(self) -> int:
         return sum(p.numel() for p in self.parameters())
 
-    def forward(self, idx: torch.Tensor) -> torch.Tensor:
+    def hidden(self, idx: torch.Tensor) -> torch.Tensor:
+        """Son katmanın (ln_f sonrası) gizli durumları; eğitim kaybı yalnız hedef konumlarda hesaplansın diye ayrı."""
         t = idx.shape[1]
         x = self.tok(idx) + self.pos(torch.arange(t, device=idx.device))
         for blk in self.blocks:
             x = blk(x)
-        return self.ln_f(x) @ self.tok.weight.T  # paylaşımlı çıkış
+        return self.ln_f(x)
+
+    def forward(self, idx: torch.Tensor) -> torch.Tensor:
+        return self.hidden(idx) @ self.tok.weight.T  # paylaşımlı çıkış
 
     @torch.no_grad()
     def greedy(self, prompt: list[int], eos: int, max_new: int = 96) -> list[int]:

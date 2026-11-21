@@ -1,1 +1,1 @@
-2026-11-20 19:30 UTC: Tur 25 (Emma öncelikli) + hedef 270000 adım; ayrı sırada hemen başlar
+2026-11-21 02:45 UTC: Tur 26 (tüm ajanlar, öncelik Zoe-Emma-Mike) + hız (uzunluk gruplama, yalnız hedef konumda çıkış); hedef 270000; rapor 22:00 İstanbul

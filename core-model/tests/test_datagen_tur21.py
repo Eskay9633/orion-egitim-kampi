@@ -15,19 +15,20 @@ def test_realgap_valid_and_fenced():
         if cmd == "ask":
             assert args["question"] == tr
         elif cmd == "reminder.set":
-            assert "@" in args["at"]
+            assert "@" in args["at"] or args["at"].startswith("+")  # Tur 26: göreli ("20 dakika sonra")
         elif cmd == "research.start":
             assert args["topic"] in tr
         elif cmd == "note.search":
             assert args["query"] in tr
         elif cmd == "calendar.list":
-            assert args["day"] in ("d+0", "d+1", "d+2")  # Tur 25: "öbür gün"
+            assert args["day"].startswith("d+")  # Tur 25-26
         elif cmd in ("msg.reply", "msg.contacts", "memory.save", "calc.eval", "skill.list", "work.digest", "health.check"):
             pass  # Tur 24 (şema validate_request ile denetlendi)
         elif cmd in ("calendar.add", "timer.start", "reminder.list"):
             pass  # Tur 25 Emma ailesi (test_datagen_tur25)
-        else:
-            assert cmd == "msg.inbox"
+        elif cmd != "msg.inbox":
+            # Tur 26: tüm ajanların komutları (şema validate_request ile denetlendi)
+            assert cmd in {c for cs in datagen.T26_AGENT_CMDS.values() for c in cs} | {"ask"}
 
 
 def test_tur23_team_capabilities_present():

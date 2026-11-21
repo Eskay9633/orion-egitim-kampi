@@ -2320,7 +2320,7 @@ def skill_example(rng: random.Random, family: str | None = None) -> tuple[str, s
 # (resim arama, rezervasyon, çalma listesi, hava durumu) ve olumsuz/iptal cümleleri ("beni uyandırma", "alarmı iptal et")
 # bir işe çevriliyordu. Doğrusu: saatsiz gün → 09:00 (Kotlin TimeParser varsayılanı), yapılamayan istek → ask.
 # Değerler kendi listelerimizden; elle yazılmış/kör kümeler ve (hazırsa) MASSIVE/xSID değerlendirme cümleleri çitle dışlanır.
-REALGAP_FRAC = 0.08
+REALGAP_FRAC = 0.10  # Tur 26: 0.08 → 0.10 (tüm ajanlar)
 
 GAP_INF = ["eczaneden ilaç almak", "kuzenimi aramak", "su faturasını yatırmak", "kargoyu teslim almak", "bisikleti tamir ettirmek",
            "anneannemi ziyaret etmek", "kütüphaneye kitap iade etmek", "arabayı yıkatmak", "ödevi teslim etmek",
@@ -2523,6 +2523,116 @@ def _gap_tur25(rng):
     return "calendar.list", pre + tr, {"day": d}
 
 
+# Tur 26 (2026-11-21, sahibin isteği: "komut beynine tüm agentları ekle, öncelik Zoe, Emma ve Mike, sonra diğerleri").
+# Her ajanın kendi komutları, o ajana seslenerek ("Zoe, ..."); dil bilgisi şablonları (GRAMMAR, eğitim bölümü) + Zoe/Emma/
+# Mike için yeni söyleyiş aileleri. Ajan sınavının cümleleri DEĞİL (sınav ve dış değerlendirme çitli). Paylar: Zoe %30,
+# Emma %25, Mike %15, diğer 11 ajan %30 (eşit).
+T26_AGENT_CMDS = {
+    "zoe": ["msg.inbox", "msg.reply", "msg.contacts", "reminder.set"],
+    "emma": ["reminder.set", "reminder.list", "calendar.add", "calendar.list", "timer.start", "note.write", "note.search",
+             "text.translate", "mail.check", "health.check", "app.open", "memory.save", "memory.recall"],
+    "mike": ["skill.run", "skill.list", "skill.record", "agent.hire", "memory.save", "memory.recall", "work.digest"],
+    "sophia": ["research.start", "provider.discover", "research.watch"],
+    "luna": ["image.generate", "card.propose", "design.colors"],
+    "david": ["self.status", "skill.learn", "self.advise"],
+    "jack": ["repo.audit", "image.analyze", "code.run", "repo.watch"],
+    "chloe": ["calc.eval", "file.summarize", "note.search"],
+    "grace": ["seo.audit"], "maya": ["ad.check", "ad.budget"], "ekbot": ["market.crypto", "market.alert"],
+    "leo": ["code.run", "code.repo"], "nora": ["work.check"], "iris": ["work.check"],
+}
+T26_NAMES = {"zoe": "Zoe", "emma": "Emma", "mike": "Mike", "sophia": "Sophia", "luna": "Luna", "david": "David", "jack": "Jack",
+             "chloe": "Chloe", "grace": "Grace", "maya": "Maya", "ekbot": "EK BOT", "leo": "Leo", "nora": "Nora", "iris": "Iris"}
+# Zoe: kişiye göre gelen kutusu, kişi yönetimi, cevap; mesaj görgüsü soruları iş değildir (ask)
+T26_ZOE_INBOX_C = ["{C} ne yazmış", "{C} bana ne demiş", "{C} en son ne yazdı bakar mısın", "{C} mesaj attı mı", "{C} yazdı mı bana",
+                   "{C} ne demiş bir bak"]
+T26_ZOE_REMOVE = ["{C} için takibi bırak", "{C} artık izlenmesin", "{C} listeden çıksın", "{C} için mesaj izlemeyi kapat"]
+T26_ZOE_ASK = ["{C}'e cevap vermeden önce bana sor", "{C}'e yazmadan önce bana danış", "{C}'e cevabı ben onaylayayım"]
+T26_ZOE_SEND = ["{C}'e mesaj at, {S}", "{C}'e şunu ilet: {S}", "{C}'e kısaca {S} yaz", "{C}'e whatsapp'tan {S} diye yaz"]
+T26_ZOE_Q = ["mesajı görüp cevap vermemek kabalık mı", "whatsapp'ta çift mavi tik ne anlama geliyor", "sesli mesaj atmak rahatsız edici mi",
+             "gece geç saatte mesaj atılır mı", "grup sohbetinden sessizce çıkmak ayıp mı", "mesajlara ne kadar sürede dönmek gerekir",
+             "iş mesajlarına hafta sonu cevap verilir mi"]
+# Emma: göreli zamanlı hatırlatma, günün bölümüne göre takvim
+T26_EMMA_REL = [("{n} dakika sonra {X} hatırlat", "m"), ("{n} dakika sonra bana {X} diye seslen", "m"), ("{n} saat sonra {X} hatırlat", "h"),
+                ("{n} saat içinde {X} aklıma getir", "h")]
+T26_EMMA_X = ["ocağı kapatmayı", "çamaşırları asmayı", "ilacımı içmeyi", "toplantıya hazırlanmayı", "annemi aramayı", "kargoyu almayı",
+              "suyu kapatmayı", "arabayı park yerinden almayı"]
+T26_EMMA_DAYQ = [("bu akşam bir planım var mı", "d+0"), ("yarın öğleden sonra neyim var", "d+1"), ("bugün öğlene kadar ne var", "d+0"),
+                 ("yarın akşam boş muyum", "d+1"), ("öbür gün sabah ne var", "d+2")]
+# Mike: iş özeti aç/kapat/göster, yeni yardımcı ajan (rol), ekip hafızası
+T26_MIKE_DIGEST = [("iş özetini kapat", {"action": "off"}), ("akşam özetini artık gönderme", {"action": "off"}),
+                   ("iş özeti ayarlarımı göster", {"action": "list"}), ("özet ayarı ne durumda", {"action": "list"}),
+                   ("her akşam {H}'de iş özeti gönder", "H"), ("iş özetini saat {H}'e al", "H")]
+T26_MIKE_ROLES = ["muhasebe takibi yapan biri", "yemek tarifleri bulan biri", "spor programı hazırlayan biri", "seyahat planlayan biri",
+                  "fatura ve abonelik takipçisi", "çocuk etkinlikleri öneren biri", "bahçe bakımı danışmanı"]
+T26_MIKE_HIRE = ["ekibe {R} lazım", "bize {R} gerekiyor", "{R} işe al", "ekibimize {R} ekle", "Mike, {R} bul ve ekibe kat"]
+
+
+def _t26_zoe(rng):
+    c = rng.choice(MSG_CONTACTS)
+    d = c + _dat(c)
+    r = rng.random()
+    if r < 0.2:
+        return "msg.inbox", rng.choice(T26_ZOE_INBOX_C).replace("{C}", c), {"contact": c}
+    if r < 0.35:
+        return "msg.contacts", rng.choice(T26_ZOE_REMOVE).replace("{C}", c), {"action": "remove", "contact": c}
+    if r < 0.45:
+        return "msg.contacts", rng.choice(T26_ZOE_ASK).replace("{C}'e", d), {"action": "ask", "contact": c}
+    if r < 0.7:
+        sy = rng.choice(MSG_SAY)
+        return "msg.reply", rng.choice(T26_ZOE_SEND).replace("{C}'e", d).replace("{S}", sy), {"contact": c, "say": sy}
+    q = rng.choice(T26_ZOE_Q)
+    return "ask", q, {"question": q}
+
+
+def _t26_emma(rng):
+    r = rng.random()
+    if r < 0.5:
+        f, u = rng.choice(T26_EMMA_REL)
+        n = rng.choice([5, 10, 15, 20, 30, 45]) if u == "m" else rng.choice([1, 2, 3, 4])
+        x = rng.choice(T26_EMMA_X)
+        return "reminder.set", f.replace("{n}", str(n)).replace("{X}", x), {"at": f"+{n}{u}", "text": x}
+    tr, d = rng.choice(T26_EMMA_DAYQ)
+    return "calendar.list", tr, {"day": d}
+
+
+def _t26_mike(rng):
+    if rng.random() < 0.5:
+        f, a = rng.choice(T26_MIKE_DIGEST)
+        if a == "H":
+            h = rng.choice([18, 19, 20, 21, 22])
+            return "work.digest", f.replace("{H}", str(h)), {"hour": h}
+        return "work.digest", f, a
+    role = rng.choice(T26_MIKE_ROLES)
+    return "agent.hire", rng.choice(T26_MIKE_HIRE).replace("{R}", role), {"role": role}
+
+
+def _gap_tur26(rng):
+    # Şablonlardan biri şemanın izin vermediği bir değer üretebilir (ör. agent.hire helps=zoe): şemaya uyan çıkana dek
+    for _ in range(20):
+        cmd, tr, args = _gap_tur26_once(rng)
+        try:
+            validate_request({"v": 1, "id": "g", "cmd": cmd, "args": args})
+            return cmd, tr, args
+        except ProtocolError:
+            continue
+    return _t26_mike(rng)
+
+
+def _gap_tur26_once(rng):
+    r = rng.random()
+    agent = "zoe" if r < 0.30 else "emma" if r < 0.55 else "mike" if r < 0.70 else rng.choice(
+        [a for a in T26_AGENT_CMDS if a not in ("zoe", "emma", "mike")])
+    # Öncelikli üçlüde yarısı yeni söyleyiş aileleri, yarısı ajanın kendi komut şablonları
+    if agent in ("zoe", "emma", "mike") and rng.random() < 0.5:
+        cmd, tr, args = {"zoe": _t26_zoe, "emma": _t26_emma, "mike": _t26_mike}[agent](rng)
+    else:
+        cmd = rng.choice(T26_AGENT_CMDS[agent])
+        tr, args = GRAMMAR[cmd](rng, "train", False, False)
+    if cmd != "ask" and rng.random() < 0.45:
+        tr = T26_NAMES[agent] + rng.choice([", ", " "]) + tr
+    return cmd, tr, args
+
+
 def _gap_day_reminder(rng):
     tr_d, code = rng.choice(GAP_DAYS)
     inf = rng.choice(GAP_INF)
@@ -2577,8 +2687,9 @@ def realgap_example(rng: random.Random) -> tuple[str, str, dict]:
     for _ in range(30):
         r = rng.random()
         # Tur 25: Emma ailesi %22 pay alır (sahibin önceliği); diğer aileler aynı sırayla daraldı
-        cmd, tr, args = (_gap_day_reminder if r < 0.2 else _gap_ask if r < 0.4 else _gap_agent if r < 0.52 else _gap_team if r < 0.64
-                         else _gap_tur24 if r < 0.78 else _gap_tur25)(rng)
+        # Tur 26: tüm ajanlar (öncelik Zoe, Emma, Mike) %30 pay; Tur 25 Emma ailesi %14
+        cmd, tr, args = (_gap_day_reminder if r < 0.14 else _gap_ask if r < 0.28 else _gap_agent if r < 0.36 else _gap_team if r < 0.46
+                         else _gap_tur24 if r < 0.56 else _gap_tur25 if r < 0.70 else _gap_tur26)(rng)
         if not _fenced(tr) and not _gap_ext_fenced(tr):
             return cmd, tr, args
     raise ProtocolError("E_INTERNAL", "gerçek açık ailesi değerlendirme cümlelerinden uzak cümle üretemedi")

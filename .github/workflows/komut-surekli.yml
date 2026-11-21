@@ -6,15 +6,13 @@ name: komut-beyni-surekli
 # deposunun içe aktarıcısı yalnızca elle yazılmış sınavda mevcut modelden iyi ya da eşitse alır. Eşikler değişmez.
 # Veri üreticisi / protokol değişince önbellek anahtarı değişir ve eğitim sıfırdan başlar.
 on:
-  schedule:
-    # 2026-11-20 gece: sahibin isteği 270 bin adım; turlar arka arkaya dönsün diye saatlik tetik (eşzamanlılık grubu
-    # çalışan işi kesmez, en fazla bir iş bekler). Hedef dolunca iş eğitmeden biter (aşağıdaki "Hedef doldu mu").
-    - cron: '5 * * * *'
+  # 2026-11-21: saatlik zamanlayıcı saatlerce gecikiyordu; turları artık yedek-yayin işi zincirler (bir tur bitince,
+  # başka eğitim yoksa sonrakini workflow_dispatch ile başlatır). Hedef dolunca iş eğitmeden biter.
   workflow_dispatch:
     inputs:
       steps:
         description: 'Toplam hedef adım (devam eden eğitimin hedefi)'
-        default: '80000'
+        default: '270000'
   push:
     branches: [main]
     paths:
@@ -46,7 +44,7 @@ jobs:
         run: |
           N=$(gh run list -R "$GITHUB_REPOSITORY" --workflow komut-surekli.yml --status in_progress --json databaseId -q "[.[] | select(.databaseId != ${{ github.run_id }})] | length" || echo 0)
           echo "süren başka koşu: $N"
-          if [ "${{ github.event_name }}" != "push" ] && [ "$N" -gt 0 ]; then echo "busy=true" >> "$GITHUB_OUTPUT"; else echo "busy=false" >> "$GITHUB_OUTPUT"; fi
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$N" -gt 0 ]; then echo "busy=true" >> "$GITHUB_OUTPUT"; else echo "busy=false" >> "$GITHUB_OUTPUT"; fi
   train:
     needs: kontrol
     if: needs.kontrol.outputs.busy != 'true'

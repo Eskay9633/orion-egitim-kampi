@@ -19,7 +19,7 @@ on:
 
 permissions:
   contents: write
-  actions: read
+  actions: write
 
 jobs:
   yayin:
@@ -63,3 +63,19 @@ jobs:
               --title "Komut beyni (sürekli) $TAG · yedek $R" --notes "Actions yedeğinden (koşu $R) · adım $STEP · $NOTES"
             echo "$R → $TAG"
           done
+      # Zincir (2026-11-21): sürekli eğitim turu bittiyse ve başka eğitim sürmüyorsa sonraki tur başlar (hedef dolana dek;
+      # hedef dolunca yeni tur eğitmeden biter). Elle yapılan yayınlarda (push) zincir çalışmaz.
+      - name: Sonraki eğitim turu
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'cancelled'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          N=$(gh run list -R "$GITHUB_REPOSITORY" --workflow komut-surekli.yml --json status -q '[.[] | select(.status != "completed")] | length')
+          echo "süren/bekleyen eğitim: $N"
+          if [ "$N" -gt 0 ]; then echo "başka eğitim var; zincir onun bitişinde sürer"; exit 0; fi
+          # Biten tur gerçekten eğitim yaptıysa sürer (hedef dolunca tur eğitmeden biter ve zincir durur)
+          R="${{ github.event.workflow_run.id }}"
+          E=$(gh run view "$R" -R "$GITHUB_REPOSITORY" --json jobs -q '[.jobs[].steps[] | select(.name | startswith("Eğit")) | .conclusion] | first // ""')
+          echo "biten turun eğitim adımı: $E"
+          if [ "$E" != "success" ]; then echo "eğitim yapılmadı (hedef dolmuş ya da hata); zincir durur"; exit 0; fi
+          gh workflow run komut-surekli.yml -R "$GITHUB_REPOSITORY" --ref main -f steps=270000

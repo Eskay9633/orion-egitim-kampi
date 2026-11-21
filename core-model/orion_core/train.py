@@ -63,8 +63,12 @@ SEED_SET = SHARED / "core-model" / "seed-train.jsonl"
 class Stream:
     def __init__(self, bpe: BPE, ctx: int, seed: int, distilled: list[dict], distill_frac: float,
                  seed_rows: list[dict] | None = None, seed_frac: float = 0.03,
-                 ext_rows: list[dict] | None = None, ext_frac: float = 0.0):
+                 ext_rows: list[dict] | None = None, ext_frac: float = 0.0, bucket: int = 1):
         self.bpe, self.ctx = bpe, ctx
+        # 2026-11-21 (hız): benzer uzunluktaki örnekler aynı partide. Parti en uzun diziye göre doldurulduğu için
+        # karışık partide ortalama dolgulu uzunluk ~63, gerçek ~35 idi; hesabın yarısı dolguya gidiyordu. bucket=1 eskisi.
+        self.bucket = max(1, bucket)
+        self._queue: list[list] = []
         self.rng = random.Random(seed)
         self.distilled = distilled
         self.distill_frac = distill_frac if distilled else 0.0
@@ -89,12 +93,24 @@ class Stream:
             return datagen.plan_example(self.rng, "train")
         return datagen.answer_example(self.rng, "train")
 
-    def batch(self, n: int) -> tuple[torch.Tensor, torch.Tensor]:
+    def _encoded(self, n: int) -> list:
         seqs = []
         while len(seqs) < n:
             enc = encode_example(self.bpe, self.example(), self.ctx)
             if enc:
                 seqs.append(enc)
+        return seqs
+
+    def batch(self, n: int) -> tuple[torch.Tensor, torch.Tensor]:
+        if self.bucket == 1:
+            seqs = self._encoded(n)
+        else:
+            if not self._queue:
+                # Havuz: bucket parti kadar örnek; uzunluğa göre sıralanır, partilere bölünür, parti sırası karıştırılır
+                pool = sorted(self._encoded(n * self.bucket), key=lambda e: len(e[0]))
+                self._queue = [pool[i:i + n] for i in range(0, len(pool), n)]
+                self.rng.shuffle(self._queue)
+            seqs = self._queue.pop()
         L = max(len(s) for s, _ in seqs)
         x = torch.full((n, L - 1), PAD, dtype=torch.long)
         y = torch.full((n, L - 1), -100, dtype=torch.long)
@@ -145,6 +161,7 @@ def main(argv=None) -> None:
     ap.add_argument("--distilled", nargs="*", default=[], help="damıtılmış jsonl dosyaları")
     ap.add_argument("--distill-frac", type=float, default=0.2)
     ap.add_argument("--threads", type=int, default=0)
+    ap.add_argument("--bucket", type=int, default=8, help="uzunluğa göre gruplanan havuzdaki parti sayısı (1 = gruplama yok)")
     ap.add_argument("--ext-data", help="massive.py prepare çıktısı (MASSIVE train); verilirse eksik/sızıntılı veri = hata")
     ap.add_argument("--ext-frac", type=float, default=None, help="akıştaki dış veri payı (varsayılan massive.EXT_FRAC)")
     a = ap.parse_args(argv)
@@ -201,7 +218,7 @@ def main(argv=None) -> None:
     seed_rows = load_distilled([str(SEED_SET)]) if SEED_SET.exists() else []
     from .massive import EXT_FRAC
     stream = Stream(bpe, cfg.ctx, a.seed + step, distilled, a.distill_frac, seed_rows,
-                    ext_rows=ext_rows, ext_frac=EXT_FRAC if a.ext_frac is None else a.ext_frac)
+                    ext_rows=ext_rows, ext_frac=EXT_FRAC if a.ext_frac is None else a.ext_frac, bucket=a.bucket)
 
     t0 = time.time()
     budget = a.time_budget_min * 60
@@ -217,8 +234,14 @@ def main(argv=None) -> None:
         for g in opt.param_groups:
             g["lr"] = lr_at(step, a.steps, a.lr)
         x, y = stream.batch(a.batch)
-        logits = model(x)
-        loss = F.cross_entropy(logits.reshape(-1, logits.size(-1)), y.reshape(-1), ignore_index=-100)
+        if teacher is None:
+            # Kayıp yalnız hedef konumlarda: sözlük çıkışı (4k × d) kaynak/dolgu konumlarında hesaplanmaz (aynı kayıp)
+            h = model.hidden(x)
+            sel = y != -100
+            loss = F.cross_entropy(h[sel] @ model.tok.weight.T, y[sel])
+        else:
+            logits = model(x)
+            loss = F.cross_entropy(logits.reshape(-1, logits.size(-1)), y.reshape(-1), ignore_index=-100)
         if teacher is not None:
             with torch.no_grad():
                 tl = teacher(x)
