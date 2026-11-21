@@ -72,6 +72,8 @@ def row_turns(r: dict) -> list[tuple[str, str]]:
     q = next((_txt(low[k]) for k in Q_KEYS if _txt(low.get(k))), "")
     a = next((_txt(low[k]) for k in A_KEYS if _txt(low.get(k))), "")
     x = next((_txt(low[k]) for k in X_KEYS if _txt(low.get(k))), "")
+    if not q and x:  # yalnız girdi/çıktı (ör. InstrucTurca: "Input", "Output")
+        q, x = x, ""
     if q and x and x != q:
         q = f"{q}\n{x}"
     return [(q, a)] if q and a else []

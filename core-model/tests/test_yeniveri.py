@@ -6,6 +6,7 @@ def test_row_formats():
     assert row_turns({"messages": [{"role": "user", "content": "selam"}, {"role": "assistant", "content": "merhaba"}]}) == [("selam", "merhaba")]
     assert row_turns({"instruction": "özetle", "input": "metin", "output": "özet"}) == [("özetle\nmetin", "özet")]
     assert row_turns({"conversations": [{"from": "human", "value": "a"}, {"from": "gpt", "value": "b"}]}) == [("a", "b")]
+    assert row_turns({"Input": "Bir şiir yaz", "Output": "Şiir"}) == [("Bir şiir yaz", "Şiir")]
     assert row_turns({"foo": 1}) == []
 
 
