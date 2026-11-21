@@ -28,6 +28,8 @@ def write_manifest(export_dir: Path, run_dir: Path | None, evaluate: bool = True
         + cfg["n_layer"] * (12 * cfg["d_model"] ** 2),
         "train_steps": status.get("step"),
         "train_loss": status.get("loss"),
+        "ema": status.get("ema", False),  # dışa aktarılan ağırlıklar üstel ortalama mı (2026-11-21)
+        "hard_examples": status.get("hard"),
         # Eğitim/değerlendirme veri kaynakları ve lisansları (atıf: shared/core-model/DIS-VERI.md)
         "data_sources": [{"id": "orion-datagen", "license": "Orion (programla üretilmiş)", "use": "train + test kümeleri"}],
     }

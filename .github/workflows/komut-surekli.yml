@@ -4,7 +4,8 @@ name: komut-beyni-surekli
 # kaldı; github'da gün boyu eğitiriz"). Her 6 saatte bir iş başlar, önceki işin checkpoint'inden (önbellek) devam eder
 # (~5 saat), sonra değerlendirir. Güvenlik tabanını (app-floor.json) geçerse "komut-s-..." Release'i yayınlanır; işlem
 # deposunun içe aktarıcısı yalnızca elle yazılmış sınavda mevcut modelden iyi ya da eşitse alır. Eşikler değişmez.
-# Veri üreticisi / protokol değişince önbellek anahtarı değişir ve eğitim sıfırdan başlar.
+# Veri üreticisi / protokol değişince önbellek anahtarı değişir; 2026-11-21'den beri eğitim sıfırdan değil, en son
+# checkpoint'ten (aynı sözlükle) yeni veriyle devam eder (kaldığı yerden devam, sahibin onayı).
 on:
   # 2026-11-21: saatlik zamanlayıcı saatlerce gecikiyordu; turları artık yedek-yayin işi zincirler (bir tur bitince,
   # başka eğitim yoksa sonrakini workflow_dispatch ile başlatır). Hedef dolunca iş eğitmeden biter.
@@ -82,6 +83,7 @@ jobs:
           key: komut-surekli-${{ hashFiles('core-model/orion_core/datagen.py', 'core-model/orion_core/grammar.py', 'core-model/orion_core/copy.py', 'core-model/orion_core/massive.py', 'core-model/orion_core/train.py', 'core-model/orion_core/bpe.py', 'shared/protocol/**') }}-${{ github.run_id }}
           restore-keys: |
             komut-surekli-${{ hashFiles('core-model/orion_core/datagen.py', 'core-model/orion_core/grammar.py', 'core-model/orion_core/copy.py', 'core-model/orion_core/massive.py', 'core-model/orion_core/train.py', 'core-model/orion_core/bpe.py', 'shared/protocol/**') }}-
+            komut-surekli-
       - name: Hedef doldu mu
         id: done
         run: |

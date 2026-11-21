@@ -69,6 +69,9 @@ class Stream:
         # karışık partide ortalama dolgulu uzunluk ~63, gerçek ~35 idi; hesabın yarısı dolguya gidiyordu. bucket=1 eskisi.
         self.bucket = max(1, bucket)
         self._queue: list[list] = []
+        # Zor örnekler (2026-11-21): modelin iş-değil cümleyi işe çevirdiği gerçek cümleler (etiket veri setinden)
+        self.hard: list[dict] = []
+        self.hard_frac = 0.0
         self.rng = random.Random(seed)
         self.distilled = distilled
         self.distill_frac = distill_frac if distilled else 0.0
@@ -80,6 +83,8 @@ class Stream:
         self.ext_frac = ext_frac if self.ext else 0.0
 
     def example(self) -> dict:
+        if self.hard and self.rng.random() < self.hard_frac:
+            return self.rng.choice(self.hard)
         if self.seed_frac and self.rng.random() < self.seed_frac:
             return self.rng.choice(self.seed_rows)
         if self.distill_frac and self.rng.random() < self.distill_frac:
@@ -123,6 +128,34 @@ class Stream:
         return x, y
 
 
+NON_ACTION_POOLS = ("neg", "chat", "clinc_neg", "clinc_chat", "dis_neg", "dis_chat")
+
+
+def mine_hard(model: TinyGpt, bpe: BPE, stream: "Stream", n: int, cap: int = 4000) -> int:
+    """Zor örnek avı: dış verinin iş-değil havuzlarından n cümle; model geçerli bir İŞ komutu üretiyorsa (yanlış iş) o
+    cümle, kendi (veri setinin) etiketiyle zor örnek havuzuna girer. Etiketleri model üretmez."""
+    from .copy import decode_output
+    rows = [r for p in NON_ACTION_POOLS for r in stream.ext.pools.get(p, [])]
+    if not rows:
+        return 0
+    pick = stream.rng.sample(rows, min(n, len(rows)))
+    model.eval()
+    prompts = [prompt_ids(bpe, "t2c", r["src"]) for r in pick]
+    with torch.no_grad():
+        outs = model.greedy_batch(prompts, EOS, PAD, max_new=64, batch=64)
+    seen = {r["src"] for r in stream.hard}
+    added = 0
+    for r, p, o in zip(pick, prompts, outs):
+        try:
+            got = json.loads(decode_output(bpe, p[2:-1], o)).get("cmd")
+        except (ValueError, AttributeError):
+            continue
+        if got and got != "ask" and r["src"] not in seen:
+            stream.hard.append(r); seen.add(r["src"]); added += 1
+    del stream.hard[:-cap]
+    return added
+
+
 def train_tokenizer(out: Path, vocab_size: int, seed: int, n: int = 60000, extra_texts: list[str] | None = None) -> BPE:
     from .lexicon import lexicon_sentences
     ex = datagen.generate(n, "train", seed=seed)
@@ -162,6 +195,10 @@ def main(argv=None) -> None:
     ap.add_argument("--distill-frac", type=float, default=0.2)
     ap.add_argument("--threads", type=int, default=0)
     ap.add_argument("--bucket", type=int, default=8, help="uzunluğa göre gruplanan havuzdaki parti sayısı (1 = gruplama yok)")
+    ap.add_argument("--ema", type=float, default=0.999, help="ağırlık ortalaması (EMA) çarpanı; 0 = kapalı. Dışa aktarım EMA'yı kullanır")
+    ap.add_argument("--mine-every", type=int, default=5000, help="zor örnek avı sıklığı (adım; 0 = kapalı)")
+    ap.add_argument("--mine-n", type=int, default=512, help="her avda sınanan iş-değil cümle sayısı")
+    ap.add_argument("--hard-frac", type=float, default=0.04, help="akışta zor örnek payı")
     ap.add_argument("--ext-data", help="massive.py prepare çıktısı (MASSIVE train); verilirse eksik/sızıntılı veri = hata")
     ap.add_argument("--ext-frac", type=float, default=None, help="akıştaki dış veri payı (varsayılan massive.EXT_FRAC)")
     a = ap.parse_args(argv)
@@ -202,6 +239,12 @@ def main(argv=None) -> None:
         step = ck["step"]
         print(f"devam: adım {step}", flush=True)
     print(f"model: {model.n_params():,} parametre", flush=True)
+    # Ağırlık ortalaması (2026-11-21): eğitim boyunca ağırlıkların üstel ortalaması tutulur, dışa aktarım onu kullanır.
+    # Önceki checkpoint'te yoksa (eski koşudan devam) güncel ağırlıklardan başlar.
+    ema_state = None
+    if a.ema > 0:
+        prev = ck.get("ema") if ckpt_path.exists() else None
+        ema_state = {k: (prev[k] if prev and k in prev else v.detach().clone().float()) for k, v in model.state_dict().items()}
 
     teacher = None
     if a.teacher:
@@ -219,14 +262,15 @@ def main(argv=None) -> None:
     from .massive import EXT_FRAC
     stream = Stream(bpe, cfg.ctx, a.seed + step, distilled, a.distill_frac, seed_rows,
                     ext_rows=ext_rows, ext_frac=EXT_FRAC if a.ext_frac is None else a.ext_frac, bucket=a.bucket)
+    stream.hard_frac = a.hard_frac
 
     t0 = time.time()
     budget = a.time_budget_min * 60
     log = open(out / "train.log", "a", encoding="utf-8")
 
     def save(final: bool = False) -> None:
-        torch.save({"config": cfg.to_dict(), "model": model.state_dict(), "opt": opt.state_dict(),
-                    "step": step, "final": final}, ckpt_path)
+        torch.save({"config": model.config.to_dict(), "model": model.state_dict(), "opt": opt.state_dict(),
+                    "step": step, "final": final, **({"ema": ema_state} if ema_state is not None else {})}, ckpt_path)
 
     model.train()
     ema = None
@@ -256,6 +300,17 @@ def main(argv=None) -> None:
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         opt.step()
         step += 1
+        if ema_state is not None:
+            with torch.no_grad():
+                for k, v in model.state_dict().items():
+                    if v.dtype.is_floating_point:
+                        ema_state[k].mul_(a.ema).add_(v.detach().float(), alpha=1 - a.ema)
+                    else:
+                        ema_state[k].copy_(v)
+        if a.mine_every and stream.ext and step % a.mine_every == 0:
+            n_hard = mine_hard(model, bpe, stream, a.mine_n)
+            model.train()
+            print(f"zor örnek avı: {n_hard} yeni (havuz {len(stream.hard)})", flush=True)
         ema = loss.item() if ema is None else 0.98 * ema + 0.02 * loss.item()
         if step % 50 == 0:
             msg = f"adım {step} kayıp {ema:.4f} süre {time.time() - t0:.0f}s"
@@ -270,7 +325,8 @@ def main(argv=None) -> None:
     save(final=step >= a.steps)
     (out / "status.json").write_text(json.dumps({"step": step, "target_steps": a.steps,
                                                  "done": step >= a.steps, "loss": ema,
-                                                 "ext_rows": len(ext_rows), "ext_frac": stream.ext_frac}), encoding="utf-8")
+                                                 "ext_rows": len(ext_rows), "ext_frac": stream.ext_frac,
+                                                 "ema": ema_state is not None, "hard": len(stream.hard)}), encoding="utf-8")
     print(f"bitti: adım {step}/{a.steps}", flush=True)
 
 

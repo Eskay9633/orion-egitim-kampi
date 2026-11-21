@@ -2285,7 +2285,7 @@ def _fence() -> dict:
         from pathlib import Path
         base = Path(__file__).resolve().parents[2] / "shared" / "core-model"
         srcs = []
-        for name in ("handwritten-eval.jsonl", "blind-eval.jsonl", "ajan-sinavi.jsonl"):
+        for name in ("handwritten-eval.jsonl", "blind-eval.jsonl", "ajan-sinavi.jsonl", "ajan-sinavi-2.jsonl"):
             p = base / name
             if p.exists():
                 srcs += [json.loads(x)["src"] for x in p.read_text(encoding="utf-8").splitlines() if x.strip()]
@@ -2567,6 +2567,34 @@ T26_MIKE_ROLES = ["muhasebe takibi yapan biri", "yemek tarifleri bulan biri", "s
 T26_MIKE_HIRE = ["ekibe {R} lazım", "bize {R} gerekiyor", "{R} işe al", "ekibimize {R} ekle", "Mike, {R} bul ve ekibe kat"]
 
 
+# Karşı örnekler (2026-11-21, sahibin onayı: "yanlış işi hedefleyen karşı örnekler"): her ajanın alanında konuşan ama iş
+# istemeyen cümleler → ask. Tur 26'da çok "yap" cümlesi eklenmiş, eş "soru" azdı; xSID yanlış işi %1,0 → %2,4 çıkmıştı.
+T26_NEG = {
+    "zoe": ["sevgilime ne zaman yazmalıyım sence", "uzun mesaj mı kısa mesaj mı daha iyi", "mesajlarıma neden geç dönüyorum",
+            "whatsapp yedeği nasıl alınır", "okundu bilgisini kapatmak ayıp mı", "arkadaşıma kırgın olduğumu nasıl söylerim",
+            "mesaj atmak mı aramak mı daha samimi"],
+    "emma": ["sabah rutini nasıl oluşturulur", "takvim tutmak gerçekten işe yarar mı", "erteleme alışkanlığından nasıl kurtulurum",
+             "günde kaç saat uyumak gerekir", "not almanın en iyi yöntemi ne", "hatırlatıcıları neden unutuyorum",
+             "verimli çalışmak için kaç mola vermeli", "pomodoro tekniği nedir"],
+    "mike": ["iş bölümü nasıl yapılır", "ekipte motivasyon nasıl artar", "haftalık özet yazmak işe yarar mı",
+             "yeni birini işe almak ne zaman mantıklı", "görev dağıtırken nelere dikkat etmeli", "toplantılar neden uzar"],
+    "sophia": ["araştırma yaparken nelere dikkat etmeli", "kaynak göstermek neden önemli", "haberlerin doğruluğu nasıl anlaşılır",
+               "wikipedia güvenilir bir kaynak mı"],
+    "luna": ["hangi renkler sakinlik verir", "iyi bir logo neye benzer", "kartlar mı liste mi daha kullanışlı",
+             "koyu tema göz yorgunluğunu azaltır mı"],
+    "david": ["uygulamalar neden sürekli güncelleme ister", "yeni sürümde ne değişti merak ediyorum", "yapay zeka nasıl öğrenir"],
+    "jack": ["açık kaynak ne demek", "github ne işe yarar", "bir depoyu yıldızlamak ne anlama gelir", "hata ayıklama nasıl öğrenilir"],
+    "chloe": ["bütçe yapmanın faydası ne", "kredi kartı borcu nasıl kapatılır", "harcamalarımı azaltmanın yolu ne",
+              "faiz ile enflasyon arasındaki ilişki ne"],
+    "grace": ["seo öğrenmek zor mu", "google sıralaması neden değişir", "blog yazmak siteye trafik getirir mi"],
+    "maya": ["reklam bütçesi nasıl belirlenir", "iyi bir reklam sloganı nasıl yazılır", "sosyal medya reklamları işe yarar mı"],
+    "ekbot": ["kripto parada uzun vade mantıklı mı", "borsa ile kripto arasındaki fark ne", "coin fiyatları neden bu kadar oynak"],
+    "leo": ["programlamaya nereden başlamalı", "yapay zeka kod yazmayı öğrenebilir mi", "hangi dil daha hızlı çalışır"],
+    "nora": ["bir bilginin doğru olduğundan nasıl emin olurum", "test yazmak zaman kaybı mı"],
+    "iris": ["iyi bir inceleme nasıl yazılır", "eleştiriyi kişisel almamak için ne yapmalı"],
+}
+
+
 def _t26_zoe(rng):
     c = rng.choice(MSG_CONTACTS)
     d = c + _dat(c)
@@ -2622,6 +2650,12 @@ def _gap_tur26_once(rng):
     r = rng.random()
     agent = "zoe" if r < 0.30 else "emma" if r < 0.55 else "mike" if r < 0.70 else rng.choice(
         [a for a in T26_AGENT_CMDS if a not in ("zoe", "emma", "mike")])
+    # Üçte biri karşı örnek: ajanın alanında soru (iş değil); bazen ajana seslenerek
+    if rng.random() < 0.33:
+        q = rng.choice(T26_NEG[agent])
+        if rng.random() < 0.3:
+            q = T26_NAMES[agent] + rng.choice([", ", " "]) + q
+        return "ask", q, {"question": q}
     # Öncelikli üçlüde yarısı yeni söyleyiş aileleri, yarısı ajanın kendi komut şablonları
     if agent in ("zoe", "emma", "mike") and rng.random() < 0.5:
         cmd, tr, args = {"zoe": _t26_zoe, "emma": _t26_emma, "mike": _t26_mike}[agent](rng)

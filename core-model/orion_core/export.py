@@ -44,7 +44,8 @@ def quantize_rows(w: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
 def export(ckpt: Path, out: Path) -> dict:
     ck = torch.load(ckpt, map_location="cpu", weights_only=False)
     cfg = GptConfig(**ck["config"])
-    sd = ck["model"]
+    # Ağırlık ortalaması varsa onu dışa aktar (2026-11-21); manifest'e "ema": true yazılır
+    sd = ck.get("ema") or ck["model"]
     header_tensors = []
     blobs: list[bytes] = []
     offset = 0
