@@ -13,7 +13,7 @@ on:
     inputs:
       steps:
         description: 'Toplam hedef adım (devam eden eğitimin hedefi)'
-        default: '270000'
+        default: '480000'
   push:
     branches: [main]
     paths:
@@ -30,7 +30,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  TOTAL_STEPS: ${{ inputs.steps || '270000' }}  # 2026-11-20 gece: sahibin isteği 270 bin adım; raporlar 03/10/13/17 (İstanbul)
+  TOTAL_STEPS: ${{ inputs.steps || '480000' }}  # 2026-11-21 gece: sahibin isteği sabah 10'a (İstanbul) kadar; 270k'dan iki tur daha
 
 jobs:
   kontrol:
