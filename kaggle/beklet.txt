@@ -1,0 +1,1 @@
+2026-11-21 22:00 UTC sahibin kararı: oturum eski veriyle sürmesin, durduruldu. Yeni veri katmanı (ajan kimlikleri, komut cümleleri, Orion'un kendi doğrulanmış üretimleri) hazır olunca sahibin onayıyla açılır.
