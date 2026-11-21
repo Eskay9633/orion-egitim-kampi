@@ -21,7 +21,7 @@ on:
 
 permissions:
   contents: write
-  actions: read
+  actions: write
 
 # 2026-11-20 gece: elle başlatılan (push) koşu eski tarifeden kalan koşuyu beklemesin diye ayrı sıradadır; saatlik
 # koşular başka bir eğitim sürerken eğitmeden biter (aşağıdaki "kontrol" işi), aynı checkpoint'ten iki dal çıkmaz.
@@ -136,6 +136,19 @@ jobs:
           cp ../../../shared/core-model/DIS-VERI.md .
           gh release create "$TAG" model.bin tokenizer.json parity.json manifest.json eval.json DIS-VERI.md \
             --target "$GITHUB_SHA" --title "Komut beyni (sürekli) $TAG" --notes "Adım $STEP / $TOTAL_STEPS · $NOTES"
+      # Zincir (2026-11-21): botun başlattığı koşular workflow_run olayı üretmediği için (GITHUB_TOKEN) sonraki tur
+      # buradan başlatılır: eğitim yapıldıysa, hedef dolmadıysa ve başka eğitim beklemiyorsa.
+      - name: Sonraki eğitim turu
+        if: always() && steps.done.outputs.done != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          S=$(python -c "import json;print(json.load(open('core-model/work/run/status.json')).get('step',0))" 2>/dev/null || echo 0)
+          echo "adım $S / $TOTAL_STEPS"
+          if [ "$S" -ge "$TOTAL_STEPS" ] || [ "$S" -eq 0 ]; then echo "zincir durur"; exit 0; fi
+          N=$(gh run list -R "$GITHUB_REPOSITORY" --workflow komut-surekli.yml --json status,databaseId -q "[.[] | select(.status != \"completed\" and .databaseId != ${{ github.run_id }})] | length")
+          if [ "$N" -gt 0 ]; then echo "başka eğitim bekliyor/sürüyor; zincir onunla sürer"; exit 0; fi
+          gh workflow run komut-surekli.yml -R "$GITHUB_REPOSITORY" --ref main -f steps="$TOTAL_STEPS"
       - name: Özet
         if: always()
         run: |
