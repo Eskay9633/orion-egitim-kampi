@@ -1,0 +1,52 @@
+name: yeni-veri
+
+# Yeni veri katmanı (sahibin kararı 2026-11-21): sohbet beyni için iki ek diyalog Release'i üretir.
+#  - diyalog-orion: Orion'un kendi verisi (ajan kimlikleri + komut cümleleri "iş mi, sohbet mi"), lisans orion-kendi
+#  - diyalog-sentetik: büyük Türkçe talimat/sohbet setleri (yapay zekâ üretimi; sahip gelişim için açtı), kaynak başına sınır
+# Kaggle oturumu "diyalog-*" Release'lerini ek diyalog olarak kendiliğinden indirir. Tetik: kaggle/yeniveri-istek.txt.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['kaggle/yeniveri-istek.txt']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: yeni-veri
+  cancel-in-progress: false
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  uret:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Kurulum
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -r core-model/requirements.txt pyarrow
+      - name: Üret
+        working-directory: core-model
+        run: python -m orion_core.yeniveri ../yv-out --cache ../yv-cache
+      - name: Yayınla
+        run: |
+          cat yv-out/yeniveri.json
+          pub() {  # etiket başlık dosya en-az-satır
+            N=$(gzip -dc "$3" | wc -l)
+            if [ "$N" -lt "$4" ]; then echo "::warning::$1: çok az satır ($N); yayınlanmadı"; return 0; fi
+            NOTES="$2 · $N satır · $(tr -d '\n' < yv-out/yeniveri.json | head -c 1500)"
+            gh release view "$1" >/dev/null 2>&1 || gh release create "$1" --prerelease --title "Diyalog: $2" --notes "$NOTES"
+            gh release edit "$1" --notes "$NOTES"
+            gh release upload "$1" "$3" yv-out/yeniveri.json --clobber
+          }
+          pub diyalog-orion "Orion'un kendi verisi (ajan kimlikleri, komut cümleleri)" yv-out/orion.jsonl.gz 1000
+          pub diyalog-sentetik "Büyük Türkçe talimat/sohbet setleri (sentetik)" yv-out/sentetik.jsonl.gz 5000
