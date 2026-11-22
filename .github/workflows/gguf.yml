@@ -1,0 +1,43 @@
+name: gguf
+
+# Telefon motoru (sahibin kararı 2026-11-22): seçilen model Release'lerinin GGUF hâlini (llama.cpp, gpt2 düzeni) üretir ve
+# aynı Release'e "model-q8_0.gguf" olarak ekler (core-model/orion_core/gguf_export.py). Tetik: kaggle/gguf-istek.txt
+# (her satır bir Release etiketi). Dönüşüm doğrulaması: numpy ileri geçişi ile llama.cpp aynı en olası belirteci verir
+# (yerelde ölçüldü: komut beyni 133/133 aynı komut; sohbet beyni F16 6/6, Q8_0 6/6 aynı en olası belirteç).
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['kaggle/gguf-istek.txt']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gguf
+  cancel-in-progress: false
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  donustur:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Kurulum
+        run: pip install numpy regex gguf
+      - name: Dönüştür ve yükle
+        working-directory: core-model
+        run: |
+          grep -v '^\s*#' ../kaggle/gguf-istek.txt | grep -v '^\s*$' | while read -r TAG; do
+            echo "== $TAG"
+            rm -rf /tmp/g && mkdir -p /tmp/g
+            gh release download "$TAG" -R "$GITHUB_REPOSITORY" -p model.bin -D /tmp/g || { echo "::warning::$TAG: model.bin yok"; continue; }
+            python -m orion_core.gguf_export --model /tmp/g/model.bin --out /tmp/g/model-q8_0.gguf --qtype q8_0 --name "orion-$TAG"
+            gh release upload "$TAG" /tmp/g/model-q8_0.gguf -R "$GITHUB_REPOSITORY" --clobber
+          done
