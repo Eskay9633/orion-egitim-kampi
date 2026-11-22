@@ -39,5 +39,6 @@ jobs:
             rm -rf /tmp/g && mkdir -p /tmp/g
             gh release download "$TAG" -R "$GITHUB_REPOSITORY" -p model.bin -D /tmp/g || { echo "::warning::$TAG: model.bin yok"; continue; }
             python -m orion_core.gguf_export --model /tmp/g/model.bin --out /tmp/g/model-q8_0.gguf --qtype q8_0 --name "orion-$TAG"
-            gh release upload "$TAG" /tmp/g/model-q8_0.gguf -R "$GITHUB_REPOSITORY" --clobber
+            (cd /tmp/g && sha256sum model-q8_0.gguf > model-q8_0.gguf.sha256)
+            gh release upload "$TAG" /tmp/g/model-q8_0.gguf /tmp/g/model-q8_0.gguf.sha256 -R "$GITHUB_REPOSITORY" --clobber
           done
