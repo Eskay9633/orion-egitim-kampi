@@ -58,6 +58,33 @@ def load_distilled(paths: list[str]) -> list[dict]:
 
 
 SEED_SET = SHARED / "core-model" / "seed-train.jsonl"
+DERLEM_DIR = SHARED.parent / "orion-derlemi"
+
+
+def load_derlem(d: Path = DERLEM_DIR) -> list[dict]:
+    """Orion Derlemi (sahibin kararı 2026-11-22): telefonda temizlenip sahibin haftalık kartıyla onaylanan gerçek komut
+    cümleleri (CC BY 4.0). Yalnız training_allowed=true; ölçüm kümeleriyle aynı ya da çok yakın cümle (çit) girmez.
+    Tohum satırlarıyla aynı küçük payla akışa girer (az sayıda gerçek cümle ezberlenmesin)."""
+    from .massive import held_out_keys, norm_key
+    if not d.is_dir():
+        return []
+    held = held_out_keys()
+    out = []
+    for p in sorted(d.glob("*.jsonl")):
+        for line in p.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                r = json.loads(line)
+            except ValueError:
+                continue
+            src, tgt = r.get("src", ""), r.get("tgt", "")
+            if r.get("training_allowed") is not True or not src or not tgt:
+                continue
+            if norm_key(src) in held or datagen._fenced(src):
+                continue
+            out.append({"task": "t2c", "src": src, "tgt": tgt})
+    return out
 
 
 class Stream:
@@ -271,6 +298,10 @@ def main(argv=None) -> None:
     if distilled:
         print(f"damıtılmış örnek: {len(distilled)}", flush=True)
     seed_rows = load_distilled([str(SEED_SET)]) if SEED_SET.exists() else []
+    derlem = load_derlem()
+    if derlem:
+        print(f"Orion Derlemi: {len(derlem)} onaylı gerçek cümle", flush=True)
+        seed_rows = seed_rows + derlem
     from .massive import EXT_FRAC
     stream = Stream(bpe, cfg.ctx, a.seed + step, distilled, a.distill_frac, seed_rows,
                     ext_rows=ext_rows, ext_frac=EXT_FRAC if a.ext_frac is None else a.ext_frac, bucket=a.bucket)

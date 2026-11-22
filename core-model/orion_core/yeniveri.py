@@ -28,10 +28,10 @@ from .dialogs import clean_pair
 # (depo, lisans, en çok satır). Lisanslar veri kartlarından (2026-11-21 araştırması); InstrucTurca kartı Apache-2.0 der,
 # meta verisi cc-by-sa-4.0: temkinli olan yazıldı.
 SENTETIK = [
-    ("turkish-nlp-suite/InstrucTurca", "cc-by-sa-4.0", 120_000),
-    ("ogulcanaydogan/Turkish-LLM-v10-Training", "apache-2.0", 120_000),
-    ("cisimcik/turkish-chat-max-25k", "cc0-1.0", 30_000),
-    ("VoidOaz/turkish-daily-dialogues-5k", "cc-by-4.0", 10_000),
+    ("turkish-nlp-suite/InstrucTurca", "cc-by-sa-4.0", 60_000),
+    ("ogulcanaydogan/Turkish-LLM-v10-Training", "apache-2.0", 60_000),
+    ("cisimcik/turkish-chat-max-25k", "cc0-1.0", 6_000),
+    ("VoidOaz/turkish-daily-dialogues-5k", "cc-by-4.0", 5_000),
 ]
 FILE_EXT = (".parquet", ".jsonl", ".json", ".jsonl.gz")
 

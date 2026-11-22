@@ -178,6 +178,12 @@ jobs:
           if [ "$PASS" = "True" ]; then TAG="komut-k-$(date -u +%Y%m%d-%H%M)-a${STEP}"; PRE=""; else TAG="aday-komut-k-$(date -u +%Y%m%d-%H%M)-a${STEP}"; PRE="--prerelease"; fi
           FILES=""; for F in model.bin tokenizer.json parity.json manifest.json eval.json DIS-VERI.md taban.json; do [ -f "$EXP/$F" ] && FILES="$FILES $EXP/$F"; done
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" $FILES --target "$GITHUB_SHA" $PRE --title "Komut beyni (Kaggle) $TAG" --notes "$NOTES"
+          # Devam noktası (sahibin kararı 2026-11-22): sonraki oturum komut beynini sıfırdan değil buradan sürdürür
+          KR=$(dirname "$EXP")/komut-run
+          if [ -f "$KR/ckpt.pt" ]; then
+            gh release view kaggle-devam-komut >/dev/null 2>&1 || gh release create kaggle-devam-komut --prerelease --title "Kaggle komut beyni devam noktası" --notes "Komut beyninin kaldığı yer (otomatik)"
+            gh release upload kaggle-devam-komut "$KR/ckpt.pt" "$KR/tokenizer.json" --clobber && echo "komut devam noktası kaydedildi"
+          fi
           echo "### Komut beyni (Kaggle): $TAG (taban $PASS)" >> "$GITHUB_STEP_SUMMARY"
       # Sahibin kararı (2026-11-13): yeni veri hazır olana kadar kendiliğinden oturum başlatılmaz. kaggle/beklet.txt
       # varsa zamanlanmış iş yalnız toplar (bitmiş oturumu yayınlar); yeni oturumu yalnız elle başlatma açar.
@@ -237,8 +243,9 @@ jobs:
               [ -n "$T" ] && KEXT="$KEXT $R/$T/${P#*:}"
             done
           fi
-          echo "komut beyni: ${KMIN:-yok} dk ·${KEXT:- ek veri yok}"
-          sed -e "s#__KOMUTMIN__#$KMIN#" -e "s#__KOMUTEXT__#${KEXT# }#" -e "s#__HAZIR__#$HAZIR#" -e "s#__TOK__#$TOK#" -e "s#__EXTRA__#$EXTRA#" -e "s#__CORPUS__#${CORPUS# }#" -e "s#__DMMATH__#$DMMATH#" -e "s#__KODD__#$KODD#" -e "s#__KODS__#$KODS#" -e "s#__KODP__#$KODP#" -e "s#__OZ__#${OZ# }#" -e "s#__DIY__#${DIY# }#" -e "s/__SIZE__/$SIZE/g" -e "s/__STEPS__/$STEPS/" -e "s/__BATCH__/$BATCH/" -e "s/__BUDGET__/$SURE/" kaggle/orion_sohbet.py > kpush/orion_sohbet.py
+          KCK=""; gh release view kaggle-devam-komut --json assets -q '.assets[].name' 2>/dev/null | grep -qx ckpt.pt && KCK="$R/kaggle-devam-komut/"
+          echo "komut beyni: ${KMIN:-yok} dk ·${KEXT:- ek veri yok} · devam: ${KCK:-yok (sıfırdan)}"
+          sed -e "s#__KOMUTCKPT__#$KCK#" -e "s#__KOMUTMIN__#$KMIN#" -e "s#__KOMUTEXT__#${KEXT# }#" -e "s#__HAZIR__#$HAZIR#" -e "s#__TOK__#$TOK#" -e "s#__EXTRA__#$EXTRA#" -e "s#__CORPUS__#${CORPUS# }#" -e "s#__DMMATH__#$DMMATH#" -e "s#__KODD__#$KODD#" -e "s#__KODS__#$KODS#" -e "s#__KODP__#$KODP#" -e "s#__OZ__#${OZ# }#" -e "s#__DIY__#${DIY# }#" -e "s/__SIZE__/$SIZE/g" -e "s/__STEPS__/$STEPS/" -e "s/__BATCH__/$BATCH/" -e "s/__BUDGET__/$SURE/" kaggle/orion_sohbet.py > kpush/orion_sohbet.py
           cat > kpush/kernel-metadata.json <<JSON
           {"id": "${{ steps.st.outputs.kid }}", "title": "$(basename ${{ steps.st.outputs.kid }})", "code_file": "orion_sohbet.py",
            "language": "python", "kernel_type": "script", "is_private": true,

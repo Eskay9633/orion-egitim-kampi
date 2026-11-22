@@ -33,7 +33,9 @@ OZ_URLS = "__OZ__"  # Orion'un önceki oturumlarda kendi çözüp doğrulanan ce
 # Release'leri, hepsi training_allowed=true) ve aynı güvenlik tabanı. Çıktı out/komut-export; yayınlamayı kaggle.yml
 # toplama adımı yapar (taban geçtiyse). Hata olursa sohbet beyni yine eğitilir. Boş = aşama yok.
 KOMUT_MIN = "__KOMUTMIN__"  # komut beyni eğitim süresi (dk)
-KOMUT_EXT = "__KOMUTEXT__"  # boşlukla ayrılmış clinc-tr / dis-tr .jsonl.gz adresleri
+KOMUT_EXT = "__KOMUTEXT__"
+# Devam (sahibin kararı 2026-11-22): önceki oturumun komut checkpoint'i (kaggle-devam-komut Release'i); boşsa sıfırdan
+KOMUT_CKPT = "__KOMUTCKPT__"  # boşlukla ayrılmış clinc-tr / dis-tr .jsonl.gz adresleri
 KOMUT_ARCH = ["--d-model", "256", "--n-layer", "6", "--n-head", "4", "--d-ff", "1024", "--batch", "96", "--lr", "1.5e-3"]
 SELF_MIN = 20  # oturum sonunda kendi kendine öğrenmeye ayrılan dakika
 # Kaggle bir oturumu 12 saatte (720 dk) keser; kesilen oturumun çıktısı kaydedilmeyebilir (2026-11-14: eğitim + iki dışa
@@ -143,7 +145,19 @@ prev = "/kaggle/tmp/prev-ckpt.pt"
 def komut_phase():
     """Komut beyni: hazırla → eğit (GPU) → dışa aktar → manifest (sızıntı raporu dahil) → güvenlik tabanı."""
     import gzip
-    ext, run, exp = "/kaggle/tmp/komut-ext", "/kaggle/tmp/komut-run", f"{out}/komut-export"
+    # Çalışma klasörü çıktıda: checkpoint toplanır ve sonraki oturum kaldığı yerden devam eder
+    ext, run, exp = "/kaggle/tmp/komut-ext", f"{out}/komut-run", f"{out}/komut-export"
+    os.makedirs(run, exist_ok=True)
+    if KOMUT_CKPT.startswith("http") and not os.path.exists(f"{run}/ckpt.pt"):
+        try:
+            urllib.request.urlretrieve(KOMUT_CKPT + "ckpt.pt", f"{run}/ckpt.pt")
+            urllib.request.urlretrieve(KOMUT_CKPT + "tokenizer.json", f"{run}/tokenizer.json")
+            print("ORION: komut beyni önceki checkpoint'ten devam ediyor", flush=True)
+        except Exception as e:  # inemezse sıfırdan (yarım dosya bırakılmaz)
+            for f in ("ckpt.pt", "tokenizer.json"):
+                if os.path.exists(f"{run}/{f}"):
+                    os.remove(f"{run}/{f}")
+            print(f"ORION: komut checkpoint'i inemedi, sıfırdan: {e!r}", flush=True)
     sh(sys.executable, "-m", "orion_core.massive", "prepare", "--out", ext, "--download")
     for u in KOMUT_EXT.split():
         name = u.rsplit("/", 1)[1]
