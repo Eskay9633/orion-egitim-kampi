@@ -2593,6 +2593,18 @@ T26_NEG = {
     "nora": ["bir bilginin doğru olduğundan nasıl emin olurum", "test yazmak zaman kaybı mı"],
     "iris": ["iyi bir inceleme nasıl yazılır", "eleştiriyi kişisel almamak için ne yapmalı"],
 }
+# 2026-11-22 sabah: uzun eğitimde kripto bilgi soruları fiyat komutuna, düşünme soruları öneri komutuna kayıyordu (ikinci
+# kör sınav: 218k'da 1, 427k'da 9 yanlış iş). Terim × soru kalıbı karşı örnekleri: hepsi bilgi sorusu → ask. Sınav
+# cümleleriyle aynı/çok yakın düşenleri çit (_fenced) zaten atar.
+_KRIPTO_TERIM = ["kripto para", "bitcoin", "ethereum", "altcoin", "stabil coin", "blokzincir", "kripto madenciliği",
+                 "kripto cüzdanı", "nft", "staking", "soğuk cüzdan", "token", "halving"]
+_BILGI_KALIP = ["{t} nedir", "{t} ne demek", "{t} nasıl çalışır", "{t} riskli mi", "{t} güvenli mi", "{t} ne işe yarar",
+                "{t} almak mantıklı mı", "{t} neden bu kadar popüler", "{t} hakkında bilgi verir misin"]
+T26_NEG["ekbot"] = T26_NEG["ekbot"] + [k.format(t=t) for t in _KRIPTO_TERIM for k in _BILGI_KALIP]
+_DUSUNCE_TERIM = ["eleştirel düşünce", "mantıklı düşünme", "analitik düşünce", "yaratıcı düşünme", "problem çözme becerisi",
+                  "odaklanma", "dikkat"]
+_GELISIM_KALIP = ["{t} nasıl geliştirilir", "{t} nedir", "{t} neden önemli", "{t} için ne yapmalı"]
+T26_NEG["iris"] = T26_NEG["iris"] + [k.format(t=t) for t in _DUSUNCE_TERIM for k in _GELISIM_KALIP]
 
 
 def _t26_zoe(rng):
