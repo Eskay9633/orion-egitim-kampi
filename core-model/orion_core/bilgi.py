@@ -184,6 +184,23 @@ def xquad_dialogs(items: list[dict]) -> list[dict]:
     return out
 
 
+def xquad_context_dialogs(items: list[dict], rng: random.Random) -> list[dict]:
+    """XQuAD tr → "Bilgi:" satırlı diyaloglar (knowledge_line.py): Orion paragrafı okuyup cevaplar; ilgisiz paragrafta
+    "bilmiyorum, araştırayım" der (sahibin kararı 2026-11-23: bilgi okuyarak, internetten öğrenerek)."""
+    from .knowledge_line import MAX_LINE, PREFIX, context_dialogs
+    trip = []
+    for it in items:
+        ans = (it.get("answers") or {}).get("text") or []
+        q = str(it.get("question", "")).strip()
+        if not ans or not q or not _ok(q):
+            continue
+        a = str(ans[0]).strip()
+        ctx = answer_window(str(it.get("context", "")), a, max_chars=MAX_LINE - len(PREFIX))
+        if ctx:
+            trip.append((ctx, q, a))
+    return context_dialogs(trip, rng)
+
+
 def belebele_dialogs(items: list[dict]) -> list[dict]:
     """items: {"flores_passage","question","mc_answer1..4","correct_answer_num"} (facebook/belebele tur_Latn)."""
     out = []
@@ -277,6 +294,7 @@ def build(out: Path, seed: int = 7) -> dict:
     for name, fn in [("ulkeler", lambda: country_dialogs(sparql(Q_COUNTRY), rng)), ("iller", lambda: province_dialogs(sparql(Q_PROVINCE))),
                      ("elementler", lambda: element_dialogs(sparql(Q_ELEMENT))),
                      ("xquad", lambda: xquad_dialogs(_records(_hf_get("google/xquad", "xquad.tr") or b"x.json\n[]"))),
+                     ("bilgi-satiri", lambda: xquad_context_dialogs(_records(_hf_get("google/xquad", "xquad.tr") or b"x.json\n[]"), rng)),
                      ("xcopa", _xcopa),
                      ("belebele", lambda: belebele_dialogs(_records(_hf_get("facebook/belebele", "tur_Latn") or b"x.json\n[]")))]:
         try:

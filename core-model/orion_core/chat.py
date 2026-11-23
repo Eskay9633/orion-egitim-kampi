@@ -134,7 +134,13 @@ def extra_dialogues(src: str, cache: Path) -> tuple[list[str], dict]:
             if not parts:
                 drop["suzgec_ya_da_sinav"] += 1
                 continue
-            texts.append("\n".join(parts))
+            # "Bilgi:" satırı (knowledge_line.py, 2026-11-23): okuyarak cevaplama; satır diyaloğun başına konur
+            head = ""
+            if r.get("bilgi"):
+                from .knowledge_line import knowledge_line
+                kl = knowledge_line(str(r["bilgi"]))
+                head = kl + "\n" if kl else ""
+            texts.append(head + "\n".join(parts))
             by_src[r.get("source", "?")] += 1
     return texts, {"ceviri_cift": len(texts), "kaynaklar": dict(by_src), "atilan": dict(drop), "dosya": src}
 
@@ -672,7 +678,7 @@ PERSONA_TESTS = [("Sen kimsin?", "Orion"), ("Merhaba", None), ("Çok sıkıldım
 MEMORY_PREFIX = "Hafıza: "  # memory_notes.PREFIX ile aynı
 
 
-def prompt_for(question: str, memory: str | None = None) -> str:
+def prompt_for(question: str, memory: str | None = None, knowledge: str | None = None) -> str:
     """Çıkarım istemi; "Orion:" ile biter (sonda boşluk YOK, bkz. modül açıklaması).
 
     memory: uygulamanın katmanlı hafızasından seçilmiş notlar, "; " ile birleşik ("kızının adı Ela; 34 yaşındasın").
@@ -683,7 +689,10 @@ def prompt_for(question: str, memory: str | None = None) -> str:
     çağıran uygular. memory None ya da boşsa istem eskisiyle birebir aynıdır ("Kullanıcı: <soru>\nOrion:").
     Belirteçleme: <bos> + bpe.encode(istem); "Hafıza:" için özel belirteç yok."""
     head = f"{MEMORY_PREFIX}{memory.strip()}\n" if memory and memory.strip() else ""
-    return f"{head}{USER}{question}\n{PROMPT_BOT}"
+    # Bilgi satırı (knowledge_line.py): varsa en başta; yoksa istem eskisiyle aynı
+    from .knowledge_line import knowledge_line
+    kl = knowledge_line(knowledge) if knowledge else None
+    return f"{kl + chr(10) if kl else ''}{head}{USER}{question}\n{PROMPT_BOT}"
 
 
 def clean_reply(raw: str) -> str:
@@ -790,6 +799,8 @@ def export_chat(run: Path, data: Path, out: Path, ckpt_name: str = "ckpt.pt", co
                 "params": m.n_params(), "step": status.get("step"), "tokens_seen": status.get("tokens_seen"),
                 "val_loss_int8": vl, "val_ppl_int8": math.exp(vl) if vl == vl else None, "persona_ok": persona_ok, "qa_score": qa_ok,
                 "data": json.loads((data / "data.json").read_text()) if (data / "data.json").exists() else {}}
+    # "Bilgi:" satırıyla eğitildi mi (knowledge_line.py): telefon bilgi satırını yalnız bu modellere verir
+    manifest["knowledge_line"] = "bilgi-satiri" in json.dumps(manifest["data"], ensure_ascii=False)
     for k in ("distill", "init_grown_from"):  # büyütme/damıtma ayarları (status.json'dan, rapor için)
         if status.get(k) is not None:
             manifest[k] = status[k]
