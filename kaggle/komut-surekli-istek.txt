@@ -1,1 +1,2 @@
 2026-11-21 19:30 UTC: 270k → 480k (sabah 10:00 İstanbul'a kadar iki tur; kaldığı yerden)
+2026-11-23T10:38:22Z yeniden başlat: hedef 800000, tur başına farklı tohum

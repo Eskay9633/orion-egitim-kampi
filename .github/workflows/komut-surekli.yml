@@ -6,6 +6,8 @@ name: komut-beyni-surekli
 # deposunun içe aktarıcısı yalnızca elle yazılmış sınavda mevcut modelden iyi ya da eşitse alır. Eşikler değişmez.
 # Veri üreticisi / protokol değişince önbellek anahtarı değişir; 2026-11-21'den beri eğitim sıfırdan değil, en son
 # checkpoint'ten (aynı sözlükle) yeni veriyle devam eder (kaldığı yerden devam, sahibin onayı).
+# 2026-11-23 (sahibin isteği: "komut beyni sürekli farklı verilerle, Kaggle'sız"): her tur farklı tohumla başlar; üretici
+# her turda başka cümle birleşimleri verir (aynı örnekleri ezberlemesin).
 on:
   # 2026-11-21: saatlik zamanlayıcı saatlerce gecikiyordu; turları artık yedek-yayin işi zincirler (bir tur bitince,
   # başka eğitim yoksa sonrakini workflow_dispatch ile başlatır). Hedef dolunca iş eğitmeden biter.
@@ -101,7 +103,7 @@ jobs:
         if: steps.done.outputs.done != 'true'
         working-directory: core-model
         run: |
-          python -m orion_core.train --out work/run --steps "$TOTAL_STEPS" --time-budget-min 290 --ext-data work/ext --ext-frac 0.07
+          python -m orion_core.train --out work/run --steps "$TOTAL_STEPS" --time-budget-min 290 --ext-data work/ext --ext-frac 0.07 --seed $((1234 + ${{ github.run_number }}))
           cat work/run/status.json
       - name: Checkpoint'i sakla (sonraki iş devam etsin)
         if: always() && steps.done.outputs.done != 'true'

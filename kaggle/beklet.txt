@@ -1,0 +1,1 @@
+2026-11-23 10:38 UTC: sahibin kararı — Kaggle kendiliğinden başlamasın (kota yenilense de). Yeni veri ve setler hazırlanınca sahip söyler; o zaman bu dosya silinir.
