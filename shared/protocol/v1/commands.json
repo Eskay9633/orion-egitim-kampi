@@ -1004,7 +1004,7 @@
     },
     "web.read": {
       "agent": "sophia",
-      "doc": "Sophia bir web sayfasını okur (yalnız https alan adı; robots.txt yasaklıyorsa okumaz): başlığı, kısa özeti ve sayfanın okunur metnini kaynak adresiyle verir. Hesap telefonda yapılır. learn=true: okunan bilgi Orion'un bilgi hafızasına 'sahibin onayını bekliyor' olarak yazılır.",
+      "doc": "Sophia bir web sayfasını tarayıcı gibi okur (http/https alan adı; yerel ağ ve IP adresi okunmaz): başlığı, kısa özeti ve sayfanın okunur metnini kaynak adresiyle verir. Hesap telefonda yapılır. learn=true: okunan bilgi Orion'un bilgi hafızasına 'sahibin onayını bekliyor' olarak yazılır.",
       "needs_net": true,
       "effect": "read",
       "args": {
