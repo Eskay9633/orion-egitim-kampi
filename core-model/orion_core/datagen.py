@@ -708,6 +708,8 @@ TEMPLATES: dict[str, list[Gen]] = {
     "work.check": [lambda rng, sp: g_work_check(rng, sp, False, False)] * 3,
     "market.alert": [lambda rng, sp: g_alert(rng, sp, False, False)] * 3,
     "seo.audit": [lambda rng, sp: g_seo(rng, sp, False, False)] * 3,
+    "web.search": [lambda rng, sp: g_web_search(rng, sp, False, False)] * 3,
+    "web.read": [lambda rng, sp: g_web_read(rng, sp, False, False)] * 3,
     "ad.check": [lambda rng, sp: g_ad_check(rng, sp, False, False)] * 3,
     "ad.budget": [lambda rng, sp: g_ad_budget(rng, sp, False, False)] * 3,
     "design.colors": [lambda rng, sp: g_colors(rng, sp, False, False)] * 3,
@@ -726,7 +728,7 @@ WEIGHTS = {
     "timer.start": 2, "provider.discover": 1, "health.check": 1, "memory.save": 2, "ask": 3, "calc.eval": 2, "text.translate": 2, "market.crypto": 2, "skill.run": 2, "skill.list": 1, "skill.learn": 2, "skill.record": 1, "agent.hire": 1, "mail.check": 2, "mail.send": 1, "self.status": 1, "app.open": 2, "app.list": 1, "memory.recall": 1, "self.advise": 1, "help": 1,
     "code.run": 2, "code.repo": 1, "work.check": 1, "market.alert": 2,
     "seo.audit": 1, "ad.check": 1, "ad.budget": 1, "design.colors": 1, "research.watch": 1, "repo.watch": 1, "work.digest": 1,
-    "msg.inbox": 1, "msg.reply": 2, "msg.contacts": 1,
+    "msg.inbox": 1, "msg.reply": 2, "msg.contacts": 1, "web.search": 2, "web.read": 2,
 }
 
 
@@ -834,6 +836,8 @@ PLANS = {
     "work.check": ["history.read", "net.check", "provider.ask", "provider.ask", "card.render"],
     "market.alert": ["market.read", "alert.save", "card.render"],
     "seo.audit": ["net.check", "page.fetch", "seo.measure", "card.render"],
+    "web.search": ["net.check", "web.query", "sources.collect", "card.render"],
+    "web.read": ["net.check", "robots.check", "page.fetch", "text.extract", "card.render"],
     "ad.check": ["limits.read", "ad.measure", "card.render"],
     "ad.budget": ["budget.compute", "card.render"],
     "design.colors": ["color.parse", "contrast.compute", "card.render"],
@@ -1687,6 +1691,52 @@ def g_seo(rng, sp, hf, hv):
     return _fill(G.choose(rng, SEO_FRAMES, sp, hf or hv), U=url), {"url": url}
 
 
+# --------------------------------------------------------------------------- Sophia: gerçek internet (2026-11-23)
+# Sahibin kararı: "Orion internete çıkmalı". web.search = internette arama (araştırma görevinden ayrı: sonuç listesi),
+# web.read = verilen https adresindeki sayfayı okumak. "X nedir" soruları ask'ta kalır; "araştır" research.start'ta.
+WEB_QUERIES = ["kara delik nedir", "istanbul hava kirliliği", "elektrikli araba şarj istasyonları", "ankara kitap fuarı",
+               "en iyi kahve demleme yöntemi", "python öğrenme kaynakları", "deprem çantasında ne olmalı", "galatasaray son maç",
+               "türkiye enflasyon oranı", "yapay zeka haberleri", "kapadokya balon turu fiyatları", "evde ekmek tarifi",
+               "redmi note 13 pro güncelleme", "kombi bakımı nasıl yapılır", "uzay teleskobu yeni görüntüler", "izmir konser takvimi"]
+WEB_SEARCH_FRAMES = ["internette {Q} ara", "{Q} diye internette ara", "webde {Q} ara", "internetten {Q} araştır bul",
+                     "{Q} için internette arama yap", "Sophia, internette {Q} ara", "{Q} hakkında internette ne var, ara",
+                     "google'da {Q} ara", "{Q} diye bir arama yap internette", "internette arat: {Q}", "{Q} için web araması yap",
+                     "nette {Q} ara bakalım"]
+WEB_SEARCH_N_FRAMES = ["internette {Q} ara, ilk {N} sonucu göster", "{Q} için internette ara, {N} sonuç yeter",
+                       "webde {Q} ara ve {N} sonuç getir", "internette {Q} ara bana {N} tane sonuç ver"]
+WEB_SEARCH_READ_FRAMES = ["internette {Q} ara ve ilk sonucu oku", "{Q} diye ara, ilk çıkan sayfayı oku",
+                          "internette {Q} ara, en iyi sonucu okuyup anlat", "webde {Q} ara ve ilk sayfayı özetle"]
+WEB_SITES = ["ntv.com.tr/teknoloji", "bilimgenc.tubitak.gov.tr/makale", "tr.wikipedia.org/wiki/Kara_delik", "haberler.com/ekonomi",
+             "evrimagaci.org/kara-delikler", "mgm.gov.tr/tahmin", "ornekblog.com/kahve-demleme", "yemek.com/tarif/ekmek",
+             "donanimhaber.com/redmi-note-13", "afad.gov.tr/deprem-cantasi", "kodokulu.org/python-baslangic", "sozcu.com.tr/spor"]
+WEB_READ_FRAMES = ["şu sayfayı oku: {U}", "{U} sayfasını oku", "{U} adresindeki yazıyı oku", "{U} linkini aç ve oku",
+                   "bu bağlantıda ne yazıyor: {U}", "{U} sayfasında ne anlatılıyor oku", "Sophia, {U} sayfasını okur musun",
+                   "{U} adresine gir, yazanı oku", "şu linki oku bana: {U}", "{U} sayfasını okuyup özetle",
+                   "{U} haberini oku", "oku: {U}"]
+WEB_LEARN_FRAMES = ["{U} sayfasını oku ve öğren", "{U} adresindeki bilgiyi öğren", "şu sayfadan öğren: {U}",
+                    "{U} sayfasını oku, bilgini hafızana yaz", "{U} yazısını oku ve aklında tut"]
+
+
+def g_web_search(rng, sp, hf, hv):
+    q = pick(rng, WEB_QUERIES, sp, lambda r: random_phrase(r, 1, 4), 0.5)
+    r = rng.random()
+    if r < 0.15:
+        n = rng.choice([3, 5, 10])
+        return _fill(G.choose(rng, WEB_SEARCH_N_FRAMES, sp, hf or hv), Q=q).replace("{N}", str(n)), {"query": q, "n": n}
+    if r < 0.27:
+        return _fill(G.choose(rng, WEB_SEARCH_READ_FRAMES, sp, hf or hv), Q=q), {"query": q, "read": True}
+    return _fill(G.choose(rng, WEB_SEARCH_FRAMES, sp, hf or hv), Q=q), {"query": q}
+
+
+def g_web_read(rng, sp, hf, hv):
+    url = "https://" + rng.choice(["", "www."]) + pick(rng, WEB_SITES, sp)
+    if url.startswith("https://www.tr."):
+        url = url.replace("https://www.", "https://", 1)
+    if rng.random() < 0.2:
+        return _fill(G.choose(rng, WEB_LEARN_FRAMES, sp, hf or hv), U=url), {"url": url, "learn": True}
+    return _fill(G.choose(rng, WEB_READ_FRAMES, sp, hf or hv), U=url), {"url": url}
+
+
 AD_TEXTS = ["Taze kahve kapında | Hemen sipariş ver", "Yaz indirimi başladı! Tüm ürünlerde %30", "Ücretsiz deneme dersi için hemen kaydol",
             "El yapımı seramik kupalar | Sınırlı sayıda", "Kombi bakımında kış fırsatı, randevunu al", "Yeni sezon bisikletleri incele",
             "Organik mama ile mutlu dostlar | Ücretsiz kargo", "Kapadokya balon turu erken rezervasyon fırsatı"]
@@ -1872,7 +1922,7 @@ GRAMMAR = {
     "agent.hire": g_agent_hire, "mail.check": g_mail_check, "mail.send": g_mail_send, "self.status": g_self_status, "app.open": g_app_open, "app.list": g_app_list,
     "memory.recall": g_memory_recall, "self.advise": g_self_advise,
     "code.run": g_code_run, "code.repo": g_code_repo, "work.check": g_work_check, "market.alert": g_alert,
-    "seo.audit": g_seo, "ad.check": g_ad_check, "ad.budget": g_ad_budget,
+    "seo.audit": g_seo, "web.search": g_web_search, "web.read": g_web_read, "ad.check": g_ad_check, "ad.budget": g_ad_budget,
     "design.colors": g_colors, "research.watch": g_research_watch, "repo.watch": g_repo_watch, "work.digest": g_work_digest,
     "msg.inbox": g_msg_inbox, "msg.reply": g_msg_reply, "msg.contacts": g_msg_contacts,
 }
@@ -2532,7 +2582,7 @@ T26_AGENT_CMDS = {
     "emma": ["reminder.set", "reminder.list", "calendar.add", "calendar.list", "timer.start", "note.write", "note.search",
              "text.translate", "mail.check", "health.check", "app.open", "memory.save", "memory.recall"],
     "mike": ["skill.run", "skill.list", "skill.record", "agent.hire", "memory.save", "memory.recall", "work.digest"],
-    "sophia": ["research.start", "provider.discover", "research.watch"],
+    "sophia": ["research.start", "provider.discover", "research.watch", "web.search", "web.read"],
     "luna": ["image.generate", "card.propose", "design.colors"],
     "david": ["self.status", "skill.learn", "self.advise"],
     "jack": ["repo.audit", "image.analyze", "code.run", "repo.watch"],

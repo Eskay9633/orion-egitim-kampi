@@ -977,6 +977,47 @@
         }
       }
     },
+    "web.search": {
+      "agent": "sophia",
+      "doc": "Sophia internette arar: Türkçe Vikipedi araması ve bağımsız arama motoru Marginalia (anahtarsız), sahibin Brave anahtarı varsa Brave. Sonuçlar başlık, kısa açıklama ve adresle döner; read=true ise ilk uygun sonuç da okunur. Kaynak her zaman yazılır.",
+      "needs_net": true,
+      "effect": "read",
+      "args": {
+        "query": {
+          "type": "string",
+          "required": true,
+          "minLen": 2,
+          "maxLen": 200
+        },
+        "n": {
+          "type": "int",
+          "required": false,
+          "min": 1,
+          "max": 10,
+          "default": 5
+        },
+        "read": {
+          "type": "bool",
+          "required": false
+        }
+      }
+    },
+    "web.read": {
+      "agent": "sophia",
+      "doc": "Sophia bir web sayfasını okur (yalnız https alan adı; robots.txt yasaklıyorsa okumaz): başlığı, kısa özeti ve sayfanın okunur metnini kaynak adresiyle verir. Hesap telefonda yapılır. learn=true: okunan bilgi Orion'un bilgi hafızasına 'sahibin onayını bekliyor' olarak yazılır.",
+      "needs_net": true,
+      "effect": "read",
+      "args": {
+        "url": {
+          "type": "uri",
+          "required": true
+        },
+        "learn": {
+          "type": "bool",
+          "required": false
+        }
+      }
+    },
     "help": {
       "agent": "mike",
       "doc": "Yapılabilecek işleri listeler.",

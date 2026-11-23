@@ -54,7 +54,7 @@ def to_gguf(model_bin: Path, out: Path, qtype: str = "q8_0", name: str = "orion"
     wr.add_feed_forward_length(cfg["d_ff"])
     wr.add_head_count(cfg["n_head"])
     wr.add_layer_norm_eps(1e-5)  # torch.nn.LayerNorm varsayılanı
-    wr.add_file_type({"f32": 0, "f16": 1, "q8_0": 7}[qtype])
+    wr.add_file_type({"f32": 0, "f16": 1, "q4_0": 2, "q8_0": 7}[qtype])
     # Yer tutucu sözlük: belirteç ayırma uygulamada; motor yalnız numara işler
     vocab = cfg["vocab_size"]
     wr.add_tokenizer_model("gpt2")
@@ -66,17 +66,22 @@ def to_gguf(model_bin: Path, out: Path, qtype: str = "q8_0", name: str = "orion"
     wr.add_eos_token_id(EOS)
     wr.add_add_bos_token(False)
 
-    def put(gname: str, arr: np.ndarray) -> None:
+    # q4_0 (2026-11-23, "motor hâlâ hantal"): katman ağırlıkları 4 bit (dosya ~yarı, telefonda bellek bant genişliği
+    # yarıya iner); belirteç gömmesi ve bağlı çıkış ağırlığı kaliteye duyarlı olduğu için 8 bitte kalır.
+    def put(gname: str, arr: np.ndarray, keep8: bool = False) -> None:
         arr = np.ascontiguousarray(arr, dtype=np.float32)
         if arr.ndim == 2 and qtype != "f32":
-            if qtype == "q8_0" and arr.shape[1] % 32 == 0:
-                qa = gguf.quants.quantize(arr, gguf.GGMLQuantizationType.Q8_0)
-                wr.add_tensor(gname, qa, raw_shape=qa.shape, raw_dtype=gguf.GGMLQuantizationType.Q8_0)
+            t = {"q8_0": gguf.GGMLQuantizationType.Q8_0, "q4_0": gguf.GGMLQuantizationType.Q4_0}.get(qtype)
+            if t is not None and keep8:
+                t = gguf.GGMLQuantizationType.Q8_0
+            if t is not None and arr.shape[1] % 32 == 0:
+                qa = gguf.quants.quantize(arr, t)
+                wr.add_tensor(gname, qa, raw_shape=qa.shape, raw_dtype=t)
                 return
             arr = arr.astype(np.float16)
         wr.add_tensor(gname, arr)
 
-    put("token_embd.weight", w["tok.weight"])
+    put("token_embd.weight", w["tok.weight"], keep8=True)
     put("position_embd.weight", w["pos.weight"])
     for i in range(L):
         p = f"blocks.{i}."
@@ -87,7 +92,7 @@ def to_gguf(model_bin: Path, out: Path, qtype: str = "q8_0", name: str = "orion"
         put(f"blk.{i}.ffn_up.weight", w[p + "fc1.weight"]); put(f"blk.{i}.ffn_up.bias", w[p + "fc1.bias"])
         put(f"blk.{i}.ffn_down.weight", w[p + "fc2.weight"]); put(f"blk.{i}.ffn_down.bias", w[p + "fc2.bias"])
     put("output_norm.weight", w["ln_f.weight"]); put("output_norm.bias", w["ln_f.bias"])
-    put("output.weight", w["tok.weight"])  # bağlı çıkış ağırlığı: açıkça yazılır
+    put("output.weight", w["tok.weight"], keep8=True)  # bağlı çıkış ağırlığı: açıkça yazılır
     wr.write_header_to_file()
     wr.write_kv_data_to_file()
     wr.write_tensors_to_file()
@@ -130,7 +135,7 @@ def main(argv=None) -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True, help="ORN1 model.bin")
     ap.add_argument("--out", required=True)
-    ap.add_argument("--qtype", default="q8_0", choices=["f32", "f16", "q8_0"])
+    ap.add_argument("--qtype", default="q8_0", choices=["f32", "f16", "q8_0", "q4_0"])
     ap.add_argument("--name", default="orion")
     a = ap.parse_args(argv)
     print(json.dumps(to_gguf(Path(a.model), Path(a.out), a.qtype, a.name), ensure_ascii=False))

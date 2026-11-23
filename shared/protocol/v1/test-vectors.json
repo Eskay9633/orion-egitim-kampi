@@ -439,6 +439,28 @@
    "input": "{\"v\": 1, \"id\": \"z3\", \"cmd\": \"msg.contacts\", \"args\": {\"action\": \"hepsi\"}}",
    "ok": false,
    "err_code": "E_ARG_RANGE"
+  },
+  {
+   "name": "web araması geçerli",
+   "input": "{\"v\": 1, \"id\": \"wb1\", \"cmd\": \"web.search\", \"args\": {\"query\": \"kara delik\", \"n\": 3}}",
+   "ok": true
+  },
+  {
+   "name": "web araması sorgu yok",
+   "input": "{\"v\": 1, \"id\": \"wb2\", \"cmd\": \"web.search\", \"args\": {}}",
+   "ok": false,
+   "err_code": "E_ARG_MISSING"
+  },
+  {
+   "name": "sayfa okuma geçerli",
+   "input": "{\"v\": 1, \"id\": \"wb3\", \"cmd\": \"web.read\", \"args\": {\"url\": \"https://ornek.com/haber\"}}",
+   "ok": true
+  },
+  {
+   "name": "sayfa okuma adres yok",
+   "input": "{\"v\": 1, \"id\": \"wb4\", \"cmd\": \"web.read\", \"args\": {\"learn\": true}}",
+   "ok": false,
+   "err_code": "E_ARG_MISSING"
   }
  ],
  "responses": [

@@ -41,3 +41,14 @@ def test_gguf_layout(small_bin, tmp_path):
         assert n in names
     arch = r.fields["general.architecture"]
     assert bytes(arch.parts[arch.data[0]]).decode() == "gpt2"
+
+
+def test_q4_keeps_embedding_8bit(small_bin, tmp_path):
+    gguf = pytest.importorskip("gguf")
+    out = tmp_path / "q4.gguf"
+    to_gguf(small_bin, out, "q4_0")
+    r = gguf.GGUFReader(str(out))
+    types = {t.name: t.tensor_type for t in r.tensors}
+    assert types["blk.0.ffn_up.weight"] == gguf.GGMLQuantizationType.Q4_0
+    assert types["token_embd.weight"] == gguf.GGMLQuantizationType.Q8_0
+    assert types["output.weight"] == gguf.GGMLQuantizationType.Q8_0

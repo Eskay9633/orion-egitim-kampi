@@ -45,14 +45,14 @@
       "thinking": "Soruyu alt sorulara bölersin, bildiğini kaynağıyla karşılaştırırsın, sonra sonucu nedeniyle birlikte sade anlatırsın.",
       "principles": ["izin_al"],
       "own_principles": ["En az iki kaynakla doğrula; kaynak yoksa 'doğrulanmadı' de.", "Başka projeden kod kopyalama; yalnız fikir al, Orion'un kendi koduyla yaz ve kaynağını belirt.", "İzlemeni istenen konuyu arka planda kendin takip edersin (research.watch); değişince haber verirsin."],
-      "commands": ["ask", "help", "research.start", "provider.discover", "research.watch"],
+      "commands": ["ask", "help", "research.start", "provider.discover", "research.watch", "web.search", "web.read"],
       "topics": ["bilim", "bilimsel", "tarih", "tarihi", "kaynak", "ansiklopedi", "kara delik", "uzay", "evren", "gezegen", "galaksi", "yildiz", "gunes sistemi", "fizik", "kimya", "biyoloji", "cografya", "baskent", "ulke", "savas", "imparator", "osmanli", "icat", "kesif", "atom", "dinozor", "deprem", "iklim", "volkan", "felsefe", "arastir"],
       "helper_prefer": ["groq", "gemini"],
       "subagents": [
         {
           "id": "arastirma",
           "name": "Araştırmacı",
-          "commands": ["research.start"]
+          "commands": ["research.start", "web.search", "web.read"]
         },
         {
           "id": "kaynak",

@@ -18,13 +18,14 @@ from orion_core import SHARED, datagen
 # 2026-11-13 (3): EkBot fiyat alarmı (market.alert) eklendi.
 # 2026-11-13 (2): Leo, Nora, Iris ve code.run / code.repo / work.check komutları eklendi (sahibin isteği: kod yazan
 # ve işi denetleyen ajanlar); kümeler yeniden üretildi. Eşikler değişmedi.
+# 2026-11-23: web.search / web.read (gerçek internet, sahibin isteği) eklendi; kümeler yeniden üretildi. Eşikler değişmedi.
 SPLIT_SHA = {
-    ("test_iid", 600, 101): "8775b1e1581f12fccc47dc43908d89ca0281d7d77108d8b4bf3a6ea607d8f4d9",
-    ("test_ood", 400, 202): "fb471568848bbef2f287e8746eb9833d680236cd326ce06cd62a5b686e06a8f2",
-    ("legacy_ood", 400, 202): "211928542ae307956f2202f9a4fc3e0974ee489de17112c850190e933474843c",
-    ("test_iid", 1000, 707): "a1ae044591808ada50f7dfc7524e804d9d8abe2368ce4571438ab50399eba96d",
-    ("test_ood", 1000, 909): "4ec0986cc37043fb6221d76baafc8da8b686465d14ec16f7fec47bf3ad5d9160",
-    ("legacy_ood", 1000, 808): "aec2bf969bfaa30b80f1eb0f2fba15fa5476715d580c316d0de7816ddc2bc973",
+    ("test_iid", 600, 101): "60d759370c49235e2ed108e9019e09e6b4b3b3aef919e5935042f495e0f9a0dd",
+    ("test_ood", 400, 202): "6b9c4b52ad77e6a3753f61ba93d92a5ba7d92bb6389410abc5a4d197c5324c01",
+    ("legacy_ood", 400, 202): "45bcdf4361aab0b5da366012501c03a29c82f902a9fecec3f8ea8a38c7f9f260",
+    ("test_iid", 1000, 707): "51e96e1d86c611a3b1f2c82ebfc180d316b740dc6748a8b762668ca206ef7eba",
+    ("test_ood", 1000, 909): "28095c21f69a8eca0bdd8571bfa060e30f917d031775547489ebf1dbdcb10b63",
+    ("legacy_ood", 1000, 808): "cecb3850b2e3d220b776a2a3f29f490d6cfaa2197ae9301f257abb249b93f01d",
 }
 
 # Tur 14 karşıt grupları: ayrılmış fiil/yüklem parçalarını içermedikleri test_datagen_tur14'te denetlenir. Sözcük

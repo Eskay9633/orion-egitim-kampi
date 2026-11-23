@@ -41,4 +41,10 @@ jobs:
             python -m orion_core.gguf_export --model /tmp/g/model.bin --out /tmp/g/model-q8_0.gguf --qtype q8_0 --name "orion-$TAG"
             (cd /tmp/g && sha256sum model-q8_0.gguf > model-q8_0.gguf.sha256)
             gh release upload "$TAG" /tmp/g/model-q8_0.gguf /tmp/g/model-q8_0.gguf.sha256 -R "$GITHUB_REPOSITORY" --clobber
+            # Sohbet beyni için hızlı 4 bit sürüm de (2026-11-23, "motor hâlâ hantal"): katmanlar 4 bit, gömme 8 bit
+            case "$TAG" in sohbet-*)
+              python -m orion_core.gguf_export --model /tmp/g/model.bin --out /tmp/g/model-q4_0.gguf --qtype q4_0 --name "orion-$TAG"
+              (cd /tmp/g && sha256sum model-q4_0.gguf > model-q4_0.gguf.sha256)
+              gh release upload "$TAG" /tmp/g/model-q4_0.gguf /tmp/g/model-q4_0.gguf.sha256 -R "$GITHUB_REPOSITORY" --clobber ;;
+            esac
           done
