@@ -6,6 +6,8 @@ name: komut-beyni-surekli
 # deposunun içe aktarıcısı yalnızca elle yazılmış sınavda mevcut modelden iyi ya da eşitse alır. Eşikler değişmez.
 # Veri üreticisi / protokol değişince önbellek anahtarı değişir; 2026-11-21'den beri eğitim sıfırdan değil, en son
 # checkpoint'ten (aynı sözlükle) yeni veriyle devam eder (kaldığı yerden devam, sahibin onayı).
+# 2026-11-28 (sahibin isteği): veri seti v2 ile SIFIRDAN eğitim (önbellek anahtarı komut-v2-; eski checkpoint alınmaz),
+# hedef pazar 22:30 TSİ'ye yetişecek adım (kaggle/komut-hedef.txt).
 # 2026-11-23 (sahibin isteği: "komut beyni sürekli farklı verilerle, Kaggle'sız"): her tur farklı tohumla başlar; üretici
 # her turda başka cümle birleşimleri verir (aynı örnekleri ezberlemesin).
 on:
@@ -89,10 +91,10 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: core-model/work/run
-          key: komut-surekli-${{ hashFiles('core-model/orion_core/datagen.py', 'core-model/orion_core/grammar.py', 'core-model/orion_core/copy.py', 'core-model/orion_core/massive.py', 'core-model/orion_core/train.py', 'core-model/orion_core/bpe.py', 'shared/protocol/**') }}-${{ github.run_id }}
+          key: komut-v2-${{ hashFiles('core-model/orion_core/datagen.py', 'core-model/orion_core/grammar.py', 'core-model/orion_core/copy.py', 'core-model/orion_core/massive.py', 'core-model/orion_core/train.py', 'core-model/orion_core/bpe.py', 'shared/protocol/**') }}-${{ github.run_id }}
           restore-keys: |
-            komut-surekli-${{ hashFiles('core-model/orion_core/datagen.py', 'core-model/orion_core/grammar.py', 'core-model/orion_core/copy.py', 'core-model/orion_core/massive.py', 'core-model/orion_core/train.py', 'core-model/orion_core/bpe.py', 'shared/protocol/**') }}-
-            komut-surekli-
+            komut-v2-${{ hashFiles('core-model/orion_core/datagen.py', 'core-model/orion_core/grammar.py', 'core-model/orion_core/copy.py', 'core-model/orion_core/massive.py', 'core-model/orion_core/train.py', 'core-model/orion_core/bpe.py', 'shared/protocol/**') }}-
+            komut-v2-
       - name: Hedef doldu mu
         id: done
         run: |
@@ -110,7 +112,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: core-model/work/run
-          key: komut-surekli-${{ hashFiles('core-model/orion_core/datagen.py', 'core-model/orion_core/grammar.py', 'core-model/orion_core/copy.py', 'core-model/orion_core/massive.py', 'core-model/orion_core/train.py', 'core-model/orion_core/bpe.py', 'shared/protocol/**') }}-${{ github.run_id }}
+          key: komut-v2-${{ hashFiles('core-model/orion_core/datagen.py', 'core-model/orion_core/grammar.py', 'core-model/orion_core/copy.py', 'core-model/orion_core/massive.py', 'core-model/orion_core/train.py', 'core-model/orion_core/bpe.py', 'shared/protocol/**') }}-${{ github.run_id }}
       - name: Dışa aktar + manifest
         if: steps.done.outputs.done != 'true'
         working-directory: core-model
@@ -144,7 +146,7 @@ jobs:
           cd core-model/work/export
           cp ../../../shared/core-model/DIS-VERI.md .
           gh release create "$TAG" model.bin tokenizer.json parity.json manifest.json eval.json DIS-VERI.md \
-            --target "$GITHUB_SHA" --title "Komut beyni (sürekli) $TAG" --notes "Adım $STEP / $TOTAL_STEPS · $NOTES"
+            --target "$GITHUB_SHA" --title "Komut beyni v2 (sıfırdan) $TAG" --notes "Adım $STEP / $TOTAL_STEPS · $NOTES"
       # Zincir (2026-11-21): botun başlattığı koşular workflow_run olayı üretmediği için (GITHUB_TOKEN) sonraki tur
       # buradan başlatılır: eğitim yapıldıysa, hedef dolmadıysa ve başka eğitim beklemiyorsa.
       - name: Sonraki eğitim turu

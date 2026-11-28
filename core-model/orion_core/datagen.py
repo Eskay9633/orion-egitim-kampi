@@ -13,6 +13,7 @@ Her örnek kendi doğrulayıcımızdan geçer; geçmeyen üretilmez.
 """
 from __future__ import annotations
 
+from . import komut_v2 as _V2
 import json
 import random
 import re
@@ -781,6 +782,13 @@ def _t2c_example_once(rng: random.Random, split: str, noise: bool) -> dict:
         cmd, tr, args = skill_example(rng)  # Tur 19 yeni beceri aileleri (yalnızca eğitim)
     elif r_train < CONTRAST_FRAC + IDENTITY_FRAC + SKILL_FRAC + REALGAP_FRAC:
         cmd, tr, args = realgap_example(rng)  # Tur 21 gerçek cümle açıkları (yalnızca eğitim)
+    elif r_train < CONTRAST_FRAC + IDENTITY_FRAC + SKILL_FRAC + REALGAP_FRAC + _V2.V2_FRAC:
+        # Veri seti v2 (2026-11-28): yeni kalıplar ya da sıradan bir örneğin telefonda yazılmış (hatalı, gündelik) hâli
+        if rng.random() < 0.3:
+            cmd, tr, args = _V2.new_pattern(rng)
+        else:
+            tr, args = rng.choice(_templates_for(cmd, split))(rng, split)
+            tr = _V2.roughen(rng, tr, args)
     elif split == "legacy_ood":
         tr, args = rng.choice(_templates_for(cmd, "test_ood"))(rng, "test_ood")
     elif split == "test_ood" or rng.random() < GRAMMAR_FRAC:
