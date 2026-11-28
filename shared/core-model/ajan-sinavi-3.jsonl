@@ -1,0 +1,103 @@
+{"src": "Can'dan yeni mesaj var mı", "cmd": "msg.inbox", "agent": "zoe", "key": {}, "kind": "action"}
+{"src": "bugün bana kimler yazdı whatsapptan", "cmd": "msg.inbox", "agent": "zoe", "key": {}, "kind": "action"}
+{"src": "ablamın attığı mesajları göster", "cmd": "msg.inbox", "agent": "zoe", "key": {}, "kind": "action"}
+{"src": "Ece'ye geç kalacağım diye haber ver", "cmd": "msg.reply", "agent": "zoe", "key": {}, "kind": "action"}
+{"src": "Hakan'a tamamdır yarın görüşürüz yaz", "cmd": "msg.reply", "agent": "zoe", "key": {}, "kind": "action"}
+{"src": "babama birazdan arıyorum diye mesaj at", "cmd": "msg.reply", "agent": "zoe", "key": {}, "kind": "action"}
+{"src": "Deniz'in mesajlarına artık sen bak", "cmd": "msg.contacts", "agent": "zoe", "key": {}, "kind": "action"}
+{"src": "whatsapp mesajlarını sesli okumak iyi bir fikir mi", "cmd": "ask", "agent": "zoe", "key": {}, "kind": "ask"}
+{"src": "her akşam bana günün özetini gönder", "cmd": "work.digest", "agent": "mike", "key": {}, "kind": "action"}
+{"src": "günlük özet bildirimini kapat", "cmd": "work.digest", "agent": "mike", "key": {}, "kind": "action"}
+{"src": "ekibe muhasebe işlerine bakacak biri lazım", "cmd": "agent.hire", "agent": "mike", "key": {}, "kind": "action"}
+{"src": "emlak ilanlarını tarayacak bir yardımcı ajan ekle", "cmd": "agent.hire", "agent": "mike", "key": {}, "kind": "action"}
+{"src": "hakkımda bildiklerini söyle", "cmd": "memory.recall", "agent": "mike", "key": {}, "kind": "action"}
+{"src": "şunu unutma: sabahları kahve içmiyorum", "cmd": "memory.save", "agent": "mike", "key": {}, "kind": "action"}
+{"src": "benim hangi tercihlerimi biliyorsun", "cmd": "memory.recall", "agent": "mike", "key": {}, "kind": "action"}
+{"src": "iyi bir takım lideri nasıl olunur", "cmd": "ask", "agent": "mike", "key": {}, "kind": "ask"}
+{"src": "elektrikli araçlarla ilgili gelişmeleri takipte tut", "cmd": "research.watch", "agent": "sophia", "key": {}, "kind": "action"}
+{"src": "izlediğin konuların listesini ver", "cmd": "research.watch", "agent": "sophia", "key": {}, "kind": "action"}
+{"src": "kuantum bilgisayar konusunu artık izleme", "cmd": "research.watch", "agent": "sophia", "key": {}, "kind": "action"}
+{"src": "aralıklı oruç üzerine yapılan çalışmaları kaynaklarıyla incele", "cmd": "research.start", "agent": "sophia", "key": {}, "kind": "action"}
+{"src": "ücretsiz konuşmayı yazıya çeviren bir servis bul", "cmd": "provider.discover", "agent": "sophia", "key": {}, "kind": "action"}
+{"src": "güneş panelleri hakkında detaylı araştırma yap", "cmd": "research.start", "agent": "sophia", "key": {}, "kind": "action"}
+{"src": "bilimsel makale nasıl okunur", "cmd": "ask", "agent": "sophia", "key": {}, "kind": "ask"}
+{"src": "bu araştırma güvenilir mi sence", "cmd": "ask", "agent": "sophia", "key": {}, "kind": "ask"}
+{"src": "ana sayfaya not kartı ekle", "cmd": "card.propose", "agent": "luna", "key": {}, "kind": "action"}
+{"src": "ana ekrana yapılacaklar listesi kartı koy", "cmd": "card.propose", "agent": "luna", "key": {}, "kind": "action"}
+{"src": "#264653 ve #f4a261 birlikte okunur mu", "cmd": "design.colors", "agent": "luna", "key": {}, "kind": "action"}
+{"src": "#ffffff zemin üstüne #777777 yazı uygun mu", "cmd": "design.colors", "agent": "luna", "key": {}, "kind": "action"}
+{"src": "deniz kenarında gün batımı resmi çiz", "cmd": "image.generate", "agent": "luna", "key": {}, "kind": "action"}
+{"src": "uzayda yüzen bir kedi resmi yap", "cmd": "image.generate", "agent": "luna", "key": {}, "kind": "action"}
+{"src": "iyi bir logo nasıl olmalı", "cmd": "ask", "agent": "luna", "key": {}, "kind": "ask"}
+{"src": "hangi renk daha sakin hissettirir", "cmd": "ask", "agent": "luna", "key": {}, "kind": "ask"}
+{"src": "güncelleme gelmiş mi bak", "cmd": "self.status", "agent": "david", "key": {}, "kind": "action"}
+{"src": "çekirdek modelin son durumu ne", "cmd": "self.status", "agent": "david", "key": {}, "kind": "action"}
+{"src": "hangi yapay zeka servisini kullanmamızı önerirsin", "cmd": "self.advise", "agent": "david", "key": {}, "kind": "action"}
+{"src": "openrouter mı mistral mi daha iyi bizim için", "cmd": "self.advise", "agent": "david", "key": {}, "kind": "action"}
+{"src": "e postalarımı otomatik etiketlemeyi öğren", "cmd": "skill.learn", "agent": "david", "key": {}, "kind": "action"}
+{"src": "her pazartesi haftalık plan hazırlamayı öğren", "cmd": "skill.learn", "agent": "david", "key": {}, "kind": "action"}
+{"src": "yazılım mimarisi nedir", "cmd": "ask", "agent": "david", "key": {}, "kind": "ask"}
+{"src": "mikroservis mi monolit mi daha iyi", "cmd": "ask", "agent": "david", "key": {}, "kind": "ask"}
+{"src": "ornekmagaza.com seo kontrolü yap", "cmd": "seo.audit", "agent": "grace", "key": {}, "kind": "action"}
+{"src": "benimblogum.net sitesinin seo puanı kaç", "cmd": "seo.audit", "agent": "grace", "key": {}, "kind": "action"}
+{"src": "kitapkurdu.com.tr sitesini roman anahtar kelimesiyle denetle", "cmd": "seo.audit", "agent": "grace", "key": {}, "kind": "action"}
+{"src": "seo nedir kısaca anlat", "cmd": "ask", "agent": "grace", "key": {}, "kind": "ask"}
+{"src": "google sıralamam neden düştü", "cmd": "ask", "agent": "grace", "key": {}, "kind": "ask"}
+{"src": "site hızı seo için önemli mi", "cmd": "ask", "agent": "grace", "key": {}, "kind": "ask"}
+{"src": "perşembe sabah dokuzda dişçiyi hatırlat", "cmd": "reminder.set", "agent": "emma", "key": {}, "kind": "action"}
+{"src": "kurduğum alarmları listele", "cmd": "reminder.list", "agent": "emma", "key": {}, "kind": "action"}
+{"src": "cumartesi öğlen ikide annemle buluşmayı takvime yaz", "cmd": "calendar.add", "agent": "emma", "key": {}, "kind": "action"}
+{"src": "bu hafta takvimimde neler var", "cmd": "calendar.list", "agent": "emma", "key": {}, "kind": "action"}
+{"src": "yarın akşam yedide spor salonunu hatırlat", "cmd": "reminder.set", "agent": "emma", "key": {}, "kind": "action"}
+{"src": "verimli bir gün nasıl planlanır", "cmd": "ask", "agent": "emma", "key": {}, "kind": "ask"}
+{"src": "on beş dakika sonra çay demlendi diye uyar", "cmd": "timer.start", "agent": "emma", "key": {}, "kind": "action"}
+{"src": "1250 çarpı 18 kaç eder", "cmd": "calc.eval", "agent": "chloe", "key": {}, "kind": "action"}
+{"src": "notlarımda kira geçenleri bul", "cmd": "note.search", "agent": "chloe", "key": {}, "kind": "action"}
+{"src": "bu ayki market harcamalarım ne kadar tuttu", "cmd": "ask", "agent": "chloe", "key": {}, "kind": "ask"}
+{"src": "ekteki pdf'i kısaca özetle", "cmd": "file.summarize", "agent": "chloe", "key": {}, "kind": "action"}
+{"src": "yüzde kaç zam aldığımı hesapla 15000'den 18000'e", "cmd": "calc.eval", "agent": "chloe", "key": {}, "kind": "action"}
+{"src": "ortalama ile medyan farkı nedir", "cmd": "ask", "agent": "chloe", "key": {}, "kind": "ask"}
+{"src": "solana şu an kaç dolar", "cmd": "market.crypto", "agent": "ekbot", "key": {}, "kind": "action"}
+{"src": "kripto piyasası bugün nasıl gidiyor", "cmd": "market.crypto", "agent": "ekbot", "key": {}, "kind": "action"}
+{"src": "ethereum 4000 dolara çıkarsa haber ver", "cmd": "market.alert", "agent": "ekbot", "key": {}, "kind": "action"}
+{"src": "bitcoin alarmımı kaldır", "cmd": "ask", "agent": "ekbot", "key": {}, "kind": "ask"}
+{"src": "dogecoin yükselişte mi", "cmd": "market.crypto", "agent": "ekbot", "key": {}, "kind": "action"}
+{"src": "kripto yatırımı riskli mi", "cmd": "ask", "agent": "ekbot", "key": {}, "kind": "ask"}
+{"src": "Eskay9633/signal-bot deposunu denetle", "cmd": "repo.audit", "agent": "jack", "key": {}, "kind": "action"}
+{"src": "ekran görüntüsündeki hatayı incele", "cmd": "image.analyze", "agent": "jack", "key": {}, "kind": "action"}
+{"src": "python ile bir sayının asal olup olmadığını bulan kod yaz", "cmd": "code.run", "agent": "jack", "key": {}, "kind": "action"}
+{"src": "git rebase ile merge farkı ne", "cmd": "ask", "agent": "jack", "key": {}, "kind": "ask"}
+{"src": "Eskay9633/signal-bot README'ye kurulum adımı ekle", "cmd": "code.repo", "agent": "jack", "key": {}, "kind": "action"}
+{"src": "docker neden kullanılır", "cmd": "ask", "agent": "jack", "key": {}, "kind": "ask"}
+{"src": "reklam başlığımı kontrol et: Kışa özel indirim başladı", "cmd": "ad.check", "agent": "maya", "key": {}, "kind": "action"}
+{"src": "3000 TL bütçeyle tıklama başı 2 TL ise kaç tıklama alırım", "cmd": "ad.budget", "agent": "maya", "key": {}, "kind": "action"}
+{"src": "instagram reklamı için şu metni denetle: Yeni koleksiyon geldi", "cmd": "ad.check", "agent": "maya", "key": {}, "kind": "action"}
+{"src": "hangi platformda reklam vermeliyim", "cmd": "ask", "agent": "maya", "key": {}, "kind": "ask"}
+{"src": "reklam bütçemi nasıl bölmeliyim", "cmd": "ask", "agent": "maya", "key": {}, "kind": "ask"}
+{"src": "az önce yazdığın kodu test et", "cmd": "work.check", "agent": "nora", "key": {}, "kind": "action"}
+{"src": "bu cevabın doğruluğunu kontrol et", "cmd": "work.check", "agent": "iris", "key": {}, "kind": "action"}
+{"src": "son işini bir de denetle", "cmd": "work.check", "agent": "iris", "key": {}, "kind": "action"}
+{"src": "iyi bir test nasıl yazılır", "cmd": "ask", "agent": "nora", "key": {}, "kind": "ask"}
+{"src": "1'den 50'ye kadar çift sayıları yazdıran kod yaz", "cmd": "code.run", "agent": "leo", "key": {}, "kind": "action"}
+{"src": "fibonacci serisini hesaplayan bir program yaz", "cmd": "code.run", "agent": "leo", "key": {}, "kind": "action"}
+{"src": "kotlin mi java mı öğrenmeliyim", "cmd": "ask", "agent": "leo", "key": {}, "kind": "ask"}
+{"src": "bana bir hatırlatma kur: faturayı öde, ayın 5'inde", "cmd": "reminder.set", "agent": "emma", "key": {}, "kind": "action"}
+{"src": "kriptoda şu an en çok yükselenler hangileri", "cmd": "market.crypto", "agent": "ekbot", "key": {}, "kind": "action"}
+{"src": "240'ın yüzde 35'i kaç", "cmd": "calc.eval", "agent": "chloe", "key": {}, "kind": "action"}
+{"src": "depodaki açık hataları özetle Eskay9633/signal-bot", "cmd": "repo.audit", "agent": "jack", "key": {}, "kind": "action"}
+{"src": "Google reklam metnim uygun mu: En ucuz telefonlar burada", "cmd": "ad.check", "agent": "maya", "key": {}, "kind": "action"}
+{"src": "yazdığın fonksiyonu bir de iris incelesin", "cmd": "work.check", "agent": "iris", "key": {}, "kind": "action"}
+{"src": "yarın sabah sekizde koşuya çıkmayı hatırlat", "cmd": "reminder.set", "agent": "emma", "key": {}, "kind": "action"}
+{"src": "bitcoin dolar bazında ne kadar", "cmd": "market.crypto", "agent": "ekbot", "key": {}, "kind": "action"}
+{"src": "notlarımda doktor geçen bir şey var mı", "cmd": "note.search", "agent": "chloe", "key": {}, "kind": "action"}
+{"src": "ters çevrilmiş bir listeyi döndüren kod yaz", "cmd": "code.run", "agent": "leo", "key": {}, "kind": "action"}
+{"src": "haftalık reklam bütçem 1500 TL, tık başı 3 TL, kaç tık eder", "cmd": "ad.budget", "agent": "maya", "key": {}, "kind": "action"}
+{"src": "bu metni yeniden kontrol et, hata var mı", "cmd": "work.check", "agent": "nora", "key": {}, "kind": "action"}
+{"src": "kahve içmek uykuyu etkiler mi", "cmd": "ask", "agent": "emma", "key": {}, "kind": "ask"}
+{"src": "bugünkü toplantılarımı göster", "cmd": "calendar.list", "agent": "emma", "key": {}, "kind": "action"}
+{"src": "ana sayfaya kripto kartı ekle", "cmd": "card.propose", "agent": "luna", "key": {}, "kind": "action"}
+{"src": "Murat'a az sonra çıkıyorum diye yaz", "cmd": "msg.reply", "agent": "zoe", "key": {}, "kind": "action"}
+{"src": "yeni bir güncellemen var mı", "cmd": "self.status", "agent": "david", "key": {}, "kind": "action"}
+{"src": "vergi beyannamesi takibi için yardımcı ajan ekle", "cmd": "agent.hire", "agent": "mike", "key": {}, "kind": "action"}
+{"src": "havaalanlarının seo örneklerini araştır", "cmd": "research.start", "agent": "sophia", "key": {}, "kind": "action"}
+{"src": "ornek-cafe.com sitemin seo eksiklerini bul", "cmd": "seo.audit", "agent": "grace", "key": {}, "kind": "action"}
